@@ -1,9 +1,9 @@
 #double check you have the packages below installed, some have dependencies
-from psychopy import visual, core, event, data
+from psychopy import visual, core, event, data, gui
 import csv, random, time, os
 
-# experiment_dir = "/Users/bcl/GitHub/pharylary/" #makes a variable that is the experiment directory
-experiment_dir = r"C:\Users\blang\Documents\pharylary-main" #makes a variable that is the experiment directory
+experiment_dir = "/Users/bcl/GitHub/pharylary/" #makes a variable that is the experiment directory
+# experiment_dir = r"C:\Users\blang\Documents\pharylary-main" #makes a variable that is the experiment directory
 os.chdir(experiment_dir) #tells the os to go to the directory every time
 
 """....................Stimtracker..........................................."""
@@ -31,9 +31,22 @@ os.chdir(experiment_dir) #tells the os to go to the directory every time
 
 
 """.................... Experiment and Participant info ......................"""
-expInfo={}
-expInfo["Participant"]=input("Participant: ")
-expInfo["Run"]=input("Prac-Expt: ")
+#expInfo={}
+#expInfo["Participant"]=""
+#expInfo["Run"]=""
+dlg = gui.Dlg(title="Participant Information", pos=(0,0), size=80)
+dlg.addField("Participant Number:")
+dlg.addField("Version (Prac/Expt):")
+info = dlg.show()
+
+# Check if the dialog box was canceled
+if dlg.OK:
+    # Get participant information from the dialog box
+    participant_number = info[0]
+    version = info[1]
+else:
+    # If canceled, quit the experiment
+    core.quit()
 #hit enter after these three lines and then it will ask you to put in the info, will only record if experiment actually runs
 
 
@@ -47,13 +60,12 @@ expInfo["Run"]=input("Prac-Expt: ")
 #rtClock creates an object that will be used to record the time of a given response, object is the time, the object then gets inserted into the class so every time it"s used, it records the time
 
 win = visual.Window(monitor="testMonitor", units="pix", fullscr=True, colorSpace="rgb255", color=[127,127,127])
-word = visual.TextStim(win,text="", font= "Arial", wrapWidth=None, pos = (0,0), alignText="center", height=80, color=(-1,-1,-1), languageStyle="Arabic")
-fixation = visual.TextStim(win, text="+", height=60, color=(-1,-1,-1))
-instructions = visual.TextStim(win,text="", font="Arial", wrapWidth=1000, alignText="center", height=50, color=(-1,-1,-1))
+word = visual.TextStim(win,text="", font= "Arial", wrapWidth=None, pos = (0,0), alignText="center", height=65, color=(-1,-1,-1), languageStyle="Arabic")
+#fixation = visual.TextStim(win, text="+", height=60, color=(-1,-1,-1))
+instructions = visual.TextStim(win,text="", font="Arial", wrapWidth=1000, alignText="center", height=40, color=(-1,-1,-1))
 rtClock = core.Clock()
 
 win.mouseVisible = False #This hides the mouse.
-
 
 
 """........................... Functions ...................................."""
@@ -101,14 +113,16 @@ def make_blocks(stim, n):
 
 
 """.......................Experiment starts here.............................."""
-
 ##---------------------------Practice-------------------------------------##
-if expInfo["Run"] == "Prac":
+if version == "Prac":
 
     with open("pharylary_practice.csv") as f:
         trials_practice = [i for i in csv.DictReader(f)]
 
     present_instructions("You will start the practice now. Please read each sentence aloud and speak at a casual pace.")
+    
+    # Shuffle the order of the trials
+    random.shuffle(trials_practice)
 
     for trial in trials_practice:
         # present_fix()
@@ -127,16 +141,19 @@ if expInfo["Run"] == "Prac":
 
 ##---------------------------Experiment-------------------------------------##
 
-elif expInfo["Run"] == "Expt":
+elif version == "Expt":
 
     with open("pharylary_stimuli.csv") as f:
         trials_experiment = [i for i in csv.DictReader(f)]
 
-    exp = data.ExperimentHandler(dataFileName="%s_logfile" %expInfo["Participant"], autoLog=False, savePickle=False)
+    exp = data.ExperimentHandler(dataFileName="%s_logfile" %participant_number, autoLog=False, savePickle=False)
 
     present_instructions("You will start the experiment now. Please read each sentence aloud and speak at a casual pace. Press the right arrow key to begin.")
 
-    trialnum = 0
+    # Shuffle the order of the trials
+    random.shuffle(trials_experiment)
+
+    trialnum = 1
     for trial in trials_experiment:
         # present_fix()
         text = "%s" %(trial["w1"])
@@ -149,13 +166,13 @@ elif expInfo["Run"] == "Expt":
 
         trialnum += 1
 
-        exp.addData("participant", expInfo["Participant"])
+        exp.addData("participant", participant_number)
         exp.addData("trialnum", trialnum)
         exp.addData("text", text)
         exp.addData("RT", resp[0][1])
         exp.nextEntry()
 
-    present_instructions("The experiment is over. Please lie still for a moment while we come to take you out of the MRI.")
+    present_instructions("The experiment is over. Please remain in your seat until the experimenter comes in.")
 
 win.close()
 core.quit()
