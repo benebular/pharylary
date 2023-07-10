@@ -46,10 +46,9 @@ expInfo['Run']=input('Prac-Expt: ')
 #rtClock creates an object that will be used to record the time of a given response, object is the time, the object then gets inserted into the class so every time it's used, it records the time
 
 win = visual.Window(monitor="testMonitor", units="pix", fullscr=True, colorSpace='rgb255', color=[127,127,127])
-word = visual.TextStim(win,text='', font= 'Arial', wrapWidth=None, pos = (0,0), alignText='center', height=60, color=(-1,-1,-1), languageStyle='Arabic')
-fixation = visual.TextStim(win, text='+', height=40, color=(-1,-1,-1))
-instructions = visual.TextStim(win,text='', font='Arial', wrapWidth=800, alignText='center', height=30, color=(-1,-1,-1))
-photodiode = visual.Rect(win, width=90, height=90, pos=[510,360], fillColor=[255,255,255], fillColorSpace='rgb255')
+word = visual.TextStim(win,text='', font= 'Arial', wrapWidth=None, pos = (0,0), alignText='center', height=80, color=(-1,-1,-1), languageStyle='Arabic')
+fixation = visual.TextStim(win, text='+', height=60, color=(-1,-1,-1))
+instructions = visual.TextStim(win,text='', font='Arial', wrapWidth=1000, alignText='center', height=50, color=(-1,-1,-1))
 rtClock = core.Clock()
 
 win.mouseVisible = False #This hides the mouse.
@@ -111,7 +110,7 @@ if expInfo['Run'] == 'Prac':
     present_instructions('You will start the practice now. Please read each sentence aloud and speak at a casual pace.')
 
     for trial in trials_practice:
-        present_fix()
+        # present_fix()
         text = '%s' %(trial['w1'])
         resp = present_word(text=text, photoDiode=False) #present target
         if resp[0][0] == 'q':
@@ -130,18 +129,18 @@ if expInfo['Run'] == 'Prac':
 elif expInfo['Run'] == 'Expt':
 
     with open('pharylary_stimuli.csv') as f:
-        trials_practice = [i for i in csv.DictReader(f)]
+        trials_experiment = [i for i in csv.DictReader(f)]
 
     exp = data.ExperimentHandler(dataFileName='%s_logfile' %expInfo['Participant'], autoLog=False, savePickle=False)
 
     present_instructions('You will start the experiment now. Please read each sentence aloud and speak at a casual pace. Press the right arrow key to begin.')
 
     trialnum = 0
-    for trial in trials_practice:
-        present_fix()
+    for trial in trials_experiment:
+        # present_fix()
         text = '%s' %(trial['w1'])
         resp = present_word(text=text, photoDiode=False) #present target
-        present_instructions('Great job! Please press the right arrow key to advance.')
+        present_instructions('Great job! Trial %s of %s. \n Please press the right arrow key to advance.'%(str(trialnum),str(len(trials_experiment))))
         win.flip()
         if resp[0][0] == 'q':
             win.close()
@@ -157,55 +156,5 @@ elif expInfo['Run'] == 'Expt':
 
     present_instructions('The experiment is over. Please lie still for a moment while we come to take you out of the MRI.')
 
-
-
-
-
-# Fix coming part
-
-
-
-##-------------------------Experiment------------------------------------##
-# elif expInfo['Run'] == 'Expt':
-#     #Importing stimuli
-#     with open('mri_stimuli.csv') as f:
-#         trials = [i for i in csv.DictReader(f)]
-#
-#     exp = data.ExperimentHandler(dataFileName='%s_logfile' %expInfo['Participant'], autoLog=False, savePickle=False)
-#
-#     present_instructions('Lexical decision task: index (2) for words, middle finger (1) for non words.')
-#
-#     #randomize and block the trials
-#     random.shuffle(trials)
-#     blocks = make_blocks(trials,4) #4 blocks in this case
-#     trialnum = 0
-#     blocknum = 0
-#     for block in blocks:
-#         if blocknum > 0:
-#             prompt = 'You have completed block #'+str(blocknum)+". Take a break, then press 1 when you are ready to continue."
-#             present_instructions(prompt)
-#
-#         for trial in block:
-#             present_fix()
-#             resp = present_word(text=trial['target'])
-#             win.flip()
-#             if resp[0][0] == 'q':
-#                 win.close()
-#                 core.quit()
-#             core.wait(random.gauss(1.0,0.167)) #isi
-#             trialnum += 1
-#
-#             exp.addData('participant', expInfo['Participant'])
-#             exp.addData('trialnum', trialnum)
-#             exp.addData('target', trial['target'])
-#             exp.addData('target_type', trial['target_type'])
-#             exp.addData('trigger', trial['trigger'])
-#             exp.addData('RT', resp[0][1])
-#             exp.nextEntry()
-#
-#         blocknum += 1
-# #
-#     present_instructions('The experiment is over. Thank you.')
-#
 win.close()
 core.quit()
