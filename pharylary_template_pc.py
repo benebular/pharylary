@@ -153,7 +153,7 @@ elif version == "Expt":
     # Shuffle the order of the trials
     random.shuffle(trials_experiment)
 
-    trialnum = 1
+    trialnum = 0
     for trial in trials_experiment:
         # present_fix()
         text = "%s" %(trial["w1"])
