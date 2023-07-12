@@ -1,6 +1,9 @@
 #double check you have the packages below installed, some have dependencies
-from psychopy import visual, core, event, data, gui
+# -*- coding: utf-8 -*-
+from psychopy import visual, core, event, data, gui, prefs
 import csv, random, time, os
+#import pygame
+#prefs.general['audioLib'] = ['pygame']
 
 experiment_dir = "/Users/bcl/GitHub/pharylary/" #makes a variable that is the experiment directory
 # experiment_dir = r"C:\Users\blang\Documents\pharylary-main" #makes a variable that is the experiment directory
@@ -110,13 +113,19 @@ def make_blocks(stim, n):
         random.shuffle(i)
     return out
 
-
+#def set_arabic_text(text):
+#    pygame.font.init()
+#    arabic_font = pygame.font.Font("/System/Library/Fonts/Supplemental/Tahoma.ttf", 60)  # Replace with the path to your Arabic font file
+#    text_surf = arabic_font.render(text, True, (0, 0, 0))
+#    text_image = pygame.surfarray.make_surface(text_surf)
+#    text_texture = visual.ImageStim(win, image=text_image, interpolate=False, size=text_image.get_size())
+#    return text_texture
 
 """.......................Experiment starts here.............................."""
 ##---------------------------Practice-------------------------------------##
 if version == "Prac":
 
-    with open("pharylary_practice.csv") as f:
+    with open("pharylary_practice.csv", encoding="utf8") as f:
         trials_practice = [i for i in csv.DictReader(f)]
 
     present_instructions("You will start the practice now. Please read each sentence aloud and speak at a casual pace.")
@@ -143,7 +152,7 @@ if version == "Prac":
 
 elif version == "Expt":
 
-    with open("pharylary_stimuli.csv") as f:
+    with open("pharylary_stimuli.csv", encoding = "utf8") as f:
         trials_experiment = [i for i in csv.DictReader(f)]
 
     exp = data.ExperimentHandler(dataFileName="%s_logfile" %participant_number, autoLog=False, savePickle=False)
@@ -157,7 +166,12 @@ elif version == "Expt":
     for trial in trials_experiment:
         # present_fix()
         text = "%s" %(trial["w1"])
+        # Set the fully voweled Arabic text
+#        text_texture = set_arabic_text(text)
         resp = present_word(text=text, photoDiode=False) #present target
+#        resp = text_texture.draw()
+#        win.flip()
+#        event.waitKeys(keyList=["right", "q"], timeStamped=rtClock)
         present_instructions("Great job! Trial %s of %s. \n Please press the right arrow key to advance."%(str(trialnum),str(len(trials_experiment))))
         win.flip()
         if resp[0][0] == "q":
