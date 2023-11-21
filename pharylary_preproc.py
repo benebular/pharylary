@@ -11,6 +11,8 @@ import textgrid
 output_dir = '/Volumes/circe/vs/output'
 input_dir = '/Volumes/circe/vs/input'
 
+os.chdir(output_dir)
+
 # vs_output = pd.read_csv(os.path.join(output_dir, 'output.txt'), sep='\t')
 # tg = textgrid.TextGrid.fromFile(os.path.join(input_dir, 'Y0395_expt_1_1_1.TextGrid'))
 # point_tier = tg.getFirst('comment')
@@ -28,7 +30,7 @@ all_relevant_data = pd.DataFrame()
 tiers_to_process = ['phonetic', 'glottis', 'V-sequence', 'word']
 
 # Identify your point tier
-point_tier = tg.getFirst('comment')
+# point_tier = tg.getFirst('comment')
 
 
 # Iterate over each file in the TextGrid folder
@@ -36,6 +38,8 @@ for filename in os.listdir(textgrid_folder):
     if filename.endswith('.TextGrid'):  # Check if the file is a TextGrid file
         filepath = os.path.join(textgrid_folder, filename)
         tg = textgrid.TextGrid.fromFile(filepath)
+        # # Identify your point tier
+        point_tier = tg.getFirst('comment')
 
         # Assign variables for each tier
         tiers = {tier_name: tg.getFirst(tier_name) for tier_name in tiers_to_process}
@@ -107,6 +111,14 @@ cols.insert(comments_col_idx + 2, cols.pop(phrase_num_idx))
 
 # Reassign reordered columns to DataFrame
 all_relevant_data = all_relevant_data[cols]
+
+### duration column
+all_relevant_data['duration'] = all_relevant_data['seg_End'] - all_relevant_data['seg_Start']
+
+### proportion column
+
+all_relevant_data['t_prop'] = all_relevant_data.apply(lambda row: (row['t_ms'] - row['seg_Start']) / row['duration'] if row['t_ms'] - row['seg_Start'] > 0 else 0, axis=1)
+all_relevant_data['t_prop'] = all_relevant_data['t_prop'] * 100
 
 # Output the final DataFrame
 # print(all_relevant_data)
