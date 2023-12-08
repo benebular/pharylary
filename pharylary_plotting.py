@@ -8,10 +8,12 @@ import numpy as np
 import statsmodels.api as sm
 from statsmodels.sandbox.regression.predstd import wls_prediction_std
 
-data = pd.read_csv('/Volumes/circe/vs/output/preproc_output.csv', encoding='utf8')
+data = pd.read_csv('/Volumes/circe/vs/output_preproc/preproc_output.csv', encoding='utf8')
 data = data[data['tier'] == 'V-sequence']
 # grouped = data.pivot_table(index = ['phrase'], columns = 'tier', values='strF0', aggfunc=np.mean)
-subset_data = data[(data['interval'] == 'V-ħ-V') | (data['interval'] == 'V-h-V') | (data['interval'] == 'V-ʔ-V') | (data['interval'] == 'V-ʕ-V')]
+# subset_data = data[(data['interval'] == 'V-ħ-V') | (data['interval'] == 'V-h-V') | (data['interval'] == 'V-ʔ-V') | (data['interval'] == 'V-ʕ-V')]
+subset_data = data[(data['interval'] == 'ħ-V') | (data['interval'] == 'h-V') | (data['interval'] == 'ʔ-V') | (data['interval'] == 'ʕ-V')]
+
 
 # Grouping data by 'phrase' and 'label'
 grouped = subset_data.groupby(['phrase', 'interval'])
@@ -22,8 +24,11 @@ plt.figure(figsize=(10, 6))
 #     plt.scatter(group['t_prop'], group['strF0'], label=f'{name[0]}, {name[1]}')
 
 # Colors for the regression lines
-# colors = {'ħ': 'red', 'h': 'blue'}
+# colors = {'V-ħ-V': '#fdae61', 'V-h-V': '#018571', 'V-ʔ-V': '#2c7bb6', 'V-ʕ-V':'#d7191c'}
+colors = {'ħ-V': '#fdae61', 'h-V': '#018571', 'ʔ-V': '#2c7bb6', 'ʕ-V':'#d7191c'}
 
+
+# degree for smoothing function of polynomial fit
 degree = 2
 
 # Fit and plot regression model for each label
@@ -44,20 +49,27 @@ degree = 2
 labels = subset_data['interval'].unique()
 for label in labels:
     subset = subset_data[subset_data['interval'] == label]
+    subset = subset[subset['H1H2c'].notna()]
+
+    # plot raw scatter
+    plt.scatter(subset['t_prop'], subset['H1H2c'], color=colors[label], alpha=0.05, label=f'Scatter {label}')
+
     # Fit polynomial
-    coefs = np.polyfit(subset['t_prop'], subset['CPP'], degree)
+    coefs = np.polyfit(subset['t_prop'], subset['H1H2c'], degree)
+
     # Evaluate polynomial
     polynomial = np.poly1d(coefs)
     t_prop_sorted = np.sort(subset['t_prop'])
-    plt.plot(t_prop_sorted, polynomial(t_prop_sorted), label=f'{label}')
+    plt.plot(t_prop_sorted, polynomial(t_prop_sorted), color=colors[label], label=f'Regression {label}', linewidth=2.0)
 
 # set x-axis for plot
 plt.xlim(0,100)
+# plt.ylim(0,25)
 
 # Adding title, labels, and legend
-plt.title('CPP Over Proportional Time with Polynomial Regression Lines')
+plt.title('H1H2c Over Proportional Time with Polynomial Regression Lines (degree = 2)')
 plt.xlabel('Proportional Time (t_prop)')
-plt.ylabel('CPP')
+plt.ylabel('H1H2c')
 plt.legend()
 
 # Show plot
