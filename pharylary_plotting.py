@@ -7,13 +7,16 @@ import pandas as pd
 import numpy as np
 import statsmodels.api as sm
 from statsmodels.sandbox.regression.predstd import wls_prediction_std
+from statsmodels.gam.api import GLMGam, BSplines
+# from statsmodels.families import Gaussian
 from pygam import LinearGAM, s
 
 # with pd.option_context('display.max_rows', None, 'display.max_columns', None):  # more options can be specified also
 #     print(data[['interval','Position','Position_2']])
 
 
-data = pd.read_csv('/Volumes/circe/vs/output_preproc/preproc_output.csv', encoding='utf8')
+# data = pd.read_csv('/Volumes/circe/vs/output_preproc/preproc_output.csv', encoding='utf8')
+data = pd.read_csv('/Users/bcl/Desktop/preproc_output.csv', encoding='utf8')
 data = data[data['tier'] == 'V-sequence']
 
 # exclude the consonants for now
@@ -31,7 +34,9 @@ color_dict = {'ħ-V': '#1b9e77', 'h-V': '#d95f02', 'ʔ-V': '#7570b3', 'ʕ-V':'#e
 acoustic_features = ['H1H2c','CPP','HNR05','SHR','strF0','soe','energy_prop','sF1','sF2','sF3']
 
 # Identify features and positions
-features = ['H1H2c','CPP','HNR05']
+features = ['H1H2c','CPP','soe'] ## gamm plot
+# features = ['SHR','strF0','HNR05'] ## gamm plot 2
+# features = ['sF1','sF2','sF3'] ## gamm plot 3
 positions = data['Position_2'].unique()
 
 # establish labels of interest
@@ -47,6 +52,9 @@ position_label_map = {
     'VC': ['V-ħ', 'V-h', 'V-ʔ', 'V-ʕ'],
     # Add more mappings as needed
 }
+
+# Define the colors for the specified labels
+label_colors = {'h': '#d95f02', 'ʔ': '#7570b3', 'ħ': '#1b9e77', 'ʕ': '#e7298a'}
 
 # Modify the positions list to reflect the swapping of first and third columns
 # Swap 'Pos1' and 'Pos3' in the positions list
@@ -89,17 +97,37 @@ for i, feature in enumerate(features):
         for label in designated_labels:
             label_subset = subset[subset['interval'] == label]
 
-            # Fit GAM for this label subset
-            gam = LinearGAM(s(0)).fit(label_subset['t_prop'], label_subset[feature])
+            # Define the spline for the model
+            x_spline = BSplines(label_subset['t_prop'], df=[4], degree=[3])
 
-            # Make predictions
+            # Fit the GAM model
+            gam = GLMGam.from_formula('%s ~ 1'%feature, data=label_subset, smoother=x_spline)
+            gam_results = gam.fit()
+
+            # Generate predictions for the plot
             XX = np.linspace(label_subset['t_prop'].min(), label_subset['t_prop'].max(), 100)
-            predictions = gam.predict(XX)
-            intervals = gam.confidence_intervals(XX, width=.95)
+            XX_df = pd.DataFrame({'t_prop': XX})
 
-            # Plotting in subplot
+            # Create predictions and confidence intervals
+            predictions = gam_results.predict(XX)
+            pred_conf_int = gam_results.get_prediction(XX).conf_int()
+
+            # Plotting
             ax.plot(XX, predictions, color=color_dict[label], label=f'{label}', linewidth=1.5)
-            ax.fill_between(XX, intervals[:, 0], intervals[:, 1], color=color_dict[label], alpha=0.2)
+            ax.fill_between(XX, pred_conf_int[:, 0], pred_conf_int[:, 1], color=color_dict[label], alpha=0.2)
+
+            # # pyGAM API
+            # # Fit GAM for this label subset
+            # gam = LinearGAM(s(0)).fit(label_subset['t_prop'], label_subset[feature])
+
+            # # Make predictions
+            # XX = np.linspace(label_subset['t_prop'].min(), label_subset['t_prop'].max(), 100)
+            # predictions = gam.predict(XX)
+            # intervals = gam.confidence_intervals(XX, width=.95)
+
+            # # Plotting in subplot
+            # ax.plot(XX, predictions, color=color_dict[label], label=f'{label}', linewidth=1.5)
+            # ax.fill_between(XX, intervals[:, 0], intervals[:, 1], color=color_dict[label], alpha=0.2)
 
         ax.set_title(f'{position}')
         ax.set_xlabel('Proportional Time (t_prop)')
@@ -119,7 +147,6 @@ for i in range(3):
     y_lims_per_row[i] = (min_y, max_y)
 
 # Second pass: apply settings
-line_objects = []  # To store line objects for the legend
 for i in range(3):
     for j in range(3):
         idx = i * 3 + j
@@ -138,17 +165,25 @@ for i in range(3):
             ax.set_ylabel('')
             ax.tick_params(axis='y', colors='none')  # Hide y-axis ticks
 
-        # Turn off the legend for the first and second column
-        if i % 3 != 2:
-            ax.legend().remove()
+        # # Turn off the legend for the first and second column
+        # if i % 3 != 2:
+        #     ax.legend().remove()
+
+for ax in axs:
+    ax.legend().remove()
 
 # Add a common x-axis label
-fig.text(0.5, 0.02, 'Proportional Time', ha='center', va='center', fontsize=16)
+fig.text(0.5, 0.06, 'Proportional Time', ha='center', va='center', fontsize=16)
 
 # Adding an overall title to the plot
 fig.suptitle('Acoustic Features Over Proportional Time for Laryngeal and Pharyngeal Consonants', fontsize=18)
 
-plt.tight_layout(rect=[0, 0.03, 1, 0.95])
+# Create a single shared legend at the bottom of the figure
+# Using dummy line objects for the legend
+line_objects = [plt.Line2D([0], [0], color=color, linewidth=4) for color in label_colors.values()]
+fig.legend(line_objects, label_colors.keys(), loc='upper center', bbox_to_anchor=(0.5, 0.94), ncol=len(label_colors), fontsize=16)
+
+# plt.tight_layout(rect=[0, 0.03, 1, 0.95])
 # plt.savefig('/Users/bcl/Library/CloudStorage/GoogleDrive-blang@ucsd.edu/My Drive/Dissertation/experiment1/figs/gamm_plot.png', dpi=300)  # Save the figure with 300 dpi
 # plt.close(fig)  # Close the figure after saving
 plt.show()
@@ -157,6 +192,8 @@ plt.show()
 ##################
 ### HUGE PLOTS ###
 ##################
+
+
 data = data[data['tier'] == 'V-sequence']
 data = data[(data['interval'] == 'ħ-V') | (data['interval'] == 'h-V') | (data['interval'] == 'ʔ-V') | (data['interval'] == 'ʕ-V') |
                     (data['interval'] == 'V-ħ-V') | (data['interval'] == 'V-h-V') | (data['interval'] == 'V-ʔ-V') | (data['interval'] == 'V-ʕ-V') |

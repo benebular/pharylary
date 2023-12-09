@@ -57,7 +57,8 @@ ms_facets <- list(
   )
 )
 
-data_path <- sprintf('/Volumes/circe/vs/output_preproc/preproc_output.csv')
+# data_path <- sprintf('/Volumes/circe/vs/output_preproc/preproc_output.csv')
+data_path <- sprintf('/Users/bcl/Desktop/preproc_output.csv')
 data = read.csv(data_path)
 
 predict_with_se <- function(model, newdata, ...) {
@@ -80,13 +81,50 @@ subset_subset = subset(subset, interval == 'ħ-V' | interval == 'h-V' | interval
                          interval == 'V-ħ' | interval == 'V-h' | interval == 'V-ʔ' | interval == 'V-ʕ')
 
 subset_subset$interval <- as.factor(subset_subset$interval)
-contrasts(subset_subset$interval) <- contr.sum(12)
 
-subset_subset_newdata <- crossing(
+initial_data <- subset_subset %>%
+  filter(Position_2 == "CV")
+
+medial_data <- subset_subset %>%
+  filter(Position_2 == "VCV")
+
+final_data <- subset_subset %>%
+  filter(Position_2 == "VC")
+
+# contrasts(initial_data$interval) <- contr.sum(4)
+# contrasts(medial_data$interval) <- contr.sum(4)
+# contrasts(final_data$interval)   <- contr.sum(4)
+# 
+# subset_subset$interval <- as.factor(subset_subset$interval)
+# contrasts(subset_subset$interval) <- contr.sum(12)
+
+initial_newdata <- crossing(
   interval = names(ms_colors),
-  t_norm  = seq(0, 0.5, by = 0.01)
+  t_prop  = seq(0, 1, by = 0.01)
 )
 
+medial_newdata <- crossing(
+  interval = names(ms_colors),
+  t_prop  = seq(0, 1, by = 0.01)
+)
+
+medial_newdata <- crossing(
+  interval = names(ms_colors),
+  t_prop  = seq(0, 1, by = 0.01)
+)
+
+
+bind_rows(initial_data, medial_data, final_data) %>%
+  group_by(participant) %>%
+  mutate(
+    H1H2z    = H1H2c - mean(H1H2c, na.rm = TRUE)
+  ) %>%
+  ungroup() %>%
+  ggplot(aes(t_prop, H1H2z, color = interval)) +
+  geom_smooth(fill = NA) +
+  facet_wrap(~ Position_2, scales = "free_x") +
+  ms_facets +
+  labs(x = "Proportion of time", y = "H1*-H2* (centered within-speaker)")
 
 
 subset_subset %>%
