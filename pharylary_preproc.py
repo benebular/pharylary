@@ -136,7 +136,15 @@ all_relevant_data['energy_prop'] = (all_relevant_data['Energy'] - all_relevant_d
 ### duration column
 all_relevant_data['duration'] = all_relevant_data['t_max'] - all_relevant_data['t_min']
 
+### add in other data from google sheet ###
+stim_meta = pd.read_csv('/Users/bcl/GitHub/pharylary/PharyLary Stimuli - Yes.csv')
+stim_meta_df = stim_meta[['Phrasenum','IPA','Gloss','Gloss 2','Syllable','Segment','Type','Position','Position 2','Contrast (IPA)','Contrast','Experiment']]
+stim_meta_df = stim_meta_df.rename(columns={'Phrasenum':'phrase'})
+stim_meta_df = stim_meta_df.astype({'phrase': int})
+all_relevant_data = all_relevant_data.astype({'phrase': int})
+all_data = pd.merge(all_relevant_data, stim_meta_df, on='phrase', how='inner')
+
 # Output the final DataFrame
 # print(all_relevant_data)
 # Optionally, save to a file
-all_relevant_data.to_csv('preproc_output.csv', index=False)
+all_data.to_csv('preproc_output.csv', index=False)

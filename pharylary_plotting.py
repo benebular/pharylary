@@ -7,14 +7,233 @@ import pandas as pd
 import numpy as np
 import statsmodels.api as sm
 from statsmodels.sandbox.regression.predstd import wls_prediction_std
+from pygam import LinearGAM, s
+
+# with pd.option_context('display.max_rows', None, 'display.max_columns', None):  # more options can be specified also
+#     print(data[['interval','Position','Position_2']])
+
 
 data = pd.read_csv('/Volumes/circe/vs/output_preproc/preproc_output.csv', encoding='utf8')
 data = data[data['tier'] == 'V-sequence']
-# grouped = data.pivot_table(index = ['phrase'], columns = 'tier', values='strF0', aggfunc=np.mean)
-# subset_data = data[(data['interval'] == 'V-ħ-V') | (data['interval'] == 'V-h-V') | (data['interval'] == 'V-ʔ-V') | (data['interval'] == 'V-ʕ-V')]
-subset_data = data[(data['interval'] == 'ħ-V') | (data['interval'] == 'h-V') | (data['interval'] == 'ʔ-V') | (data['interval'] == 'ʕ-V')]
+
+# exclude the consonants for now
+exclude_intervals = ['V-h-C','C-h-V','C-ħ-V','C-h','C-ħ','C-ʕ-V','V-ʔ-C','V-ħ-C']
+
+# Filter the DataFrame
+data = data[~data['interval'].isin(exclude_intervals)]
+
+## assign colors consistently so they match the consonants
+color_dict = {'ħ-V': '#1b9e77', 'h-V': '#d95f02', 'ʔ-V': '#7570b3', 'ʕ-V':'#e7298a',
+            'V-ħ-V': '#1b9e77', 'V-h-V': '#d95f02', 'V-ʔ-V': '#7570b3', 'V-ʕ-V':'#e7298a',
+            'V-ħ': '#1b9e77', 'V-h': '#d95f02', 'V-ʔ': '#7570b3', 'V-ʕ':'#e7298a'}
+
+# make a big list of acoustic features you are interested in
+acoustic_features = ['H1H2c','CPP','HNR05','SHR','strF0','soe','energy_prop','sF1','sF2','sF3']
+
+# Identify features and positions
+features = ['H1H2c','CPP','HNR05']
+positions = data['Position_2'].unique()
+
+# establish labels of interest
+# all_labels = ['ħ-V', 'h-V', 'ʔ-V', 'ʕ-V', 'V-ħ-V', 'V-h-V', 'V-ʔ-V', 'V-ʕ-V', 'V-ħ', 'V-h', 'V-ʔ', 'V-ʕ']
+initial_labels = ['ħ-V', 'h-V', 'ʔ-V', 'ʕ-V']
+medial_labels = ['V-ħ-V', 'V-h-V', 'V-ʔ-V', 'V-ʕ-V']
+final_labels = ['V-ħ', 'V-h', 'V-ʔ', 'V-ʕ']
+
+# Define a mapping of positions to their respective labels
+position_label_map = {
+    'CV': ['ħ-V', 'h-V', 'ʔ-V', 'ʕ-V'],
+    'VCV': ['V-ħ-V', 'V-h-V', 'V-ʔ-V', 'V-ʕ-V'],
+    'VC': ['V-ħ', 'V-h', 'V-ʔ', 'V-ʕ'],
+    # Add more mappings as needed
+}
+
+# Modify the positions list to reflect the swapping of first and third columns
+# Swap 'Pos1' and 'Pos3' in the positions list
+positions[0], positions[2] = positions[2], positions[0]
+
+# Create a 3x3 grid of subplots
+fig, axs = plt.subplots(3, 3, figsize=(15, 15))
+axs = axs.flatten()  # Flatten for easy indexing
+
+# Loop over each combination of feature and position
+for i, feature in enumerate(features):
+
+    # Dropping rows where required columns have NaNs
+    data = data.dropna(subset=[feature])
+
+    for j, position in enumerate(positions):
+
+        # Determine the subplot index
+        idx = i * len(positions) + j
+        ax = axs[idx]
+
+        # Get the designated labels for this position
+        designated_labels = position_label_map.get(position, [])
+
+        # Filter data for this feature and position
+        subset = data[(data['Position_2'] == position) & (data['interval'].isin(designated_labels))]
+
+        # Fit and plot GAM for each label
+        # if pos == 'init':
+        #     labels = initial_labels
+        # if pos == 'med':
+        #     labels = medial_labels
+        # if pos == 'fin':
+        #     labels = final_labels
+
+        # if subset.empty:
+        #     ax.axis('off')  # Turn off axis for empty subplots
+        #     continue  # Skip the rest of the loop for empty subsets
+
+        for label in designated_labels:
+            label_subset = subset[subset['interval'] == label]
+
+            # Fit GAM for this label subset
+            gam = LinearGAM(s(0)).fit(label_subset['t_prop'], label_subset[feature])
+
+            # Make predictions
+            XX = np.linspace(label_subset['t_prop'].min(), label_subset['t_prop'].max(), 100)
+            predictions = gam.predict(XX)
+            intervals = gam.confidence_intervals(XX, width=.95)
+
+            # Plotting in subplot
+            ax.plot(XX, predictions, color=color_dict[label], label=f'{label}', linewidth=1.5)
+            ax.fill_between(XX, intervals[:, 0], intervals[:, 1], color=color_dict[label], alpha=0.2)
+
+        ax.set_title(f'{position}')
+        ax.set_xlabel('Proportional Time (t_prop)')
+        ax.set_ylabel(feature)
+        ax.legend()
+
+# First pass: determine y-axis limits for each row
+y_lims_per_row = [None] * 3
+for i in range(3):
+    min_y, max_y = float('inf'), float('-inf')
+    for j in range(3):
+        idx = i * 3 + j
+        ax = axs[idx]
+        current_min, current_max = ax.get_ylim()
+        min_y = min(min_y, current_min)
+        max_y = max(max_y, current_max)
+    y_lims_per_row[i] = (min_y, max_y)
+
+# Second pass: apply settings
+line_objects = []  # To store line objects for the legend
+for i in range(3):
+    for j in range(3):
+        idx = i * 3 + j
+        ax = axs[idx]
+        ax.set_ylim(y_lims_per_row[i])  # Standardize y-axis
+        ax.grid(color='grey', alpha=0.3, linestyle='-', which='both')  # Apply grid
+
+        # Remove x-axis labels but keep ticks
+        ax.set_xlabel('')
+        ax.tick_params(axis='x', which='both', length=6)  # Adjust x-tick properties if needed
+
+        # Adjust y-axis for first column only
+        if j == 0:
+            ax.set_ylabel(ax.get_ylabel(), fontsize=16)  # Increase y-axis label font size
+        else:
+            ax.set_ylabel('')
+            ax.tick_params(axis='y', colors='none')  # Hide y-axis ticks
+
+        # Turn off the legend for the first and second column
+        if i % 3 != 2:
+            ax.legend().remove()
+
+# Add a common x-axis label
+fig.text(0.5, 0.02, 'Proportional Time', ha='center', va='center', fontsize=16)
+
+# Adding an overall title to the plot
+fig.suptitle('Acoustic Features Over Proportional Time for Laryngeal and Pharyngeal Consonants', fontsize=18)
+
+plt.tight_layout(rect=[0, 0.03, 1, 0.95])
+# plt.savefig('/Users/bcl/Library/CloudStorage/GoogleDrive-blang@ucsd.edu/My Drive/Dissertation/experiment1/figs/gamm_plot.png', dpi=300)  # Save the figure with 300 dpi
+# plt.close(fig)  # Close the figure after saving
+plt.show()
 
 
+##################
+### HUGE PLOTS ###
+##################
+data = data[data['tier'] == 'V-sequence']
+data = data[(data['interval'] == 'ħ-V') | (data['interval'] == 'h-V') | (data['interval'] == 'ʔ-V') | (data['interval'] == 'ʕ-V') |
+                    (data['interval'] == 'V-ħ-V') | (data['interval'] == 'V-h-V') | (data['interval'] == 'V-ʔ-V') | (data['interval'] == 'V-ʕ-V') |
+                    (data['interval'] == 'V-ħ') | (data['interval'] == 'V-h') | (data['interval'] == 'V-ʔ') | (data['interval'] == 'V-ʕ')]
+
+acoustic_features = ['H1H2c','CPP','HNR05','SHR','strF0','soe','energy_prop','sF1','sF2','sF3']
+# acoustic_features = ['sF1','sF2','sF3']
+color_dict = {'ħ-V': '#1b9e77', 'h-V': '#d95f02', 'ʔ-V': '#7570b3', 'ʕ-V':'#e7298a',
+            'V-ħ-V': '#1b9e77', 'V-h-V': '#d95f02', 'V-ʔ-V': '#7570b3', 'V-ʕ-V':'#e7298a',
+            'V-ħ': '#1b9e77', 'V-h': '#d95f02', 'V-ʔ': '#7570b3', 'V-ʕ':'#e7298a'}
+
+# Create a 3x3 grid of subplots
+fig, axs = plt.subplots(2, 5, figsize=(20, 10))
+axs = axs.flatten()  # Flatten the 2D array of axes for easier indexing
+
+initial_labels = ['ħ-V', 'h-V', 'ʔ-V', 'ʕ-V']
+medial_labels = ['V-ħ-V', 'V-h-V', 'V-ʔ-V', 'V-ʕ-V']
+final_labels = ['V-ħ', 'V-h', 'V-ʔ', 'V-ʕ']
+
+label_dict = {'initial': initial_labels, 'medial': medial_labels, 'final':final_labels}
+
+for i, feature in enumerate(acoustic_features):
+    # Dropping rows where 't_prop' or 'Acoustic Value' is NaN
+    data = data.dropna(subset=['t_prop', feature])
+
+    # grouped = data.pivot_table(index = ['phrase'], columns = 'tier', values='strF0', aggfunc=np.mean)
+    # subset_data = data[(data['interval'] == 'V-ħ-V') | (data['interval'] == 'V-h-V') | (data['interval'] == 'V-ʔ-V') | (data['interval'] == 'V-ʕ-V')]
+    # subset_data = data[(data['interval'] == 'ħ-V') | (data['interval'] == 'h-V') | (data['interval'] == 'ʔ-V') | (data['interval'] == 'ʕ-V')]
+
+    # # Plotting
+    # plt.figure(figsize=(10, 6))
+
+    # # Add grid
+    # plt.grid(color='grey', alpha=0.3)
+
+    for label in final_labels:
+        subset = data[data['interval'] == label]
+
+        # Fitting a GAM
+        gam = LinearGAM(s(0)).fit(subset['t_prop'], subset[feature])
+
+        # Make predictions
+        XX = np.linspace(subset['t_prop'].min(), subset['t_prop'].max(), 100)
+        predictions = gam.predict(XX)
+        intervals = gam.confidence_intervals(XX, width=.95)
+
+        # Plotting the spline
+        axs[i].plot(XX, predictions, color=color_dict[label], label=f'{label}')
+        axs[i].fill_between(XX, intervals[:, 0], intervals[:, 1], color=color_dict[label], alpha=0.2)
+
+    # Adding title, labels, and legend
+    axs[i].set_title(f'Acoustic Feature: {feature}')
+    axs[i].set_xlabel('Proportional Time (t_prop)')
+    axs[i].set_ylabel(f'{feature}')
+    axs[i].legend()
+    axs[i].grid(color='grey',alpha=0.3)
+
+# Hide any unused subplots
+for j in range(i + 1, 10):
+    axs[j].axis('off')
+
+# Adding an overall title to the plot
+fig.suptitle('Acoustic Features Over Proportional Time for Laryngeal and Pharyngeal Consonants in VCV Position', fontsize=16)
+
+# Show plot
+plt.tight_layout()
+plt.show()
+
+
+
+
+
+
+
+#########################
+####### OLD STUFF #######
+#########################
 # Grouping data by 'phrase' and 'label'
 grouped = subset_data.groupby(['phrase', 'interval'])
 

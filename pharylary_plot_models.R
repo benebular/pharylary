@@ -87,13 +87,15 @@ subset_subset_newdata <- crossing(
   t_norm  = seq(0, 0.5, by = 0.01)
 )
 
+
+
 subset_subset %>%
   # mutate(
   #   H1H2z    = H1H2c - mean(H1H2c, na.rm = TRUE),
   # ) %>%
   ggplot(aes(t_prop, H1H2c, color = interval)) +
-  geom_smooth(fill = NA) +
-  facet_wrap(~ factor(interval, c('h-V','ʔ-V','ħ-V','ʕ-V','V-h-V','V-ʔ-V','V-ħ-V','V-ʕ-V','V-h','V-ʔ','V-ħ','V-ʕ')), scales = "free_x", ncol=4) +
+  geom_smooth(method = 'gam', fill = NA) +
+  facet_wrap(~ factor(Position_2, c('CV','VCV','VC')), scales = "free_x", ncol=3) +
   ms_facets +
   labs(x = "Proportion of interval duration", y = "H1*-H2*")
 
@@ -102,7 +104,7 @@ subset_subset %>%
   #   CPPz    = CPP - mean(CPP, na.rm = TRUE),
   # ) %>%
   ggplot(aes(t_prop, CPP, color = interval)) +
-  geom_smooth(fill = NA) +
+  geom_smooth(method = 'gam', fill = NA) +
   facet_wrap(~ factor(interval, c('h-V','ʔ-V','ħ-V','ʕ-V','V-h-V','V-ʔ-V','V-ħ-V','V-ʕ-V','V-h','V-ʔ','V-ħ','V-ʕ')), scales = "free_x", ncol=4) +
   ms_facets +
   labs(x = "Proportion of interval duration", y = "CPP")
@@ -112,7 +114,7 @@ subset_subset %>%
   #   f0z    = strF0 - mean(strF0, na.rm = TRUE),
   # ) %>%
   ggplot(aes(t_prop, strF0, color = interval)) +
-  geom_smooth(fill = NA) +
+  geom_smooth(method = 'gam', fill = NA) +
   facet_wrap(~ factor(interval, c('h-V','ʔ-V','ħ-V','ʕ-V','V-h-V','V-ʔ-V','V-ħ-V','V-ʕ-V','V-h','V-ʔ','V-ħ','V-ʕ')), scales = "free_x", ncol=4) +
   ms_facets +
   labs(x = "Proportion of interval duration", y = "f0")
@@ -122,7 +124,7 @@ subset_subset %>%
   #   f0z    = strF0 - mean(strF0, na.rm = TRUE),
   # ) %>%
   ggplot(aes(t_prop, energy_prop, color = interval)) +
-  geom_smooth(fill = NA) +
+  geom_smooth(method = 'gam', fill = NA) +
   facet_wrap(~ factor(interval, c('h-V','ʔ-V','ħ-V','ʕ-V','V-h-V','V-ʔ-V','V-ħ-V','V-ʕ-V','V-h','V-ʔ','V-ħ','V-ʕ')), scales = "free_x", ncol=4) +
   ms_facets +
   labs(x = "Proportion of interval duration", y = "RMS Energy (normalized)")
@@ -132,35 +134,35 @@ subset_subset %>%
   #   SoEz    = soe - mean(soe, na.rm = TRUE),
   # ) %>%
   ggplot(aes(t_prop, soe, color = interval)) +
-  geom_smooth(fill = NA) +
+  geom_smooth(method = 'gam', fill = NA) +
   facet_wrap(~ factor(interval, c('h-V','ʔ-V','ħ-V','ʕ-V','V-h-V','V-ʔ-V','V-ħ-V','V-ʕ-V','V-h','V-ʔ','V-ħ','V-ʕ')), scales = "free_x", ncol=4) +
   ms_facets +
   labs(x = "Proportion of interval duration", y = "SoE")
 
 
-# mod_H1H2c <- lmer(
-#   formula = H1H2c ~
-#     interval + (1 | phrase),
-#   data = subset_subset
-# )
-# 
-# predictions <- bind_rows(
-#   mutate(predict_with_se(mod_H1H2c, subset_subset_newdata, re.form = NA),
-#          position = "Intervals"
-#   )
-# ) %>%
-#   mutate(
-#     interval  = fct_relevel(interval, names(ms_colors))
-#   )
-# 
-# ggplot(
-#   predictions,
-#   aes(
-#     x = t_norm, y = H1H2c,
-#     ymin = H1H2c - standard_error, ymax = H1H2c + standard_error,
-#     color = interval, fill = interval)) +
-#   geom_smooth(stat = "identity", alpha = 0.25) +
-#   facet_wrap(~ factor(interval, c('h-V','ʔ-V','ħ-V','ʕ-V','V-h-V','V-ʔ-V','V-ħ-V','V-ʕ-V','V-h','V-ʔ','V-ħ','V-ʕ')), scales = "free_x") +
-#   ms_facets +
-#   labs(x = "Proportion of vowel duration", y = "H1*-H2*") +
-#   theme(strip.text = element_text(size = 10, margin = margin(0, 0, 5, 0)))
+mod_H1H2c <- lmer(
+  formula = H1H2c ~
+    interval + t_ms + (1 | phrase),
+  data = subset_subset
+)
+
+predictions <- bind_rows(
+  mutate(predict_with_se(mod_H1H2c, subset_subset_newdata, re.form = NA),
+         position = "Intervals"
+  )
+) %>%
+  mutate(
+    interval  = fct_relevel(interval, names(ms_colors))
+  )
+
+ggplot(
+  predictions,
+  aes(
+    x = t_norm, y = H1H2c,
+    ymin = H1H2c - standard_error, ymax = H1H2c + standard_error,
+    color = interval, fill = interval)) +
+  geom_smooth(stat = "identity", alpha = 0.25) +
+  facet_wrap(~ factor(interval, c('h-V','ʔ-V','ħ-V','ʕ-V','V-h-V','V-ʔ-V','V-ħ-V','V-ʕ-V','V-h','V-ʔ','V-ħ','V-ʕ')), scales = "free_x") +
+  ms_facets +
+  labs(x = "Proportion of vowel duration", y = "H1*-H2*") +
+  theme(strip.text = element_text(size = 10, margin = margin(0, 0, 5, 0)))
