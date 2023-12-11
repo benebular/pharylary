@@ -10,6 +10,7 @@ from statsmodels.sandbox.regression.predstd import wls_prediction_std
 from statsmodels.gam.api import GLMGam, BSplines
 # from statsmodels.families import Gaussian
 from pygam import LinearGAM, s
+import ptitprince as pt
 
 # with pd.option_context('display.max_rows', None, 'display.max_columns', None):  # more options can be specified also
 #     print(data[['interval','Position','Position_2']])
@@ -17,6 +18,39 @@ from pygam import LinearGAM, s
 
 # data = pd.read_csv('/Volumes/circe/vs/output_preproc/preproc_output.csv', encoding='utf8')
 data = pd.read_csv('/Users/bcl/Desktop/preproc_output.csv', encoding='utf8')
+
+
+##### RAINCLOUD MEANS #####
+data = data[data['tier'] == 'phonetic']
+
+# Define the colors for the specified labels
+label_colors = {'h': '#d95f02', 'ʔ': '#7570b3', 'ħ': '#1b9e77', 'ʕ': '#e7298a'}
+
+# F0, adding the boxplot with quartiles
+plot_F0_mean = pd.DataFrame({'group':'F0', 'F0': ratings_all['F0_mean']}).drop_duplicates()
+plot_F0_90 = pd.DataFrame({'group':'F0_90', 'F0': ratings_all['F0_90']}).drop_duplicates()
+plot_F0_10 = pd.DataFrame({'group':'F0_10', 'F0': ratings_all['F0_10']}).drop_duplicates()
+plot_F0 = pd.concat([plot_F0_10, plot_F0_mean, plot_F0_90])
+
+plot_F0_mean = pd.DataFrame({'group':'F0', 'F0': ratings_all['F0_mean']}).drop_duplicates()
+
+
+dx="group"; dy="F0"; ort="h"; pal = sns.color_palette(n_colors=3); sigma = .2
+f, ax = plt.subplots(figsize=(7, 5))
+pt.RainCloud(x = dx, y = dy, data = plot_F0, palette = pal, bw = sigma,
+                 width_viol = .6, ax = ax, orient = ort)
+
+plt.title("10th percentile; Average F0; 90th percentile, by speaker (across entire utterance), %s Participants"%number_participants)
+# plt.show()
+plt.savefig(os.path.join(fig_dir, 'F0_raincloud.png'), bbox_inches='tight', dpi=300)
+plt.close()
+
+
+
+#########################################
+####### Look at those GAMs baby #########
+#########################################
+
 data = data[data['tier'] == 'V-sequence']
 
 # exclude the consonants for now

@@ -61,6 +61,24 @@ ms_facets <- list(
 data_path <- sprintf('/Users/bcl/Desktop/preproc_output.csv')
 data = read.csv(data_path)
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+###### Seyfarth & Garellek (2018) Analysis Type ##########
+
 predict_with_se <- function(model, newdata, ...) {
   response <- terms(model)[[2]]
   
