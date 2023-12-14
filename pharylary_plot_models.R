@@ -29,8 +29,8 @@ library("splines")
 library("stringr")
 library("tidyverse")
 library("devtools")
-library(gridExtra)
 library(grid)
+library(gridExtra)
 
 # ms_colors <- c(
 #   "ħ-V"    = "#1b9e77", # orange
@@ -68,8 +68,8 @@ library(grid)
 # )
 
 # data_path <- sprintf('/Volumes/circe/vs/output_preproc/preproc_output.csv')
-# data_path <- sprintf('/Users/bcl/Desktop/preproc_output.csv')
-data_path <- sprintf('/Volumes/circe/vs/output_preproc/preproc_matchesformeans.csv')
+data_path <- sprintf('/Users/bcl/Desktop/preproc_output.csv')
+# data_path <- sprintf('/Volumes/circe/vs/output_preproc/preproc_matchesformeans.csv')
 data = read.csv(data_path)
 
 subset = subset(data, interval == 'ħ' | interval == 'h' | interval == 'ʔ' | interval == 'ʕ')
@@ -82,6 +82,8 @@ subset_mean <- subset_mean %>% group_by(phrase,interval) %>% mutate(CPP_mean = m
 subset_mean <- subset_mean %>% group_by(phrase,interval) %>% mutate(soe_mean = mean(soe, na.rm = TRUE))
 subset_mean <- subset_mean %>% group_by(phrase,interval) %>% mutate(sF1_mean = mean(sF1, na.rm = TRUE))
 subset_mean <- subset_mean %>% group_by(phrase,interval) %>% mutate(sF2_mean = mean(sF2, na.rm = TRUE))
+subset_mean <- subset_mean %>% group_by(phrase,interval) %>% mutate(HNR05_mean = mean(HNR05, na.rm = TRUE))
+
 
 unique_data <- subset_mean %>% group_by(phrase,interval) %>% summarize(
   H1H2c_mean_unique = first(H1H2c_mean),
@@ -89,6 +91,7 @@ unique_data <- subset_mean %>% group_by(phrase,interval) %>% summarize(
   soe_mean_unique = first(soe_mean),
   sF1_mean_unique = first(sF1_mean),
   sF2_mean_unique = first(sF2_mean),
+  HNR05_mean_unique = first(HNR05_mean),
   facet_contrast = first(facet_contrast),
   .groups = 'drop'  # This drops the grouping, so the data is no longer grouped after this operation
 )
@@ -266,6 +269,43 @@ plot5 <- ggplot(unique_data, aes(x = "", y = sF2_mean_unique, fill = interval)) 
   # adjust layout
   scale_x_discrete(name = "", expand = c(rain_height*3, 0, 0, 0.7)) +
   scale_y_continuous(name = "F2 (Hz)",
+                     # breaks = seq(-30, 2, 30), 
+                     # limits = c(-30, 30)) +
+  ) +
+  coord_flip() +
+  facet_wrap(~factor(facet_contrast, 
+                     levels = c("vcl", "v"), 
+                     labels = c("h - ħ", "ʔ - ʕ")), 
+             nrow = 2) +
+  # custom colours and theme
+  scale_fill_brewer(palette = "Dark2", name = "Contrast Type") +
+  scale_colour_brewer(palette = "Dark2") +
+  theme_minimal() +
+  theme(panel.grid.major.y = element_blank(),
+        legend.position = c(0.9, 0.9),
+        legend.background = element_rect(fill = "white", color = "white"))
+
+##### HNR05 ####
+rain_height <- .1
+
+plot6 <- ggplot(unique_data, aes(x = "", y = HNR05_mean_unique, fill = interval)) +
+  # clouds
+  introdataviz::geom_flat_violin(trim=FALSE, alpha = 0.4,
+                                 position = position_nudge(x = rain_height+.05)) +
+  # rain
+  geom_point(aes(colour = interval), size = 2, alpha = .5, show.legend = FALSE, 
+             position = position_jitter(width = rain_height, height = 0)) +
+  # boxplots
+  geom_boxplot(width = rain_height, alpha = 0.4, show.legend = FALSE, 
+               outlier.shape = NA,
+               position = position_nudge(x = -rain_height*2)) +
+  # coord_flip() +
+  # mean and SE point in the cloud
+  # stat_summary(fun.data = mean_cl_normal, mapping = aes(color = interval), show.legend = FALSE,
+  #              position = position_nudge(x = rain_height * 3)) +
+  # adjust layout
+  scale_x_discrete(name = "", expand = c(rain_height*3, 0, 0, 0.7)) +
+  scale_y_continuous(name = "HNR05 ",
                      # breaks = seq(-30, 2, 30), 
                      # limits = c(-30, 30)) +
   ) +
