@@ -29,7 +29,7 @@ library("splines")
 library("stringr")
 library("tidyverse")
 library("devtools")
-library(grid)
+# library(grid)
 library(gridExtra)
 
 # ms_colors <- c(
@@ -68,8 +68,8 @@ library(gridExtra)
 # )
 
 # data_path <- sprintf('/Volumes/circe/vs/output_preproc/preproc_output.csv')
-data_path <- sprintf('/Users/bcl/Desktop/preproc_output.csv')
-# data_path <- sprintf('/Volumes/circe/vs/output_preproc/preproc_matchesformeans.csv')
+# data_path <- sprintf('/Users/bcl/Desktop/preproc_output.csv')
+data_path <- sprintf('/Volumes/circe/vs/output_preproc/preproc_matchesformeans.csv')
 data = read.csv(data_path)
 
 subset = subset(data, interval == 'ħ' | interval == 'h' | interval == 'ʔ' | interval == 'ʕ')
@@ -172,7 +172,9 @@ plot2 <- ggplot(unique_data, aes(x = "", y = CPP_mean_unique, fill = interval)) 
   theme_minimal() +
   theme(panel.grid.major.y = element_blank(),
         legend.position = c(0.9, 0.9),
-        legend.background = element_rect(fill = "white", color = "white"))
+        legend.background = element_rect(fill = "white", color = "white"),
+        strip.text = element_text(size = 20), # Adjust font size for facet labels
+        axis.title.x = element_text(size = 22))
 
 ##### SoE ####
 rain_height <- .1
@@ -305,7 +307,7 @@ plot6 <- ggplot(unique_data, aes(x = "", y = HNR05_mean_unique, fill = interval)
   #              position = position_nudge(x = rain_height * 3)) +
   # adjust layout
   scale_x_discrete(name = "", expand = c(rain_height*3, 0, 0, 0.7)) +
-  scale_y_continuous(name = "HNR05 ",
+  scale_y_continuous(name = "HNR05 (dB)",
                      # breaks = seq(-30, 2, 30), 
                      # limits = c(-30, 30)) +
   ) +
@@ -324,13 +326,17 @@ plot6 <- ggplot(unique_data, aes(x = "", y = HNR05_mean_unique, fill = interval)
 
 
 grid.arrange(
-  plot1, plot2, plot3, plot4,
-  ncol = 2, nrow = 2,
-  top = "Acoustic Feature Means for Laryngeal and Pharyngeal Consonants",
-  gp=gpar(fontsize=20)
+  plot1, plot6, plot3, plot2, plot4,
+  ncol = 2, nrow = 3,
+  top = grid::textGrob("Acoustic Feature Means for Laryngeal and Pharyngeal Consonants", gp=grid::gpar(fontsize=20))
 )
 
 
+mod_H1H2c <- lmer(
+  formula = H1H2c ~
+    interval + (1|participant) + (1|phrase),
+  data = subset
+)
 
 
 
