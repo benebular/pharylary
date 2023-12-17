@@ -67,15 +67,28 @@ library(gridExtra)
 #   )
 # )
 
-# data_path <- sprintf('/Volumes/circe/vs/output_preproc/preproc_output.csv')
-# data_path <- sprintf('/Users/bcl/Desktop/preproc_output.csv')
+orig_data_path <- sprintf('/Volumes/circe/vs/output_preproc/preproc_output.csv')
+# orig_data_path <- sprintf('/Users/bcl/Desktop/preproc_output.csv')
+orig_data = read.csv(orig_data_path)
+
+sonorant_subset = subset(orig_data, interval == 'w' | interval == 'j')
+
+
+##### data for the intervals as extracted from overlap with tier 3 because there's no unique labels in tier 1
 data_path <- sprintf('/Volumes/circe/vs/output_preproc/preproc_matchesformeans.csv')
 data = read.csv(data_path)
 
-subset = subset(data, interval == 'ħ' | interval == 'h' | interval == 'ʔ' | interval == 'ʕ')
+subset = subset(data, interval == 'ħ' | interval == 'ʕ')
 # subset = subset(subset, Contrast_.IPA. == 'h - ħ' | Contrast_.IPA. == 'ʔ - ʕ')
+
+
+sonorant_subset <- sonorant_subset %>%
+  mutate(facet_contrast = "Sonorant /j w/")
+
 subset <- subset %>%
-  mutate(facet_contrast = ifelse(grepl("h|ħ", interval), "vcl", "v"))
+  mutate(facet_contrast = ifelse(grepl("ħ", interval), "/ħ/", "/ʕ/"))
+
+subset <- rbind(subset, sonorant_subset)
 
 subset_mean <- subset %>% group_by(phrase,interval) %>% mutate(H1H2c_mean = mean(H1H2c, na.rm = TRUE))
 subset_mean <- subset_mean %>% group_by(phrase,interval) %>% mutate(CPP_mean = mean(CPP, na.rm = TRUE))
@@ -96,9 +109,16 @@ unique_data <- subset_mean %>% group_by(phrase,interval) %>% summarize(
   .groups = 'drop'  # This drops the grouping, so the data is no longer grouped after this operation
 )
 
+unique_data$interval <- str_replace(unique_data$interval, "j|w", "j/w")
+
 write.csv(subset_mean, "/Volumes/circe/vs/output_preproc/subset_mean.csv", row.names=FALSE)
 
 rain_height <- .1
+
+# Calculate stagger offsets based on the number of levels in 'interval'
+num_levels <- length(levels(factor(unique_data$interval)))
+stagger_offsets <- seq(-rain_height / 1.5, rain_height / 1.5, length.out = num_levels)
+
 
 #### H1*-H2* ####
 plot1 <- ggplot(unique_data, aes(x = "", y = H1H2c_mean_unique, fill = interval)) +
@@ -111,7 +131,8 @@ plot1 <- ggplot(unique_data, aes(x = "", y = H1H2c_mean_unique, fill = interval)
   # boxplots
   geom_boxplot(width = rain_height, alpha = 0.4, show.legend = FALSE, 
                outlier.shape = NA,
-               position = position_nudge(x = -rain_height*2)) +
+               # position = position_nudge(x = -rain_height*2) +
+               position = position_nudge(x = -rain_height*2), aes(x = 0.95 + stagger_offsets[as.numeric(factor(interval))])) +
   # coord_flip() +
   # mean and SE point in the cloud
   # stat_summary(fun.data = mean_cl_normal, mapping = aes(color = interval), show.legend = FALSE,
@@ -123,12 +144,12 @@ plot1 <- ggplot(unique_data, aes(x = "", y = H1H2c_mean_unique, fill = interval)
                      # limits = c(-30, 30)) +
   ) +
   coord_flip() +
-  facet_wrap(~factor(facet_contrast, 
-                     levels = c("vcl", "v"), 
-                     labels = c("h - ħ", "ʔ - ʕ")), 
-             nrow = 2) +
+  # facet_wrap(~factor(facet_contrast, 
+  #                    levels = c("vcl", "v","son"), 
+  #                    labels = c("ħ", "ʕ","j/w")), 
+  #            nrow = 1) +
   # custom colours and theme
-  scale_fill_brewer(palette = "Dark2", name = "Contrast Type") +
+  scale_fill_brewer(palette = "Dark2", name = "Segment") +
   scale_colour_brewer(palette = "Dark2") +
   theme_minimal() +
   theme(panel.grid.major.y = element_blank(),
@@ -150,7 +171,8 @@ plot2 <- ggplot(unique_data, aes(x = "", y = CPP_mean_unique, fill = interval)) 
   # boxplots
   geom_boxplot(width = rain_height, alpha = 0.4, show.legend = FALSE, 
                outlier.shape = NA,
-               position = position_nudge(x = -rain_height*2)) +
+               # position = position_nudge(x = -rain_height*2) +
+               position = position_nudge(x = -rain_height*2), aes(x = 0.95 + stagger_offsets[as.numeric(factor(interval))])) +
   # coord_flip() +
   # mean and SE point in the cloud
   # stat_summary(fun.data = mean_cl_normal, mapping = aes(color = interval), show.legend = FALSE,
@@ -162,19 +184,17 @@ plot2 <- ggplot(unique_data, aes(x = "", y = CPP_mean_unique, fill = interval)) 
                      # limits = c(-30, 30)) +
   ) +
   coord_flip() +
-  facet_wrap(~factor(facet_contrast, 
-                     levels = c("vcl", "v"), 
-                     labels = c("h - ħ", "ʔ - ʕ")), 
-             nrow = 2) +
+  # facet_wrap(~factor(facet_contrast, 
+  #                    levels = c("vcl", "v","son"), 
+  #                    labels = c("ħ", "ʕ","j/w")), 
+  #            nrow = 1) +
   # custom colours and theme
-  scale_fill_brewer(palette = "Dark2", name = "Contrast Type") +
+  scale_fill_brewer(palette = "Dark2", name = "Segment") +
   scale_colour_brewer(palette = "Dark2") +
   theme_minimal() +
   theme(panel.grid.major.y = element_blank(),
         legend.position = c(0.9, 0.9),
-        legend.background = element_rect(fill = "white", color = "white"),
-        strip.text = element_text(size = 20), # Adjust font size for facet labels
-        axis.title.x = element_text(size = 22))
+        legend.background = element_rect(fill = "white", color = "white"))
 
 ##### SoE ####
 rain_height <- .1
@@ -189,7 +209,8 @@ plot3 <- ggplot(unique_data, aes(x = "", y = soe_mean_unique, fill = interval)) 
   # boxplots
   geom_boxplot(width = rain_height, alpha = 0.4, show.legend = FALSE, 
                outlier.shape = NA,
-               position = position_nudge(x = -rain_height*2)) +
+               # position = position_nudge(x = -rain_height*2) +
+               position = position_nudge(x = -rain_height*2), aes(x = 0.95 + stagger_offsets[as.numeric(factor(interval))])) +
   # coord_flip() +
   # mean and SE point in the cloud
   # stat_summary(fun.data = mean_cl_normal, mapping = aes(color = interval), show.legend = FALSE,
@@ -197,21 +218,22 @@ plot3 <- ggplot(unique_data, aes(x = "", y = soe_mean_unique, fill = interval)) 
   # adjust layout
   scale_x_discrete(name = "", expand = c(rain_height*3, 0, 0, 0.7)) +
   scale_y_continuous(name = "SoE (dB)",
-                     # breaks = seq(0, 0.1, 1),
-                     # limits = c(-0.1, 1.1)) +
-                     ) +
+                     # breaks = seq(-30, 2, 30), 
+                     # limits = c(-30, 30)) +
+  ) +
   coord_flip() +
-  facet_wrap(~factor(facet_contrast, 
-                     levels = c("vcl", "v"), 
-                     labels = c("h - ħ", "ʔ - ʕ")), 
-             nrow = 2) +
+  # facet_wrap(~factor(facet_contrast, 
+  #                    levels = c("vcl", "v","son"), 
+  #                    labels = c("ħ", "ʕ","j/w")), 
+  #            nrow = 1) +
   # custom colours and theme
-  scale_fill_brewer(palette = "Dark2", name = "Contrast Type") +
+  scale_fill_brewer(palette = "Dark2", name = "Segment") +
   scale_colour_brewer(palette = "Dark2") +
   theme_minimal() +
   theme(panel.grid.major.y = element_blank(),
         legend.position = c(0.9, 0.9),
         legend.background = element_rect(fill = "white", color = "white"))
+
 
 ##### F1 ####
 rain_height <- .1
@@ -326,9 +348,9 @@ plot6 <- ggplot(unique_data, aes(x = "", y = HNR05_mean_unique, fill = interval)
 
 
 grid.arrange(
-  plot1, plot6, plot3, plot2, plot4,
-  ncol = 2, nrow = 3,
-  top = grid::textGrob("Acoustic Feature Means for Laryngeal and Pharyngeal Consonants", gp=grid::gpar(fontsize=20))
+  plot1, plot2, plot3,
+  ncol = 1, nrow = 3,
+  top = grid::textGrob("Acoustic Feature Means for Sonorants and Pharyngeal Consonants", gp=grid::gpar(fontsize=20))
 )
 
 

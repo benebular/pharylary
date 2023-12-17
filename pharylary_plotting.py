@@ -19,12 +19,47 @@ import ptitprince as pt
 # data = pd.read_csv('/Volumes/circe/vs/output_preproc/preproc_output.csv', encoding='utf8')
 data = pd.read_csv('/Users/bcl/Desktop/preproc_output.csv', encoding='utf8')
 
+# data = data[data['tier'] == 'phonetic']
 
 ##### RAINCLOUD MEANS #####
-data = data[data['tier'] == 'phonetic']
+
+# ### slicing the data below takes about 5 minutes to run because iterrows() is slow ####
+# Initialize an empty DataFrame to store matching rows
+# matching_data = pd.DataFrame()
+
+# # Iterate through each unique phrase
+# for phrase in data['phrase'].unique():
+#     # Filter data for the current phrase
+#     phrase_data = data[data['phrase'] == phrase]
+
+#     # Separate interval and V-sequence data within this phrase
+#     interval_data = phrase_data[phrase_data['tier'] == 'phonetic']
+#     v_sequence_data = phrase_data[phrase_data['tier'] == 'V-sequence']
+
+#     # Iterate through the interval data
+#     for index, interval_row in interval_data.iterrows():
+#         # Check if this interval t_ms matches any V-sequence t_ms in the same phrase
+#         if any(interval_row['t_ms'] == v_sequence_row.t_ms for v_sequence_row in v_sequence_data.itertuples()):
+#             # Append matching row to the matching_data DataFrame
+#             matching_data = matching_data.append(interval_row)
+
+# matching_data.to_csv('preproc_matchesformeans.csv', index=False)
+matching_data = pd.read_csv('/Volumes/circe/vs/output_preproc/preproc_matchesformeans.csv', encoding='utf8')
+
+### now slice so that it's just the C segments
+means_data = matching_data[(matching_data['interval'] == 'ħ') | (matching_data['interval'] == 'h') | (matching_data['interval'] == 'ʔ') | (matching_data['interval'] == 'ʕ')]
 
 # Define the colors for the specified labels
-label_colors = {'h': '#d95f02', 'ʔ': '#7570b3', 'ħ': '#1b9e77', 'ʕ': '#e7298a'}
+color_dict = {'h': '#d95f02', 'ʔ': '#7570b3', 'ħ': '#1b9e77', 'ʕ': '#e7298a'}
+# Ensure that the color palette is ordered according to the labels in the 'interval' column
+palette = [color_dict[label] for label in means_data['interval'].unique()]
+
+
+ax = pt.RainCloud(x='interval', y='H1H2c', data=means_data, bw=.2, width_viol=.6)
+
+# Show the plot
+ax.set_title('Distribution of Acoustic Features by Phonetic Label')
+plt.show()
 
 # F0, adding the boxplot with quartiles
 plot_F0_mean = pd.DataFrame({'group':'F0', 'F0': ratings_all['F0_mean']}).drop_duplicates()

@@ -22,7 +22,7 @@ os.chdir(output_dir)
 textgrid_folder = input_dir
 
 # Load the VoiceSauce output
-voicesauce_data = pd.read_csv(os.path.join(vs_output_dir, 'output.txt'), sep='\t')
+voicesauce_data = pd.read_csv(os.path.join(vs_output_dir, 'output.csv')) # should be a text file if there were no duplicates that needed to be redone by hand
 
 # Initialize an empty DataFrame to store all relevant data
 all_relevant_data = pd.DataFrame()
@@ -144,7 +144,34 @@ stim_meta_df = stim_meta_df.astype({'phrase': int})
 all_relevant_data = all_relevant_data.astype({'phrase': int})
 all_data = pd.merge(all_relevant_data, stim_meta_df, on='phrase', how='inner')
 
+
 # Output the final DataFrame
 # print(all_relevant_data)
 # Optionally, save to a file
 all_data.to_csv('preproc_output.csv', index=False)
+
+
+
+#### matches for means ####
+### slicing the data below takes about 5 minutes to run because iterrows() is slow ####
+#Initialize an empty DataFrame to store matching rows
+matching_data = pd.DataFrame()
+
+# Iterate through each unique phrase
+for phrase in all_data['phrase'].unique():
+    # Filter data for the current phrase
+    phrase_data = all_data[all_data['phrase'] == phrase]
+
+    # Separate interval and V-sequence data within this phrase
+    interval_data = phrase_data[phrase_data['tier'] == 'phonetic']
+    v_sequence_data = phrase_data[phrase_data['tier'] == 'V-sequence']
+
+    # Iterate through the interval data
+    for index, interval_row in interval_data.iterrows():
+        # Check if this interval t_ms matches any V-sequence t_ms in the same phrase
+        if any(interval_row['t_ms'] == v_sequence_row.t_ms for v_sequence_row in v_sequence_data.itertuples()):
+            # Append matching row to the matching_data DataFrame
+            matching_data = matching_data.append(interval_row)
+
+# matching_data.to_csv('preproc_matchesformeans.csv', index=False)
+matching_data = pd.read_csv('/Volumes/circe/vs/output_preproc/preproc_matchesformeans.csv', encoding='utf8')
