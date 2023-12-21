@@ -153,8 +153,14 @@ plot1 <- ggplot(unique_data, aes(x = "", y = H1H2c_mean_unique, fill = interval)
   scale_colour_brewer(palette = "Dark2") +
   theme_minimal() +
   theme(panel.grid.major.y = element_blank(),
-        legend.position = c(0.9, 0.9),
-        legend.background = element_rect(fill = "white", color = "white"))
+        legend.position = c(0.9, 0.8),
+        legend.background = element_rect(fill = "white", color = "white"),
+        # strip.text = element_text(size = 12), # Adjust font size for facet labels
+        axis.title.x = element_text(size = 18), # Adjust font size for y-axis labels
+        axis.text.x = element_text(size = 14), # Adjust font size for x-axis tick labels
+        legend.text = element_text(size = 14), # Adjust font size for legend text
+        legend.title = element_text(size = 14) # Adjust font size for legend title
+        )
 
 
 
@@ -193,13 +199,18 @@ plot2 <- ggplot(unique_data, aes(x = "", y = CPP_mean_unique, fill = interval)) 
   scale_colour_brewer(palette = "Dark2") +
   theme_minimal() +
   theme(panel.grid.major.y = element_blank(),
-        legend.position = c(0.9, 0.9),
-        legend.background = element_rect(fill = "white", color = "white"))
+        legend.position = c(0.9, 0.8),
+        legend.background = element_rect(fill = "white", color = "white"),
+        axis.title.x = element_text(size = 18), # Adjust font size for y-axis labels
+        axis.text.x = element_text(size = 14), # Adjust font size for x-axis tick labels
+        legend.text = element_text(size = 14), # Adjust font size for legend text
+        legend.title = element_text(size = 14) # Adjust font size for legend title
+  )
 
 ##### SoE ####
 rain_height <- .1
 
-plot3 <- ggplot(unique_data, aes(x = "", y = soe_mean_unique, fill = interval)) +
+plot3 <- ggplot(unique_data, aes(x = "", y = soe_mean_unique*10, fill = interval)) +
   # clouds
   introdataviz::geom_flat_violin(trim=FALSE, alpha = 0.4,
                                  position = position_nudge(x = rain_height+.05)) +
@@ -231,8 +242,13 @@ plot3 <- ggplot(unique_data, aes(x = "", y = soe_mean_unique, fill = interval)) 
   scale_colour_brewer(palette = "Dark2") +
   theme_minimal() +
   theme(panel.grid.major.y = element_blank(),
-        legend.position = c(0.9, 0.9),
-        legend.background = element_rect(fill = "white", color = "white"))
+        legend.position = c(0.9, 0.8),
+        legend.background = element_rect(fill = "white", color = "white"),
+        axis.title.x = element_text(size = 18), # Adjust font size for y-axis labels
+        axis.text.x = element_text(size = 14), # Adjust font size for x-axis tick labels
+        legend.text = element_text(size = 14), # Adjust font size for legend text
+        legend.title = element_text(size = 14) # Adjust font size for legend title
+  )
 
 
 ##### F1 ####
@@ -348,8 +364,8 @@ plot6 <- ggplot(unique_data, aes(x = "", y = HNR05_mean_unique, fill = interval)
 
 
 grid.arrange(
-  plot1, plot2, plot3,
-  ncol = 1, nrow = 3,
+  plot2, plot3,
+  ncol = 2, nrow = 1,
   top = grid::textGrob("Acoustic Feature Means for Sonorants and Pharyngeal Consonants", gp=grid::gpar(fontsize=20))
 )
 
