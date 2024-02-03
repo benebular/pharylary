@@ -39,6 +39,7 @@ for filename in os.listdir(textgrid_folder):
     if filename.endswith('.TextGrid'):  # Check if the file is a TextGrid file
         filepath = os.path.join(textgrid_folder, filename)
         tg = textgrid.TextGrid.fromFile(filepath)
+        print ('Extracting and appending %s TextGrid labels.'%(filename))
         # # Identify your point tier
         point_tier = tg.getFirst('comment')
 
@@ -83,6 +84,8 @@ for filename in os.listdir(textgrid_folder):
 
                             # Append the relevant data to the DataFrame
                             all_relevant_data = pd.concat([all_relevant_data, relevant_data], ignore_index=True)
+
+print('Processing all data for min, max, proportion, etc.')
 
 # Drop the 'Label' column
 all_relevant_data.drop(['Label','Unnamed: 72'], axis=1, inplace=True)
@@ -137,6 +140,7 @@ all_relevant_data['energy_prop'] = (all_relevant_data['Energy'] - all_relevant_d
 all_relevant_data['duration'] = all_relevant_data['t_max'] - all_relevant_data['t_min']
 
 ### add in other data from google sheet ###
+print('Adding metadata...')
 stim_meta = pd.read_csv('/Users/bcl/GitHub/pharylary/PharyLary Stimuli - Yes.csv')
 stim_meta_df = stim_meta[['Phrasenum','IPA','Gloss','Gloss 2','Syllable','Segment','Type','Position','Position 2','Contrast (IPA)','Contrast','Experiment']]
 stim_meta_df = stim_meta_df.rename(columns={'Phrasenum':'phrase'})
@@ -148,6 +152,7 @@ all_data = pd.merge(all_relevant_data, stim_meta_df, on='phrase', how='inner')
 # Output the final DataFrame
 # print(all_relevant_data)
 # Optionally, save to a file
+print('Saving as .csv in %s.'%(output_dir))
 all_data.to_csv('preproc_output.csv', index=False)
 
 
@@ -155,6 +160,7 @@ all_data.to_csv('preproc_output.csv', index=False)
 #### matches for means ####
 ### slicing the data below takes about 5 minutes to run because iterrows() is slow ####
 #Initialize an empty DataFrame to store matching rows
+print('Getting matching data for means...')
 matching_data = pd.DataFrame()
 
 # Iterate through each unique phrase
@@ -173,5 +179,6 @@ for phrase in all_data['phrase'].unique():
             # Append matching row to the matching_data DataFrame
             matching_data = matching_data.append(interval_row)
 
+print('Saving matches for means as .csv in %s.'%(output_dir))
 matching_data.to_csv('preproc_matchesformeans.csv', index=False)
 # matching_data = pd.read_csv('/Volumes/circe/vs/output_preproc/preproc_matchesformeans.csv', encoding='utf8')
