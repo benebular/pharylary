@@ -13,6 +13,7 @@ library(tidyr)
 # library(scales)
 # library(reshape2)
 library(lme4)
+library(lmerTest)
 # library(emmeans)
 #library(forcats)
 # library(psycho)
@@ -98,7 +99,7 @@ subset_mean <- subset_mean %>% group_by(phrase,interval) %>% mutate(sF2_mean = m
 subset_mean <- subset_mean %>% group_by(phrase,interval) %>% mutate(HNR05_mean = mean(HNR05, na.rm = TRUE))
 
 
-unique_data <- subset_mean %>% group_by(phrase,interval) %>% summarize(
+unique_data <- subset_mean %>% group_by(participant,phrase,interval) %>% summarize(
   H1H2c_mean_unique = first(H1H2c_mean),
   CPP_mean_unique = first(CPP_mean),
   soe_mean_unique = first(soe_mean),
@@ -364,21 +365,39 @@ plot6 <- ggplot(unique_data, aes(x = "", y = HNR05_mean_unique, fill = interval)
 
 
 grid.arrange(
-  plot2, plot3,
-  ncol = 2, nrow = 1,
+  plot1, plot2, plot3, plot4,
+  ncol = 2, nrow = 2,
   top = grid::textGrob("Acoustic Feature Means for Sonorants and Pharyngeal Consonants", gp=grid::gpar(fontsize=20))
 )
 
 
-mod_H1H2c <- lmer(
-  formula = H1H2c ~
-    interval + (1|participant) + (1|phrase),
-  data = subset
+mod_CPP <- lmer(
+  formula = CPP ~
+    interval + (1|participant) + (1|phrase) + (1|Position),
+  data = subset_mean
 )
 
+mod_soe <- lmer(
+  formula = soe ~
+    interval + (1|participant) + (1|phrase) + (1|Position),
+  data = subset_mean
+)
 
+mod_H1H2c <- lmer(
+  formula = H1H2c ~
+    interval + (1|participant) + (1|phrase) + (1|Position),
+  data = subset_mean
+)
+
+mod_F1 <- lmer(
+  formula = sF1 ~
+    interval + (1|participant) + (1|phrase) + (1|Position),
+  data = subset_mean
+)
 
 ###### Seyfarth & Garellek (2018) Analysis Type ##########
+data_path <- sprintf('/Volumes/circe/vs/output_preproc/preproc_matchesformeans.csv')
+data = read.csv(data_path)
 
 predict_with_se <- function(model, newdata, ...) {
   response <- terms(model)[[2]]
