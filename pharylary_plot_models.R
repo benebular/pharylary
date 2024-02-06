@@ -33,20 +33,20 @@ library("devtools")
 # library(grid)
 library(gridExtra)
 
-# ms_colors <- c(
-#   "ħ-V"    = "#1b9e77", # orange
-#   "h-V" = "#d95f02", # blue
-#   "ʔ-V" = "#7570b3",  # green
-#   "ʕ-V" = "#e7298a",  # red
-#   "V-ħ-V"    = "#1b9e77", # orange
-#   "V-h-V" = "#d95f02", # blue
-#   "V-ʔ-V" = "#7570b3",  # green
-#   "V-ʕ-V" = "#e7298a",  # red
-#   "V-ħ"    = "#1b9e77", # orange
-#   "V-h" = "#d95f02", # blue
-#   "V-ʔ" = "#7570b3",  # green
-#   "V-ʕ" = "#e7298a"  # red
-# )
+ms_colors <- c(
+  "ħ-V"    = "#1b9e77", # orange
+  "h-V" = "#d95f02", # blue
+  "ʔ-V" = "#7570b3",  # green
+  "ʕ-V" = "#e7298a",  # red
+  "V-ħ-V"    = "#1b9e77", # orange
+  "V-h-V" = "#d95f02", # blue
+  "V-ʔ-V" = "#7570b3",  # green
+  "V-ʕ-V" = "#e7298a",  # red
+  "V-ħ"    = "#1b9e77", # orange
+  "V-h" = "#d95f02", # blue
+  "V-ʔ" = "#7570b3",  # green
+  "V-ʕ" = "#e7298a"  # red
+)
 
 # ms_colors <- c(
 #   "ħ"    = "#1b9e77", # orange
@@ -55,18 +55,18 @@ library(gridExtra)
 #   "ʕ" = "#e7298a",  # red
 # )
 
-# ms_facets <- list(
-#   scale_color_manual(name = NULL, values = ms_colors),
-#   scale_fill_manual(name = NULL, values = ms_colors),
-#   theme_light(),
-#   theme(
-#     aspect.ratio     = 1,
-#     legend.position  = "bottom",
-#     strip.background = element_blank(),
-#     strip.text       = element_text(color = "black", hjust = 0, size = 11),
-#     panel.border     = element_rect(color = "black", fill = NA)
-#   )
-# )
+ms_facets <- list(
+  scale_color_manual(name = NULL, values = ms_colors),
+  scale_fill_manual(name = NULL, values = ms_colors),
+  theme_light(),
+  theme(
+    aspect.ratio     = 1,
+    legend.position  = "bottom",
+    strip.background = element_blank(),
+    strip.text       = element_text(color = "black", hjust = 0, size = 11),
+    panel.border     = element_rect(color = "black", fill = NA)
+  )
+)
 
 orig_data_path <- sprintf('/Volumes/circe/vs/output_preproc/preproc_output.csv')
 # orig_data_path <- sprintf('/Users/bcl/Desktop/preproc_output.csv')
@@ -79,10 +79,11 @@ sonorant_subset = subset(orig_data, interval == 'w' | interval == 'j')
 data_path <- sprintf('/Volumes/circe/vs/output_preproc/preproc_matchesformeans.csv')
 data = read.csv(data_path)
 
+# subset = subset(data, interval == 'ħ' | interval == 'ʕ' | interval == 'h' | interval == 'ʔ')
 subset = subset(data, interval == 'ħ' | interval == 'ʕ')
 # subset = subset(subset, Contrast_.IPA. == 'h - ħ' | Contrast_.IPA. == 'ʔ - ʕ')
 
-
+### subetting for plots below based on sonorants
 sonorant_subset <- sonorant_subset %>%
   mutate(facet_contrast = "Sonorant /j w/")
 
@@ -91,14 +92,29 @@ subset <- subset %>%
 
 subset <- rbind(subset, sonorant_subset)
 
-subset_mean <- subset %>% group_by(phrase,interval) %>% mutate(H1H2c_mean = mean(H1H2c, na.rm = TRUE))
-subset_mean <- subset_mean %>% group_by(phrase,interval) %>% mutate(CPP_mean = mean(CPP, na.rm = TRUE))
-subset_mean <- subset_mean %>% group_by(phrase,interval) %>% mutate(soe_mean = mean(soe, na.rm = TRUE))
-subset_mean <- subset_mean %>% group_by(phrase,interval) %>% mutate(sF1_mean = mean(sF1, na.rm = TRUE))
-subset_mean <- subset_mean %>% group_by(phrase,interval) %>% mutate(sF2_mean = mean(sF2, na.rm = TRUE))
-subset_mean <- subset_mean %>% group_by(phrase,interval) %>% mutate(HNR05_mean = mean(HNR05, na.rm = TRUE))
+#calculate residual H1
+
+subset <- subset %>% group_by(participant, phrase, interval) %>% mutate(H1cz = H1c - mean(H1c, na.rm = TRUE))
+subset <- subset %>% group_by(participant, phrase, interval) %>% mutate(energyz = Energy - mean(Energy, na.rm = TRUE))
+mod_h1 <- lmer(H1cz ~ energyz + (energyz||participant), data = subset, REML = FALSE)
+
+energy.factor = fixef(mod_h1)[2]
+
+subset$H1c.resid = subset$H1cz - subset$energyz * energy.factor
+
+## calculate mean values for all intervals in each word for each participant
+
+subset_mean <- subset %>% group_by(participant,phrase,interval) %>% mutate(H1H2c_mean = mean(H1H2c, na.rm = TRUE))
+subset_mean <- subset_mean %>% group_by(participant,phrase,interval) %>% mutate(CPP_mean = mean(CPP, na.rm = TRUE))
+subset_mean <- subset_mean %>% group_by(participant,phrase,interval) %>% mutate(soe_mean = mean(soe, na.rm = TRUE))
+subset_mean <- subset_mean %>% group_by(participant,phrase,interval) %>% mutate(sF1_mean = mean(sF1, na.rm = TRUE))
+subset_mean <- subset_mean %>% group_by(participant,phrase,interval) %>% mutate(sF2_mean = mean(sF2, na.rm = TRUE))
+subset_mean <- subset_mean %>% group_by(participant,phrase,interval) %>% mutate(HNR05_mean = mean(HNR05, na.rm = TRUE))
+subset_mean <- subset_mean %>% group_by(participant,phrase,interval) %>% mutate(H1c.resid_mean = mean(H1c.resid, na.rm = TRUE))
 
 
+
+### just grab the first value in the intervals for each word for each participant since it's not the same within interval, word, participant
 unique_data <- subset_mean %>% group_by(participant,phrase,interval) %>% summarize(
   H1H2c_mean_unique = first(H1H2c_mean),
   CPP_mean_unique = first(CPP_mean),
@@ -106,10 +122,13 @@ unique_data <- subset_mean %>% group_by(participant,phrase,interval) %>% summari
   sF1_mean_unique = first(sF1_mean),
   sF2_mean_unique = first(sF2_mean),
   HNR05_mean_unique = first(HNR05_mean),
-  facet_contrast = first(facet_contrast),
+  H1c.resid_mean_unique = first(H1c.resid_mean),
+  #facet_contrast = first(facet_contrast),
   .groups = 'drop'  # This drops the grouping, so the data is no longer grouped after this operation
 )
 
+
+# combine sonorant label so they are collapsed
 unique_data$interval <- str_replace(unique_data$interval, "j|w", "j/w")
 
 write.csv(subset_mean, "/Volumes/circe/vs/output_preproc/subset_mean.csv", row.names=FALSE)
@@ -166,7 +185,6 @@ plot1 <- ggplot(unique_data, aes(x = "", y = H1H2c_mean_unique, fill = interval)
 
 
 ##### CPP ####
-rain_height <- .1
 
 plot2 <- ggplot(unique_data, aes(x = "", y = CPP_mean_unique, fill = interval)) +
   # clouds
@@ -209,7 +227,6 @@ plot2 <- ggplot(unique_data, aes(x = "", y = CPP_mean_unique, fill = interval)) 
   )
 
 ##### SoE ####
-rain_height <- .1
 
 plot3 <- ggplot(unique_data, aes(x = "", y = soe_mean_unique*10, fill = interval)) +
   # clouds
@@ -253,7 +270,6 @@ plot3 <- ggplot(unique_data, aes(x = "", y = soe_mean_unique*10, fill = interval
 
 
 ##### F1 ####
-rain_height <- .1
 
 plot4 <- ggplot(unique_data, aes(x = "", y = sF1_mean_unique, fill = interval)) +
   # clouds
@@ -265,7 +281,7 @@ plot4 <- ggplot(unique_data, aes(x = "", y = sF1_mean_unique, fill = interval)) 
   # boxplots
   geom_boxplot(width = rain_height, alpha = 0.4, show.legend = FALSE, 
                outlier.shape = NA,
-               position = position_nudge(x = -rain_height*2)) +
+               position = position_nudge(x = -rain_height*2), aes(x = 0.95 + stagger_offsets[as.numeric(factor(interval))])) +
   # coord_flip() +
   # mean and SE point in the cloud
   # stat_summary(fun.data = mean_cl_normal, mapping = aes(color = interval), show.legend = FALSE,
@@ -277,20 +293,24 @@ plot4 <- ggplot(unique_data, aes(x = "", y = sF1_mean_unique, fill = interval)) 
                      # limits = c(-30, 30)) +
   ) +
   coord_flip() +
-  facet_wrap(~factor(facet_contrast, 
-                     levels = c("vcl", "v"), 
-                     labels = c("h - ħ", "ʔ - ʕ")), 
-             nrow = 2) +
+  # facet_wrap(~factor(facet_contrast, 
+  #                    levels = c("vcl", "v"), 
+  #                    labels = c("h - ħ", "ʔ - ʕ")), 
+  #            nrow = 2) +
   # custom colours and theme
   scale_fill_brewer(palette = "Dark2", name = "Contrast Type") +
   scale_colour_brewer(palette = "Dark2") +
   theme_minimal() +
   theme(panel.grid.major.y = element_blank(),
-        legend.position = c(0.9, 0.9),
-        legend.background = element_rect(fill = "white", color = "white"))
+        legend.position = c(0.9, 0.8),
+        legend.background = element_rect(fill = "white", color = "white"),
+        axis.title.x = element_text(size = 18), # Adjust font size for y-axis labels
+        axis.text.x = element_text(size = 14), # Adjust font size for x-axis tick labels
+        legend.text = element_text(size = 14), # Adjust font size for legend text
+        legend.title = element_text(size = 14) # Adjust font size for legend title
+  )
 
 ##### F2 ####
-rain_height <- .1
 
 plot5 <- ggplot(unique_data, aes(x = "", y = sF2_mean_unique, fill = interval)) +
   # clouds
@@ -302,7 +322,7 @@ plot5 <- ggplot(unique_data, aes(x = "", y = sF2_mean_unique, fill = interval)) 
   # boxplots
   geom_boxplot(width = rain_height, alpha = 0.4, show.legend = FALSE, 
                outlier.shape = NA,
-               position = position_nudge(x = -rain_height*2)) +
+               position = position_nudge(x = -rain_height*2), aes(x = 0.95 + stagger_offsets[as.numeric(factor(interval))])) +
   # coord_flip() +
   # mean and SE point in the cloud
   # stat_summary(fun.data = mean_cl_normal, mapping = aes(color = interval), show.legend = FALSE,
@@ -314,10 +334,10 @@ plot5 <- ggplot(unique_data, aes(x = "", y = sF2_mean_unique, fill = interval)) 
                      # limits = c(-30, 30)) +
   ) +
   coord_flip() +
-  facet_wrap(~factor(facet_contrast, 
-                     levels = c("vcl", "v"), 
-                     labels = c("h - ħ", "ʔ - ʕ")), 
-             nrow = 2) +
+  # facet_wrap(~factor(facet_contrast, 
+  #                    levels = c("vcl", "v"), 
+  #                    labels = c("h - ħ", "ʔ - ʕ")), 
+  #            nrow = 2) +
   # custom colours and theme
   scale_fill_brewer(palette = "Dark2", name = "Contrast Type") +
   scale_colour_brewer(palette = "Dark2") +
@@ -327,7 +347,6 @@ plot5 <- ggplot(unique_data, aes(x = "", y = sF2_mean_unique, fill = interval)) 
         legend.background = element_rect(fill = "white", color = "white"))
 
 ##### HNR05 ####
-rain_height <- .1
 
 plot6 <- ggplot(unique_data, aes(x = "", y = HNR05_mean_unique, fill = interval)) +
   # clouds
@@ -339,7 +358,7 @@ plot6 <- ggplot(unique_data, aes(x = "", y = HNR05_mean_unique, fill = interval)
   # boxplots
   geom_boxplot(width = rain_height, alpha = 0.4, show.legend = FALSE, 
                outlier.shape = NA,
-               position = position_nudge(x = -rain_height*2)) +
+               position = position_nudge(x = -rain_height*2), aes(x = 0.95 + stagger_offsets[as.numeric(factor(interval))])) +
   # coord_flip() +
   # mean and SE point in the cloud
   # stat_summary(fun.data = mean_cl_normal, mapping = aes(color = interval), show.legend = FALSE,
@@ -351,10 +370,10 @@ plot6 <- ggplot(unique_data, aes(x = "", y = HNR05_mean_unique, fill = interval)
                      # limits = c(-30, 30)) +
   ) +
   coord_flip() +
-  facet_wrap(~factor(facet_contrast, 
-                     levels = c("vcl", "v"), 
-                     labels = c("h - ħ", "ʔ - ʕ")), 
-             nrow = 2) +
+  # facet_wrap(~factor(facet_contrast, 
+  #                    levels = c("vcl", "v"), 
+  #                    labels = c("h - ħ", "ʔ - ʕ")), 
+  #            nrow = 2) +
   # custom colours and theme
   scale_fill_brewer(palette = "Dark2", name = "Contrast Type") +
   scale_colour_brewer(palette = "Dark2") +
@@ -363,11 +382,53 @@ plot6 <- ggplot(unique_data, aes(x = "", y = HNR05_mean_unique, fill = interval)
         legend.position = c(0.9, 0.9),
         legend.background = element_rect(fill = "white", color = "white"))
 
+##### Residual H1* ####
+
+plot7 <- ggplot(unique_data, aes(x = "", y = H1c.resid_mean_unique, fill = interval)) +
+  # clouds
+  introdataviz::geom_flat_violin(trim=FALSE, alpha = 0.4,
+                                 position = position_nudge(x = rain_height+.05)) +
+  # rain
+  geom_point(aes(colour = interval), size = 2, alpha = .5, show.legend = FALSE, 
+             position = position_jitter(width = rain_height, height = 0)) +
+  # boxplots
+  geom_boxplot(width = rain_height, alpha = 0.4, show.legend = FALSE, 
+               outlier.shape = NA,
+               # position = position_nudge(x = -rain_height*2) +
+               position = position_nudge(x = -rain_height*2), aes(x = 0.95 + stagger_offsets[as.numeric(factor(interval))])) +
+  # coord_flip() +
+  # mean and SE point in the cloud
+  # stat_summary(fun.data = mean_cl_normal, mapping = aes(color = interval), show.legend = FALSE,
+  #              position = position_nudge(x = rain_height * 3)) +
+  # adjust layout
+  scale_x_discrete(name = "", expand = c(rain_height*3, 0, 0, 0.7)) +
+  scale_y_continuous(name = "SoE (dB)",
+                     # breaks = seq(-30, 2, 30), 
+                     # limits = c(-30, 30)) +
+  ) +
+  coord_flip() +
+  # facet_wrap(~factor(facet_contrast, 
+  #                    levels = c("vcl", "v","son"), 
+  #                    labels = c("ħ", "ʕ","j/w")), 
+  #            nrow = 1) +
+  # custom colours and theme
+  scale_fill_brewer(palette = "Dark2", name = "Segment") +
+  scale_colour_brewer(palette = "Dark2") +
+  theme_minimal() +
+  theme(panel.grid.major.y = element_blank(),
+        legend.position = c(0.9, 0.8),
+        legend.background = element_rect(fill = "white", color = "white"),
+        axis.title.x = element_text(size = 18), # Adjust font size for y-axis labels
+        axis.text.x = element_text(size = 14), # Adjust font size for x-axis tick labels
+        legend.text = element_text(size = 14), # Adjust font size for legend text
+        legend.title = element_text(size = 14) # Adjust font size for legend title
+  )
+
 
 grid.arrange(
   plot1, plot2, plot3, plot4,
   ncol = 2, nrow = 2,
-  top = grid::textGrob("Acoustic Feature Means for Sonorants and Pharyngeal Consonants", gp=grid::gpar(fontsize=20))
+  top = grid::textGrob("Acoustic Feature Means for Pharyngeal and Sonorant Consonants", gp=grid::gpar(fontsize=20))
 )
 
 
@@ -396,6 +457,11 @@ mod_F1 <- lmer(
 )
 
 ###### Seyfarth & Garellek (2018) Analysis Type ##########
+
+
+orig_data_path <- sprintf('/Volumes/circe/vs/output_preproc/preproc_output.csv')
+# orig_data_path <- sprintf('/Users/bcl/Desktop/preproc_output.csv')
+orig_data = read.csv(orig_data_path)
 data_path <- sprintf('/Volumes/circe/vs/output_preproc/preproc_matchesformeans.csv')
 data = read.csv(data_path)
 
@@ -413,7 +479,7 @@ predict_with_se <- function(model, newdata, ...) {
   predicted
 }
 
-subset = subset(data, tier == 'V-sequence')
+subset = subset(orig_data, tier == 'V-sequence')
 subset_subset = subset(subset, interval == 'ħ-V' | interval == 'h-V' | interval == 'ʔ-V' | interval == 'ʕ-V' |
                          interval == 'V-ħ-V' | interval == 'V-h-V' | interval == 'V-ʔ-V' | interval == 'V-ʕ-V' |
                          interval == 'V-ħ' | interval == 'V-h' | interval == 'V-ʔ' | interval == 'V-ʕ')
@@ -421,13 +487,13 @@ subset_subset = subset(subset, interval == 'ħ-V' | interval == 'h-V' | interval
 subset_subset$interval <- as.factor(subset_subset$interval)
 
 initial_data <- subset_subset %>%
-  filter(Position_2 == "CV")
+  filter(Position.2 == "CV")
 
 medial_data <- subset_subset %>%
-  filter(Position_2 == "VCV")
+  filter(Position.2 == "VCV")
 
 final_data <- subset_subset %>%
-  filter(Position_2 == "VC")
+  filter(Position.2 == "VC")
 
 # contrasts(initial_data$interval) <- contr.sum(4)
 # contrasts(medial_data$interval) <- contr.sum(4)
@@ -460,7 +526,7 @@ bind_rows(initial_data, medial_data, final_data) %>%
   ungroup() %>%
   ggplot(aes(t_prop, H1H2z, color = interval)) +
   geom_smooth(fill = NA) +
-  facet_wrap(~ Position_2, scales = "free_x") +
+  facet_wrap(~ Position.2, scales = "free_x") +
   ms_facets +
   labs(x = "Proportion of time", y = "H1*-H2* (centered within-speaker)")
 
@@ -471,7 +537,7 @@ subset_subset %>%
   # ) %>%
   ggplot(aes(t_prop, H1H2c, color = interval)) +
   geom_smooth(method = 'gam', fill = NA) +
-  facet_wrap(~ factor(Position_2, c('CV','VCV','VC')), scales = "free_x", ncol=3) +
+  facet_wrap(~ factor(Position.2, c('CV','VCV','VC')), scales = "free_x", ncol=3) +
   ms_facets +
   labs(x = "Proportion of interval duration", y = "H1*-H2*")
 
@@ -516,6 +582,9 @@ subset_subset %>%
   labs(x = "Proportion of interval duration", y = "SoE")
 
 
+
+
+### not working at the moment
 mod_H1H2c <- lmer(
   formula = H1H2c ~
     interval + t_ms + (1 | phrase),
@@ -523,7 +592,7 @@ mod_H1H2c <- lmer(
 )
 
 predictions <- bind_rows(
-  mutate(predict_with_se(mod_H1H2c, subset_subset_newdata, re.form = NA),
+  mutate(predict_with_se(mod_H1H2c, subset_subset, re.form = NA),
          position = "Intervals"
   )
 ) %>%

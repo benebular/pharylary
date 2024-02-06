@@ -16,8 +16,8 @@ import ptitprince as pt
 #     print(data[['interval','Position','Position_2']])
 
 
-# data = pd.read_csv('/Volumes/circe/vs/output_preproc/preproc_output.csv', encoding='utf8')
-data = pd.read_csv('/Users/bcl/Desktop/preproc_output.csv', encoding='utf8')
+data = pd.read_csv('/Volumes/circe/vs/output_preproc/preproc_output.csv', encoding='utf8')
+# data = pd.read_csv('/Users/bcl/Desktop/preproc_output.csv', encoding='utf8')
 
 # data = data[data['tier'] == 'phonetic']
 
@@ -55,30 +55,30 @@ color_dict = {'h': '#d95f02', 'ʔ': '#7570b3', 'ħ': '#1b9e77', 'ʕ': '#e7298a'}
 palette = [color_dict[label] for label in means_data['interval'].unique()]
 
 
-ax = pt.RainCloud(x='interval', y='H1H2c', data=means_data, bw=.2, width_viol=.6)
+# ax = pt.RainCloud(x='interval', y='H1H2c', data=means_data, bw=.2, width_viol=.6)
 
-# Show the plot
-ax.set_title('Distribution of Acoustic Features by Phonetic Label')
-plt.show()
-
-# F0, adding the boxplot with quartiles
-plot_F0_mean = pd.DataFrame({'group':'F0', 'F0': ratings_all['F0_mean']}).drop_duplicates()
-plot_F0_90 = pd.DataFrame({'group':'F0_90', 'F0': ratings_all['F0_90']}).drop_duplicates()
-plot_F0_10 = pd.DataFrame({'group':'F0_10', 'F0': ratings_all['F0_10']}).drop_duplicates()
-plot_F0 = pd.concat([plot_F0_10, plot_F0_mean, plot_F0_90])
-
-plot_F0_mean = pd.DataFrame({'group':'F0', 'F0': ratings_all['F0_mean']}).drop_duplicates()
-
-
-dx="group"; dy="F0"; ort="h"; pal = sns.color_palette(n_colors=3); sigma = .2
-f, ax = plt.subplots(figsize=(7, 5))
-pt.RainCloud(x = dx, y = dy, data = plot_F0, palette = pal, bw = sigma,
-                 width_viol = .6, ax = ax, orient = ort)
-
-plt.title("10th percentile; Average F0; 90th percentile, by speaker (across entire utterance), %s Participants"%number_participants)
+# # Show the plot
+# ax.set_title('Distribution of Acoustic Features by Phonetic Label')
 # plt.show()
-plt.savefig(os.path.join(fig_dir, 'F0_raincloud.png'), bbox_inches='tight', dpi=300)
-plt.close()
+
+# # F0, adding the boxplot with quartiles
+# plot_F0_mean = pd.DataFrame({'group':'F0', 'F0': ratings_all['F0_mean']}).drop_duplicates()
+# plot_F0_90 = pd.DataFrame({'group':'F0_90', 'F0': ratings_all['F0_90']}).drop_duplicates()
+# plot_F0_10 = pd.DataFrame({'group':'F0_10', 'F0': ratings_all['F0_10']}).drop_duplicates()
+# plot_F0 = pd.concat([plot_F0_10, plot_F0_mean, plot_F0_90])
+
+# plot_F0_mean = pd.DataFrame({'group':'F0', 'F0': ratings_all['F0_mean']}).drop_duplicates()
+
+
+# dx="group"; dy="F0"; ort="h"; pal = sns.color_palette(n_colors=3); sigma = .2
+# f, ax = plt.subplots(figsize=(7, 5))
+# pt.RainCloud(x = dx, y = dy, data = plot_F0, palette = pal, bw = sigma,
+#                  width_viol = .6, ax = ax, orient = ort)
+
+# plt.title("10th percentile; Average F0; 90th percentile, by speaker (across entire utterance), %s Participants"%number_participants)
+# # plt.show()
+# plt.savefig(os.path.join(fig_dir, 'F0_raincloud.png'), bbox_inches='tight', dpi=300)
+# plt.close()
 
 
 
@@ -106,7 +106,7 @@ acoustic_features = ['H1H2c','CPP','HNR05','SHR','strF0','soe','energy_prop','sF
 features = ['H1H2c','CPP','soe'] ## gamm plot
 # features = ['SHR','strF0','HNR05'] ## gamm plot 2
 # features = ['sF1','sF2','sF3'] ## gamm plot 3
-positions = data['Position_2'].unique()
+positions = data['Position 2'].unique()
 
 # establish labels of interest
 # all_labels = ['ħ-V', 'h-V', 'ʔ-V', 'ʕ-V', 'V-ħ-V', 'V-h-V', 'V-ʔ-V', 'V-ʕ-V', 'V-ħ', 'V-h', 'V-ʔ', 'V-ʕ']
@@ -149,7 +149,7 @@ for i, feature in enumerate(features):
         designated_labels = position_label_map.get(position, [])
 
         # Filter data for this feature and position
-        subset = data[(data['Position_2'] == position) & (data['interval'].isin(designated_labels))]
+        subset = data[(data['Position 2'] == position) & (data['interval'].isin(designated_labels))]
 
         # Fit and plot GAM for each label
         # if pos == 'init':
