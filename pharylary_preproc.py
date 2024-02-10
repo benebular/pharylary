@@ -7,6 +7,7 @@ import numpy as np
 import os
 import glob
 import textgrid
+import time
 
 output_dir = '/Volumes/circe/vs/output_preproc'
 input_dir = '/Volumes/circe/vs/input_preproc'
@@ -33,6 +34,9 @@ tiers_to_process = ['phonetic', 'glottis', 'V-sequence', 'word']
 # Identify your point tier
 # point_tier = tg.getFirst('comment')
 
+time_start = time.ctime()
+print("Start time:", time_start)
+seconds_start = time.time()
 
 # Iterate over each file in the TextGrid folder
 for filename in os.listdir(textgrid_folder):
@@ -84,6 +88,11 @@ for filename in os.listdir(textgrid_folder):
 
                             # Append the relevant data to the DataFrame
                             all_relevant_data = pd.concat([all_relevant_data, relevant_data], ignore_index=True)
+
+time_end = time.ctime()
+print("End time:", time_end)
+seconds_end = time.time()
+print("Time elapsed (minutes): ", (seconds_end-seconds_start)/60)
 
 print('Processing all data for min, max, proportion, etc.')
 
@@ -142,7 +151,7 @@ all_relevant_data['duration'] = all_relevant_data['t_max'] - all_relevant_data['
 ### add in other data from google sheet ###
 print('Adding metadata...')
 stim_meta = pd.read_csv('/Users/bcl/GitHub/pharylary/PharyLary Stimuli - Yes.csv')
-stim_meta_df = stim_meta[['Phrasenum','IPA','Gloss','Gloss 2','Syllable','Segment','Type','Position','Position 2','Contrast (IPA)','Contrast','Experiment']]
+stim_meta_df = stim_meta[['Phrasenum','IPA','Gloss','Gloss_2','Syllable','Segment','Type','Position','Position_2','Contrast_(IPA)','Contrast','Experiment']]
 stim_meta_df = stim_meta_df.rename(columns={'Phrasenum':'phrase'})
 stim_meta_df = stim_meta_df.astype({'phrase': int})
 all_relevant_data = all_relevant_data.astype({'phrase': int})
@@ -156,15 +165,19 @@ print('Saving as .csv in %s.'%(output_dir))
 all_data.to_csv('preproc_output.csv', index=False)
 
 
-
 #### matches for means ####
 ### slicing the data below takes about 5 minutes to run because iterrows() is slow ####
 #Initialize an empty DataFrame to store matching rows
+time_start = time.ctime()
+print("Start time:", time_start)
+seconds_start = time.time()
+
 print('Getting matching data for means...')
 matching_data = pd.DataFrame()
 
 # Iterate through each unique phrase
 for phrase in all_data['phrase'].unique():
+
     # Filter data for the current phrase
     phrase_data = all_data[all_data['phrase'] == phrase]
 
@@ -177,8 +190,14 @@ for phrase in all_data['phrase'].unique():
         # Check if this interval t_ms matches any V-sequence t_ms in the same phrase
         if any(interval_row['t_ms'] == v_sequence_row.t_ms for v_sequence_row in v_sequence_data.itertuples()):
             # Append matching row to the matching_data DataFrame
+            print('Appending match for %s phrase %s...'%(interval_row['participant'], phrase))
             matching_data = matching_data.append(interval_row)
 
+time_end = time.ctime()
+print("End time:", time_end)
+seconds_end = time.time()
+print("Time elapsed (minutes): ", (seconds_end-seconds_start)/60)
+
 print('Saving matches for means as .csv in %s.'%(output_dir))
-matching_data.to_csv('preproc_matchesformeans.csv', index=False)
+matching_data.to_csv('/Volumes/circe/vs/output_preproc/preproc_matchesformeans.csv', index=False)
 # matching_data = pd.read_csv('/Volumes/circe/vs/output_preproc/preproc_matchesformeans.csv', encoding='utf8')

@@ -1,6 +1,6 @@
-## spline models from Seyfarth & Garellek (2018)
+## Modeling for PharyLary
 ## author: ben lang, blang@ucsd.edu
-## substantial code drawn from Seyfarth & Garellek (2018)
+## substantial code for splines drawn from Seyfarth & Garellek (2018)
 
 # library(lmerTest)
 library(plyr)
@@ -9,11 +9,13 @@ library(dplyr) # this checks for normality
 library(magrittr)
 # library(effects)
 library(ggplot2)
+library(ggsignif)
 library(tidyr)
 # library(scales)
 # library(reshape2)
 library(lme4)
 library(lmerTest)
+library(mgcv)
 # library(emmeans)
 #library(forcats)
 # library(psycho)
@@ -33,74 +35,74 @@ library("devtools")
 # library(grid)
 library(gridExtra)
 
-ms_colors <- c(
-  "ħ-V"    = "#1b9e77", # orange
-  "h-V" = "#d95f02", # blue
-  "ʔ-V" = "#7570b3",  # green
-  "ʕ-V" = "#e7298a",  # red
-  "V-ħ-V"    = "#1b9e77", # orange
-  "V-h-V" = "#d95f02", # blue
-  "V-ʔ-V" = "#7570b3",  # green
-  "V-ʕ-V" = "#e7298a",  # red
-  "V-ħ"    = "#1b9e77", # orange
-  "V-h" = "#d95f02", # blue
-  "V-ʔ" = "#7570b3",  # green
-  "V-ʕ" = "#e7298a"  # red
-)
-
 # ms_colors <- c(
-#   "ħ"    = "#1b9e77", # orange
-#   "h" = "#d95f02", # blue
-#   "ʔ" = "#7570b3",  # green
-#   "ʕ" = "#e7298a",  # red
+#   "ħ-V"    = "#1b9e77", # orange
+#   "h-V" = "#d95f02", # blue
+#   "ʔ-V" = "#7570b3",  # green
+#   "ʕ-V" = "#e7298a",  # red
+#   "V-ħ-V"    = "#1b9e77", # orange
+#   "V-h-V" = "#d95f02", # blue
+#   "V-ʔ-V" = "#7570b3",  # green
+#   "V-ʕ-V" = "#e7298a",  # red
+#   "V-ħ"    = "#1b9e77", # orange
+#   "V-h" = "#d95f02", # blue
+#   "V-ʔ" = "#7570b3",  # green
+#   "V-ʕ" = "#e7298a"  # red
 # )
-
-ms_facets <- list(
-  scale_color_manual(name = NULL, values = ms_colors),
-  scale_fill_manual(name = NULL, values = ms_colors),
-  theme_light(),
-  theme(
-    aspect.ratio     = 1,
-    legend.position  = "bottom",
-    strip.background = element_blank(),
-    strip.text       = element_text(color = "black", hjust = 0, size = 11),
-    panel.border     = element_rect(color = "black", fill = NA)
-  )
-)
+# 
+# # ms_colors <- c(
+# #   "ħ"    = "#1b9e77", # orange
+# #   "h" = "#d95f02", # blue
+# #   "ʔ" = "#7570b3",  # green
+# #   "ʕ" = "#e7298a",  # red
+# # )
+# 
+# ms_facets <- list(
+#   scale_color_manual(name = NULL, values = ms_colors),
+#   scale_fill_manual(name = NULL, values = ms_colors),
+#   theme_light(),
+#   theme(
+#     aspect.ratio     = 1,
+#     legend.position  = "bottom",
+#     strip.background = element_blank(),
+#     strip.text       = element_text(color = "black", hjust = 0, size = 11),
+#     panel.border     = element_rect(color = "black", fill = NA)
+#   )
+# )
 
 orig_data_path <- sprintf('/Volumes/circe/vs/output_preproc/preproc_output.csv')
 # orig_data_path <- sprintf('/Users/bcl/Desktop/preproc_output.csv')
 orig_data = read.csv(orig_data_path)
 
-sonorant_subset = subset(orig_data, interval == 'w' | interval == 'j')
-
-
 ##### data for the intervals as extracted from overlap with tier 3 because there's no unique labels in tier 1
 data_path <- sprintf('/Volumes/circe/vs/output_preproc/preproc_matchesformeans.csv')
 data = read.csv(data_path)
 
+subset = subset(data, interval == 'ħ' | interval == 'ʕ' | interval == 'h' | interval == 'ʔ')
 # subset = subset(data, interval == 'ħ' | interval == 'ʕ' | interval == 'h' | interval == 'ʔ')
-subset = subset(data, interval == 'ħ' | interval == 'ʕ')
+# subset = subset(data, interval == 'ħ' | interval == 'ʕ')
 # subset = subset(subset, Contrast_.IPA. == 'h - ħ' | Contrast_.IPA. == 'ʔ - ʕ')
 
 ### subetting for plots below based on sonorants
-sonorant_subset <- sonorant_subset %>%
-  mutate(facet_contrast = "Sonorant /j w/")
-
-subset <- subset %>%
-  mutate(facet_contrast = ifelse(grepl("ħ", interval), "/ħ/", "/ʕ/"))
-
+sonorant_subset = subset(orig_data, interval == 'w' | interval == 'j')
+# 
+# sonorant_subset <- sonorant_subset %>%
+#   mutate(facet_contrast = "Sonorant /j w/")
+# 
+# subset <- subset %>%
+#   mutate(facet_contrast = ifelse(grepl("ħ", interval), "/ħ/", "/ʕ/"))
+# 
 subset <- rbind(subset, sonorant_subset)
 
 #calculate residual H1
 
-subset <- subset %>% group_by(participant, phrase, interval) %>% mutate(H1cz = H1c - mean(H1c, na.rm = TRUE))
-subset <- subset %>% group_by(participant, phrase, interval) %>% mutate(energyz = Energy - mean(Energy, na.rm = TRUE))
-mod_h1 <- lmer(H1cz ~ energyz + (energyz||participant), data = subset, REML = FALSE)
-
-energy.factor = fixef(mod_h1)[2]
-
-subset$H1c.resid = subset$H1cz - subset$energyz * energy.factor
+# subset <- subset %>% group_by(participant, phrase, interval) %>% mutate(H1cz = H1c - mean(H1c, na.rm = TRUE))
+# subset <- subset %>% group_by(participant, phrase, interval) %>% mutate(energyz = Energy - mean(Energy, na.rm = TRUE))
+# mod_h1 <- lmer(H1c ~ energy + (energyz||participant), data = subset, REML = FALSE)
+# 
+# energy.factor = fixef(mod_h1)[2]
+# 
+# subset$H1c.resid = subset$H1cz - subset$energyz * energy.factor
 
 ## calculate mean values for all intervals in each word for each participant
 
@@ -110,8 +112,164 @@ subset_mean <- subset_mean %>% group_by(participant,phrase,interval) %>% mutate(
 subset_mean <- subset_mean %>% group_by(participant,phrase,interval) %>% mutate(sF1_mean = mean(sF1, na.rm = TRUE))
 subset_mean <- subset_mean %>% group_by(participant,phrase,interval) %>% mutate(sF2_mean = mean(sF2, na.rm = TRUE))
 subset_mean <- subset_mean %>% group_by(participant,phrase,interval) %>% mutate(HNR05_mean = mean(HNR05, na.rm = TRUE))
-subset_mean <- subset_mean %>% group_by(participant,phrase,interval) %>% mutate(H1c.resid_mean = mean(H1c.resid, na.rm = TRUE))
+subset_mean <- subset_mean %>% group_by(participant,phrase,interval) %>% mutate(H1c_mean = mean(H1c, na.rm = TRUE))
+subset_mean <- subset_mean %>% group_by(participant,phrase,interval) %>% mutate(energy_logged = log(Energy))
+# subset_mean <- subset_mean %>% group_by(participant,phrase,interval) %>% mutate(H1c.resid_mean = mean(H1c.resid, na.rm = TRUE))
 
+# write unfiltered subset_mean
+write.csv(subset_mean, "/Volumes/circe/vs/output_preproc/subset_mean.csv", row.names=FALSE)
+
+### remove the final position from subset and make variable that keeps it
+
+subset_mean = subset(subset_mean, Position == 'Initial' | Position == 'Medial')
+subset_mean_pos_all = subset(subset_mean, interval == 'ħ' | interval == 'ʕ' | interval == 'h' | interval == 'ʔ')
+
+### releveling and dummy coding
+
+subset_mean$Position <-factor(subset_mean$Position, levels = c("Initial", "Medial")) 
+contrasts(subset_mean$Position) <- contr.treatment(2)
+
+## run models that don't need any outlier adjustments for f0 and formants
+
+mod_CPP <- lmer(
+  formula = CPP_mean ~
+    interval*Position + (1|participant) + (1|phrase),
+  data = subset_mean
+)
+
+mod_soe <- lmer(
+  formula = soe_mean ~
+    interval*Position + (1|participant) + (1|phrase),
+  data = subset_mean
+)
+
+#### remove F1 outliers
+
+# Calculate mean and standard deviation for each participant
+subset_mean <- subset_mean %>%
+  group_by(participant) %>%
+  mutate(sF1_sd = sd(sF1, na.rm = TRUE)) %>%
+  ungroup()
+
+# Filter out rows where F1 is outside the range of 2.5 standard deviations from the mean
+subset_mean_F1 <- subset_mean %>%
+  filter(sF1 >= (sF1_mean - 3 * sF1_sd) & sF1 <= (sF1_mean + 3 * sF1_sd))
+
+### relevel
+subset_mean_F1$Position <-factor(subset_mean_F1$Position, levels = c("Initial", "Medial")) 
+contrasts(subset_mean_F1$Position) <- contr.treatment(2)
+
+# run the model
+mod_F1 <- lmer(
+  formula = sF1_mean ~
+    interval*Position + (1|participant) + (1|phrase),
+  data = subset_mean_F1
+)
+
+### remove f0 outliers
+
+# Calculate mean and standard deviation for each participant
+subset_mean <- subset_mean %>%
+  group_by(participant) %>%
+  mutate(strF0_mean = mean(strF0, na.rm = TRUE), strF0_sd = sd(strF0, na.rm = TRUE)) %>%
+  ungroup()
+
+# Filter out rows where F1 is outside the range of 2.5 standard deviations from the mean
+subset_mean_harmonics <- subset_mean %>%
+  filter(strF0 >= (strF0_mean - 3 * strF0_sd) & strF0 <= (strF0_mean + 3 * strF0_sd))
+
+### flagging formant outliers
+### Calculate Mahalanobis distance for formants
+vmahalanobis = function (dat) {
+  if (nrow(dat) < 25) {
+    dat$zF1F2 = NA
+    return(dat)
+  }
+  means = c(mean(dat$sF1, na.rm=T), mean(dat$sF2, na.rm=T))
+  cov = cov(cbind(dat$sF1, dat$sF2))
+  
+  dat$zF1F2 = mahalanobis(cbind(dat$sF1, dat$sF2),
+                          center=means, cov=cov)
+  dat
+}
+
+# Distance larger than 6 is considered as outlier    #MG: smaller numbers = more outliers. The paper I linked to uses 4.
+distance_cutoff = 6
+
+# Perform Mahalanobis on dataset
+subset_mean_harmonics =  subset_mean_harmonics %>%                 #MG: this was cut from a dataset called "tot_fin"
+  group_by(interval) %>%
+  do(vmahalanobis(.)) %>%
+  ungroup() %>%
+  mutate(formant_outlier = NA)
+
+# Visualize the formants with flagged values
+subset_mean_harmonics %>%
+  filter(is.na(formant_outlier)) %>%
+  ggplot(aes(x = sF2, y = sF1, color = zF1F2 > distance_cutoff)) +       #MG: sF2 and sF1 = Snack values from VS
+  geom_point(size = 0.6) +
+  facet_wrap(.~interval)+
+  scale_y_reverse(limits = c(2000,0),position = "right") +
+  scale_x_reverse(limits = c(3500,0),position = "top")+
+  theme_bw()
+
+# Remove flagged values
+for (i in 1:nrow(subset_mean_harmonics)) {
+  if (!is.na(subset_mean_harmonics$zF1F2[i])) {
+    if (subset_mean_harmonics$zF1F2[i] > distance_cutoff){
+      subset_mean_harmonics$formant_outlier[i] = "outlier"
+    }
+  }
+  
+}
+
+# Visualize the vowel formant after exclusion
+subset_mean_harmonics %>%
+  filter(is.na(formant_outlier)) %>%
+  ggplot(aes(x = sF2, y = sF1)) +
+  geom_point(size = 0.6) +
+  #geom_text()+
+  facet_wrap(.~interval)+
+  #geom_density_2d() +
+  #  scale_color_manual(values=c('#a6611a','#dfc27d','#018571'))+
+  scale_y_reverse(limits = c(2000,0),position = "right") +
+  scale_x_reverse(limits = c(3500,0),position = "top")+
+  theme_bw()
+
+# Histogram of raw Energy values
+ggplot(subset_mean_harmonics, aes(x = Energy)) +
+  geom_histogram(aes(y = ..density..), binwidth = 0.5, colour = "black", fill = "white") +
+  geom_density(alpha = .2, fill = "#FF6666") +
+  labs(title = "Histogram of Energy", x = "Energy", y = "Density")
+
+# Histogram of log-transformed Energy values
+ggplot(subset_mean_harmonics, aes(x = log(Energy))) +
+  geom_histogram(aes(y = ..density..), binwidth = 0.5, colour = "black", fill = "white") +
+  geom_density(alpha = .2, fill = "#FF6666") +
+  labs(title = "Histogram of log-transformed Energy", x = "Log(Energy)", y = "Density")
+
+### relevel
+subset_mean_harmonics$Position <-factor(subset_mean_harmonics$Position, levels = c("Initial", "Medial")) 
+contrasts(subset_mean_harmonics$Position) <- contr.treatment(2)
+# subset_mean_harmonics <- subsemt_mean_harmonics %>% group_by(participant,phrase,interval) %>% mutate(energy_logged = log(Energy))
+
+### run harmonic models
+mod_H1H2c <- lmer(
+  formula = H1H2c_mean ~
+    interval*Position + Energy + strF0 + (1|participant) + (1|phrase),
+  data = subset_mean_harmonics
+)
+
+mod_H1c <- lmer(
+  formula = H1c_mean ~
+    interval*Position + Energy + strF0 + (1|participant) + (1|phrase),
+  data = subset_mean_harmonics
+)
+
+## grab residual H1c for plotting
+energy.factor = fixef(mod_h1c)[2]
+
+subset_mean_harmonics$H1c.resid = subset_mean_harmonics$H1c - subset_mean_harmonics$Energy * energy.factor
 
 
 ### just grab the first value in the intervals for each word for each participant since it's not the same within interval, word, participant
@@ -122,7 +280,7 @@ unique_data <- subset_mean %>% group_by(participant,phrase,interval) %>% summari
   sF1_mean_unique = first(sF1_mean),
   sF2_mean_unique = first(sF2_mean),
   HNR05_mean_unique = first(HNR05_mean),
-  H1c.resid_mean_unique = first(H1c.resid_mean),
+  # H1c.resid_mean_unique = first(H1c.resid_mean),
   #facet_contrast = first(facet_contrast),
   .groups = 'drop'  # This drops the grouping, so the data is no longer grouped after this operation
 )
@@ -130,8 +288,6 @@ unique_data <- subset_mean %>% group_by(participant,phrase,interval) %>% summari
 
 # combine sonorant label so they are collapsed
 unique_data$interval <- str_replace(unique_data$interval, "j|w", "j/w")
-
-write.csv(subset_mean, "/Volumes/circe/vs/output_preproc/subset_mean.csv", row.names=FALSE)
 
 rain_height <- .1
 
@@ -198,6 +354,8 @@ plot2 <- ggplot(unique_data, aes(x = "", y = CPP_mean_unique, fill = interval)) 
                outlier.shape = NA,
                # position = position_nudge(x = -rain_height*2) +
                position = position_nudge(x = -rain_height*2), aes(x = 0.95 + stagger_offsets[as.numeric(factor(interval))])) +
+               # geom_signif(comparisons = list(c('h','ʔ','ħ','ʕ')), 
+               # map_signif_level=TRUE) + 
   # coord_flip() +
   # mean and SE point in the cloud
   # stat_summary(fun.data = mean_cl_normal, mapping = aes(color = interval), show.legend = FALSE,
@@ -426,35 +584,11 @@ plot7 <- ggplot(unique_data, aes(x = "", y = H1c.resid_mean_unique, fill = inter
 
 
 grid.arrange(
-  plot1, plot2, plot3, plot4,
+  plot2, plot3, plot4,
   ncol = 2, nrow = 2,
   top = grid::textGrob("Acoustic Feature Means for Pharyngeal and Sonorant Consonants", gp=grid::gpar(fontsize=20))
 )
 
-
-mod_CPP <- lmer(
-  formula = CPP ~
-    interval + (1|participant) + (1|phrase) + (1|Position),
-  data = subset_mean
-)
-
-mod_soe <- lmer(
-  formula = soe ~
-    interval + (1|participant) + (1|phrase) + (1|Position),
-  data = subset_mean
-)
-
-mod_H1H2c <- lmer(
-  formula = H1H2c ~
-    interval + (1|participant) + (1|phrase) + (1|Position),
-  data = subset_mean
-)
-
-mod_F1 <- lmer(
-  formula = sF1 ~
-    interval + (1|participant) + (1|phrase) + (1|Position),
-  data = subset_mean
-)
 
 ###### Seyfarth & Garellek (2018) Analysis Type ##########
 
