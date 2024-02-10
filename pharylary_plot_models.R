@@ -9,14 +9,14 @@ library(dplyr) # this checks for normality
 library(magrittr)
 # library(effects)
 library(ggplot2)
-library(ggsignif)
+# library(ggsignif)
 library(tidyr)
 # library(scales)
 # library(reshape2)
 library(lme4)
 library(lmerTest)
-library(mgcv)
-# library(emmeans)
+# library(mgcv)
+library(emmeans)
 #library(forcats)
 # library(psycho)
 # library(janitor)
@@ -28,12 +28,12 @@ library(mgcv)
 # library("optimx")
 # library("rlang")
 # library("scales")
-library("splines")
+# library("splines")
 library("stringr")
 library("tidyverse")
-library("devtools")
+# library("devtools")
 # library(grid)
-library(gridExtra)
+# library(gridExtra)
 
 # ms_colors <- c(
 #   "ħ-V"    = "#1b9e77", # orange
@@ -70,12 +70,13 @@ library(gridExtra)
 #   )
 # )
 
-orig_data_path <- sprintf('/Volumes/circe/vs/output_preproc/preproc_output.csv')
-# orig_data_path <- sprintf('/Users/bcl/Desktop/preproc_output.csv')
+# orig_data_path <- sprintf('/Volumes/circe/vs/output_preproc/preproc_output.csv')
+orig_data_path <- sprintf('/Users/bcl/Desktop/preproc_output.csv')
 orig_data = read.csv(orig_data_path)
 
 ##### data for the intervals as extracted from overlap with tier 3 because there's no unique labels in tier 1
-data_path <- sprintf('/Volumes/circe/vs/output_preproc/preproc_matchesformeans.csv')
+# data_path <- sprintf('/Volumes/circe/vs/output_preproc/preproc_matchesformeans.csv')
+data_path <- sprintf('/Users/bcl/Desktop/preproc_matchesformeans.csv')
 data = read.csv(data_path)
 
 subset = subset(data, interval == 'ħ' | interval == 'ʕ' | interval == 'h' | interval == 'ʔ')
@@ -113,34 +114,42 @@ subset_mean <- subset_mean %>% group_by(participant,phrase,interval) %>% mutate(
 subset_mean <- subset_mean %>% group_by(participant,phrase,interval) %>% mutate(sF2_mean = mean(sF2, na.rm = TRUE))
 subset_mean <- subset_mean %>% group_by(participant,phrase,interval) %>% mutate(HNR05_mean = mean(HNR05, na.rm = TRUE))
 subset_mean <- subset_mean %>% group_by(participant,phrase,interval) %>% mutate(H1c_mean = mean(H1c, na.rm = TRUE))
-subset_mean <- subset_mean %>% group_by(participant,phrase,interval) %>% mutate(energy_logged = log(Energy))
+subset_mean <- subset_mean %>% group_by(participant,phrase,interval) %>% mutate(Energy_logged = log(Energy))
+subset_mean <- subset_mean %>% group_by(participant,phrase,interval) %>% mutate(energyz = Energy - mean(Energy, na.rm = TRUE))
+subset_mean <- subset_mean %>% group_by(participant,phrase,interval) %>% mutate(energyz_logged = log(energyz))
 # subset_mean <- subset_mean %>% group_by(participant,phrase,interval) %>% mutate(H1c.resid_mean = mean(H1c.resid, na.rm = TRUE))
 
 # write unfiltered subset_mean
-write.csv(subset_mean, "/Volumes/circe/vs/output_preproc/subset_mean.csv", row.names=FALSE)
+# write.csv(subset_mean, "/Volumes/circe/vs/output_preproc/subset_mean.csv", row.names=FALSE)
+write.csv(subset_mean, "/Users/bcl/Desktop/subset_mean.csv", row.names=FALSE)
+
 
 ### remove the final position from subset and make variable that keeps it
 
-subset_mean = subset(subset_mean, Position == 'Initial' | Position == 'Medial')
 subset_mean_pos_all = subset(subset_mean, interval == 'ħ' | interval == 'ʕ' | interval == 'h' | interval == 'ʔ')
+subset_mean = subset(subset_mean, Position == 'Initial' | Position == 'Medial')
 
 ### releveling and dummy coding
 
 subset_mean$Position <-factor(subset_mean$Position, levels = c("Initial", "Medial")) 
+# subset_mean$interval <-factor(subset_mean$interval, levels = c('ħ','ʕ','h','ʔ','j','w')) 
 contrasts(subset_mean$Position) <- contr.treatment(2)
+# contrasts(subset_mean$interval) <- contr.treatment(6)
 
 ## run models that don't need any outlier adjustments for f0 and formants
 
 mod_CPP <- lmer(
   formula = CPP_mean ~
     interval*Position + (1|participant) + (1|phrase),
-  data = subset_mean
+  data = subset_mean,
+  REML = FALSE
 )
 
 mod_soe <- lmer(
   formula = soe_mean ~
     interval*Position + (1|participant) + (1|phrase),
-  data = subset_mean
+  data = subset_mean,
+  REML = FALSE
 )
 
 #### remove F1 outliers
@@ -163,7 +172,8 @@ contrasts(subset_mean_F1$Position) <- contr.treatment(2)
 mod_F1 <- lmer(
   formula = sF1_mean ~
     interval*Position + (1|participant) + (1|phrase),
-  data = subset_mean_F1
+  data = subset_mean_F1,
+  REML = FALSE
 )
 
 ### remove f0 outliers
@@ -251,19 +261,20 @@ ggplot(subset_mean_harmonics, aes(x = log(Energy))) +
 ### relevel
 subset_mean_harmonics$Position <-factor(subset_mean_harmonics$Position, levels = c("Initial", "Medial")) 
 contrasts(subset_mean_harmonics$Position) <- contr.treatment(2)
-# subset_mean_harmonics <- subsemt_mean_harmonics %>% group_by(participant,phrase,interval) %>% mutate(energy_logged = log(Energy))
+subset_mean_harmonics_removed <- subset(subset_mean_harmonics, (!is.na(subset_mean_harmonics$Energy_logged) & (!is.infinite(subset_mean_harmonics$Energy_logged))))
 
 ### run harmonic models
 mod_H1H2c <- lmer(
   formula = H1H2c_mean ~
-    interval*Position + Energy + strF0 + (1|participant) + (1|phrase),
-  data = subset_mean_harmonics
+    interval*Position + Energy_logged + strF0 + (1|participant) + (1|phrase),
+  data = subset_mean_harmonics_removed,
+  REML = FALSE
 )
 
 mod_H1c <- lmer(
-  formula = H1c_mean ~
-    interval*Position + Energy + strF0 + (1|participant) + (1|phrase),
-  data = subset_mean_harmonics
+  formula = H1c_mean ~ interval*Position + Energy_logged + strF0 + (1|participant) + (1|phrase),
+  data = subset_mean_harmonics_removed,
+  REML = FALSE
 )
 
 ## grab residual H1c for plotting
