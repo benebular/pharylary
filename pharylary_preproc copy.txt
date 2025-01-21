@@ -193,44 +193,6 @@ for phrase in all_data['phrase'].unique():
             print('Appending match for %s phrase %s...'%(interval_row['participant'], phrase))
             matching_data = matching_data.append(interval_row)
 
-
-time_start = time.ctime()
-print("Start time:", time_start)
-seconds_start = time.time()
-
-print('Getting matching data for means...')
-matching_data = pd.DataFrame()
-
-# Initialize a list to collect matching rows
-matching_rows = []
-
-# Iterate through each unique phrase
-for phrase in all_data['phrase'].unique():
-    print('Appending match for %s phrase %s...' % (interval_row['participant'], phrase))
-    # Filter data for the current phrase
-    phrase_data = all_data[all_data['phrase'] == phrase]
-
-    # Separate interval and V-sequence data within this phrase
-    interval_data = phrase_data[phrase_data['tier'] == 'phonetic']
-    v_sequence_data = phrase_data[phrase_data['tier'] == 'V-sequence']
-
-    # Create a set of t_ms values from V-sequence data for faster lookup
-    v_sequence_t_ms_set = set(v_sequence_data['t_ms'])
-
-    # Iterate through the interval data
-    for index, interval_row in interval_data.iterrows():
-        # Check if this interval t_ms matches any V-sequence t_ms in the same phrase
-        if interval_row['t_ms'] in v_sequence_t_ms_set:
-            # Collect the matching row
-            matching_rows.append(interval_row)
-
-# Convert the list of matching rows to a DataFrame
-matching_rows_df = pd.DataFrame(matching_rows)
-
-# Use pd.concat to append all matching rows to the matching_data DataFrame at once
-matching_data = pd.concat([matching_data, matching_rows_df], ignore_index=True)
-
-
 time_end = time.ctime()
 print("End time:", time_end)
 seconds_end = time.time()

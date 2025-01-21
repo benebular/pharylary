@@ -24,16 +24,15 @@ library(emmeans)
 # library(psyphy)
 # library("cowplot")
 # library("forcats")
-# library("lme4")
 # library("optimx")
 # library("rlang")
 # library("scales")
 # library("splines")
 library("stringr")
 library("tidyverse")
-# library("devtools")
-# library(grid)
-# library(gridExtra)
+library("devtools")
+library(grid)
+library(gridExtra)
 
 # ms_colors <- c(
 #   "ħ-V"    = "#1b9e77", # orange
@@ -70,13 +69,13 @@ library("tidyverse")
 #   )
 # )
 
-# orig_data_path <- sprintf('/Volumes/circe/vs/output_preproc/preproc_output.csv')
-orig_data_path <- sprintf('/Users/bcl/Desktop/preproc_output.csv')
+orig_data_path <- sprintf('/Volumes/circe/vs/output_preproc/preproc_output.csv')
+# orig_data_path <- sprintf('/Users/bcl/Desktop/preproc_output.csv')
 orig_data = read.csv(orig_data_path)
 
 ##### data for the intervals as extracted from overlap with tier 3 because there's no unique labels in tier 1
-# data_path <- sprintf('/Volumes/circe/vs/output_preproc/preproc_matchesformeans.csv')
-data_path <- sprintf('/Users/bcl/Desktop/preproc_matchesformeans.csv')
+data_path <- sprintf('/Volumes/circe/vs/output_preproc/preproc_matchesformeans.csv')
+# data_path <- sprintf('/Users/bcl/Desktop/preproc_matchesformeans.csv')
 data = read.csv(data_path)
 
 subset = subset(data, interval == 'ħ' | interval == 'ʕ' | interval == 'h' | interval == 'ʔ')
@@ -120,8 +119,8 @@ subset_mean <- subset_mean %>% group_by(participant,phrase,interval) %>% mutate(
 # subset_mean <- subset_mean %>% group_by(participant,phrase,interval) %>% mutate(H1c.resid_mean = mean(H1c.resid, na.rm = TRUE))
 
 # write unfiltered subset_mean
-# write.csv(subset_mean, "/Volumes/circe/vs/output_preproc/subset_mean.csv", row.names=FALSE)
-write.csv(subset_mean, "/Users/bcl/Desktop/subset_mean.csv", row.names=FALSE)
+write.csv(subset_mean, "/Volumes/circe/vs/output_preproc/subset_mean.csv", row.names=FALSE)
+# write.csv(subset_mean, "/Users/bcl/Desktop/subset_mean.csv", row.names=FALSE)
 
 
 ### remove the final position from subset and make variable that keeps it
@@ -278,7 +277,7 @@ mod_H1c <- lmer(
 )
 
 ## grab residual H1c for plotting
-energy.factor = fixef(mod_h1c)[2]
+energy.factor = fixef(mod_H1c)[2]
 
 subset_mean_harmonics$H1c.resid = subset_mean_harmonics$H1c - subset_mean_harmonics$Energy * energy.factor
 
@@ -340,7 +339,7 @@ plot1 <- ggplot(unique_data, aes(x = "", y = H1H2c_mean_unique, fill = interval)
   scale_colour_brewer(palette = "Dark2") +
   theme_minimal() +
   theme(panel.grid.major.y = element_blank(),
-        legend.position = c(0.9, 0.8),
+        legend.position.inside = c(0.9, 0.8),
         legend.background = element_rect(fill = "white", color = "white"),
         # strip.text = element_text(size = 12), # Adjust font size for facet labels
         axis.title.x = element_text(size = 18), # Adjust font size for y-axis labels
@@ -387,13 +386,13 @@ plot2 <- ggplot(unique_data, aes(x = "", y = CPP_mean_unique, fill = interval)) 
   scale_colour_brewer(palette = "Dark2") +
   theme_minimal() +
   theme(panel.grid.major.y = element_blank(),
-        legend.position = c(0.9, 0.8),
+        legend.position.inside = c(0.9, 0.8),
         legend.background = element_rect(fill = "white", color = "white"),
         axis.title.x = element_text(size = 18), # Adjust font size for y-axis labels
         axis.text.x = element_text(size = 14), # Adjust font size for x-axis tick labels
         legend.text = element_text(size = 14), # Adjust font size for legend text
         legend.title = element_text(size = 14) # Adjust font size for legend title
-  )
+  ) #+ facet_wrap(~Position, ncol = 2)
 
 ##### SoE ####
 
@@ -429,7 +428,7 @@ plot3 <- ggplot(unique_data, aes(x = "", y = soe_mean_unique*10, fill = interval
   scale_colour_brewer(palette = "Dark2") +
   theme_minimal() +
   theme(panel.grid.major.y = element_blank(),
-        legend.position = c(0.9, 0.8),
+        legend.position.inside = c(0.9, 0.8),
         legend.background = element_rect(fill = "white", color = "white"),
         axis.title.x = element_text(size = 18), # Adjust font size for y-axis labels
         axis.text.x = element_text(size = 14), # Adjust font size for x-axis tick labels
@@ -471,7 +470,7 @@ plot4 <- ggplot(unique_data, aes(x = "", y = sF1_mean_unique, fill = interval)) 
   scale_colour_brewer(palette = "Dark2") +
   theme_minimal() +
   theme(panel.grid.major.y = element_blank(),
-        legend.position = c(0.9, 0.8),
+        legend.position.inside = c(0.9, 0.8),
         legend.background = element_rect(fill = "white", color = "white"),
         axis.title.x = element_text(size = 18), # Adjust font size for y-axis labels
         axis.text.x = element_text(size = 14), # Adjust font size for x-axis tick labels
@@ -512,7 +511,7 @@ plot5 <- ggplot(unique_data, aes(x = "", y = sF2_mean_unique, fill = interval)) 
   scale_colour_brewer(palette = "Dark2") +
   theme_minimal() +
   theme(panel.grid.major.y = element_blank(),
-        legend.position = c(0.9, 0.9),
+        legend.position.inside = c(0.9, 0.9),
         legend.background = element_rect(fill = "white", color = "white"))
 
 ##### HNR05 ####
@@ -548,7 +547,7 @@ plot6 <- ggplot(unique_data, aes(x = "", y = HNR05_mean_unique, fill = interval)
   scale_colour_brewer(palette = "Dark2") +
   theme_minimal() +
   theme(panel.grid.major.y = element_blank(),
-        legend.position = c(0.9, 0.9),
+        legend.position.inside = c(0.9, 0.9),
         legend.background = element_rect(fill = "white", color = "white"))
 
 ##### Residual H1* ####
@@ -585,7 +584,7 @@ plot7 <- ggplot(unique_data, aes(x = "", y = H1c.resid_mean_unique, fill = inter
   scale_colour_brewer(palette = "Dark2") +
   theme_minimal() +
   theme(panel.grid.major.y = element_blank(),
-        legend.position = c(0.9, 0.8),
+        legend.position.inside = c(0.9, 0.8),
         legend.background = element_rect(fill = "white", color = "white"),
         axis.title.x = element_text(size = 18), # Adjust font size for y-axis labels
         axis.text.x = element_text(size = 14), # Adjust font size for x-axis tick labels
