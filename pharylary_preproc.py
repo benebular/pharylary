@@ -1,6 +1,6 @@
 ### pharylary preprocessing script
 # this script takes individual outputs from VoiceSauce and different tiers from TextGrids
-# to create individual entries of acoustic values at each millisecond according to teh different intervals in the TextGrid tiers
+# to create individual entries of acoustic values at each millisecond according to the different intervals in the TextGrid tiers
 
 import pandas as pd
 import numpy as np
@@ -9,11 +9,48 @@ import glob
 import textgrid
 import time
 
-output_dir = '/Volumes/circe/vs/output_preproc'
-input_dir = '/Volumes/circe/vs/input_preproc'
-vs_output_dir = '/Volumes/circe/vs/vs_output'
+# output_dir = '/Volumes/circe/vs/output_preproc'
+# input_dir = '/Volumes/circe/vs/input_preproc'
+# vs_output_dir = '/Volumes/circe/vs/vs_output'
+
+output_dir = '/Volumes/cassandra/alldata/dissertation/vs/output_preproc'
+input_dir = '/Volumes/cassandra/alldata/dissertation/vs/input_preproc'
+vs_output_dir = '/Volumes/cassandra/alldata/dissertation/vs/vs_output'
+fricative_output_dir = '/Volumes/cassandra/alldata/dissertation/vs/fricative_output'
 
 os.chdir(output_dir)
+
+### NEW SECTION: Import and concatenate fricative measurement data ###
+# Step 1: Locate all text files in the fricative_output_dir ending with '_logfile_s'
+fricative_files = glob.glob(os.path.join(fricative_output_dir, '*_logfile_h_phar.txt'))
+
+# Step 2: Read and concatenate these files into a single DataFrame
+fricative_data = pd.DataFrame()  # Initialize an empty DataFrame
+
+for file in fricative_files:
+    # Read each file
+    temp_df = pd.read_csv(file, sep='\t')  # Assuming tab-separated files
+    fricative_data = pd.concat([fricative_data, temp_df], ignore_index=False)
+
+# Step 3: Output the concatenated DataFrame for verification
+print(f"Concatenated fricative data contains {len(fricative_data)} rows and {len(fricative_data.columns)} columns.")
+
+# Subset the data based on matching phrasenum values
+phrasenum_values = [1, 3, 4, 6, 7, 8, 9, 10, 11, 13, 14, 17, 18, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 37, 39, 41, 43, 45, 47, 49, 50, 53, 55, 57, 59, 60, 62, 71, 73, 75, 77, 79, 81, 83, 85, 87, 89, 91, 93, 95, 97, 99, 101, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 134, 135, 136, 137, 138, 139, 141, 142, 143, 145, 146, 149, 150, 156, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172]
+
+# Convert phrasenum_values to string to match the object type in fricative_data
+phrasenum_values = list(map(str, phrasenum_values))
+
+# Filter rows based on phrasenum_values
+fricative_data = fricative_data[fricative_data['phrasenum'].astype(str).isin(phrasenum_values)]
+
+# Output the subset DataFrame for verification
+print(f"Subset fricative data contains {len(fricative_data)} rows after filtering by phrasenum.")
+
+# Print the count of total phrasenum values by label
+label_phrasenum_counts = fricative_data.groupby('label')['phrasenum'].nunique()
+print("Counts of unique phrasenum values by label:")
+print(label_phrasenum_counts)
 
 # vs_output = pd.read_csv(os.path.join(output_dir, 'output.txt'), sep='\t')
 # tg = textgrid.TextGrid.fromFile(os.path.join(input_dir, 'Y0395_expt_1_1_1.TextGrid'))
