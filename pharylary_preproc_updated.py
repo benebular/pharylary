@@ -9,14 +9,15 @@ import glob
 import textgrid
 import time
 
-# output_dir = '/Volumes/circe/vs/output_preproc'
-# input_dir = '/Volumes/circe/vs/input_preproc'
-# vs_output_dir = '/Volumes/circe/vs/vs_output'
+output_dir = '/Volumes/circe/alldata/dissertation/vs/output_preproc'
+input_dir = '/Volumes/circe/alldata/dissertation/vs/input_preproc'
+vs_output_dir = '/Volumes/circe/alldata/dissertation/vs/vs_output'
+fricative_output_dir = '/Volumes/circe/alldata/dissertation/vs/fricative_output'
 
-output_dir = '/Volumes/cassandra/alldata/dissertation/vs/output_preproc'
-input_dir = '/Volumes/cassandra/alldata/dissertation/vs/input_preproc'
-vs_output_dir = '/Volumes/cassandra/alldata/dissertation/vs/vs_output'
-fricative_output_dir = '/Volumes/cassandra/alldata/dissertation/vs/fricative_output'
+# output_dir = '/Volumes/cassandra/alldata/dissertation/vs/output_preproc'
+# input_dir = '/Volumes/cassandra/alldata/dissertation/vs/input_preproc'
+# vs_output_dir = '/Volumes/cassandra/alldata/dissertation/vs/vs_output'
+# fricative_output_dir = '/Volumes/cassandra/alldata/dissertation/vs/fricative_output'
 
 os.chdir(output_dir)
 
@@ -52,11 +53,34 @@ label_phrasenum_counts = fricative_data.groupby('label')['phrasenum'].nunique()
 print("Counts of unique phrasenum values by label:")
 print(label_phrasenum_counts)
 
+#### ADD HERE SECTION for matching the above fricatives with the metadata.
+### each row in the fricative thing should already be a target phoneme, then export
+
+# Load the metadata CSV file
+metadata_path = os.path.join('/Users/bcl/GitHub/pharylary/PharyLary Stimuli - pharylary2.csv')  # Update the path to your metadata file
+metadata = pd.read_csv(metadata_path)
+metadata = metadata[['Phrasenum','IPA','Gloss','Gloss_2','Syllable','Segment','Type','Position','Position_2','Contrast_(IPA)','Contrast','Experiment']]
+
+# Ensure the Phrasenum column in metadata is of the same type as the phrasenum column in fricative_data
+metadata['Phrasenum'] = metadata['Phrasenum'].astype(str)
+fricative_data['phrasenum'] = fricative_data['phrasenum'].astype(str)
+
+# Merge fricative_data with metadata on phrasenum/Phrasenum
+fricative_data = pd.merge(
+    fricative_data,
+    metadata,
+    how='left',  # Use 'left' join to preserve the shape of fricative_data
+    left_on='phrasenum',
+    right_on='Phrasenum'
+)
+
+# Output the resulting DataFrame for verification
+print(f"fricative_data now contains {len(fricative_data)} rows and {len(fricative_data.columns)} columns after merging with metadata.")
+
 ### Save the final subset data ###
 fricative_data.to_csv(os.path.join(output_dir, 'subset_fricative_data.csv'), index=False)
 
-#### ADD HERE SECTION for matching the above fricatives with the metadata.
-### each row in the fricative thing should already be a target phoneme, then export
+
 
 
 

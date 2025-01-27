@@ -78,12 +78,13 @@ data_path <- sprintf('/Volumes/circe/vs/output_preproc/preproc_matchesformeans.c
 # data_path <- sprintf('/Users/bcl/Desktop/preproc_matchesformeans.csv')
 data = read.csv(data_path)
 
+###subsetting laryngeal and pharyngeal
 subset = subset(data, interval == 'ħ' | interval == 'ʕ' | interval == 'h' | interval == 'ʔ')
 # subset = subset(data, interval == 'ħ' | interval == 'ʕ' | interval == 'h' | interval == 'ʔ')
 # subset = subset(data, interval == 'ħ' | interval == 'ʕ')
 # subset = subset(subset, Contrast_.IPA. == 'h - ħ' | Contrast_.IPA. == 'ʔ - ʕ')
 
-### subetting for plots below based on sonorants
+### susbetting for plots below based on sonorants
 sonorant_subset = subset(orig_data, interval == 'w' | interval == 'j')
 # 
 # sonorant_subset <- sonorant_subset %>%
@@ -599,6 +600,263 @@ grid.arrange(
   top = grid::textGrob("Acoustic Feature Means for Pharyngeal and Sonorant Consonants", gp=grid::gpar(fontsize=20))
 )
 
+#### FRICATIVES ####
+
+#### data for fricatives
+orig_fric_data_path <- sprintf('/Volumes/circe/alldata/dissertation/vs/output_preproc/subset_fricative_data.csv')
+orig_fric_data <- read.csv(orig_fric_data_path)
+
+#### fricative plotting and analaysis
+## calculate mean values for all intervals in each word for each participant
+
+subset_mean_fric <- orig_fric_data %>% group_by(label,Segment) %>% mutate(duration_mean = mean(duration, na.rm = TRUE))
+subset_mean_fric <- subset_mean_fric %>% group_by(label,Segment) %>% mutate(cog_mean = mean(cog, na.rm = TRUE))
+subset_mean_fric <- subset_mean_fric %>% group_by(label,Segment) %>% mutate(sdev_mean = mean(sdev, na.rm = TRUE))
+subset_mean_fric <- subset_mean_fric %>% group_by(label,Segment) %>% mutate(skew_mean = mean(skew, na.rm = TRUE))
+subset_mean_fric <- subset_mean_fric %>% group_by(label,Segment) %>% mutate(kurt_mean = mean(kurt, na.rm = TRUE))
+
+# write unfiltered subset_mean
+write.csv(subset_mean_fric, "/Volumes/circe/alldata/dissertation/vs/output_preproc/subset_mean_fric.csv", row.names=FALSE)
+
+### just grab the first value in the intervals for each word for each participant since it's not the same within interval, word, participant
+unique_data_fric <- subset_mean_fric %>% group_by(label,Segment) %>% summarize(
+  duration_mean_unique = first(duration_mean),
+  cog_mean_unique = first(cog_mean),
+  sdev_mean_unique = first(sdev_mean),
+  skew_mean_unique = first(skew_mean),
+  kurt_mean_unique = first(kurt_mean),
+  #HNR05_mean_unique = first(HNR05_mean),
+  # H1c.resid_mean_unique = first(H1c.resid_mean),
+  #facet_contrast = first(facet_contrast),
+  .groups = 'drop'  # This drops the grouping, so the data is no longer grouped after this operation
+)
+
+subset_unique_data_fric <- subset(unique_data_fric, Segment == 'ħ' | Segment == 'h' | Segment == 's' | Segment == 'sˤ' | 
+                                    Segment == 'ʕ' | Segment == 'ʁ' | Segment == 'ð' | Segment == 'ðˤ') 
+
+rain_height <- .1
+
+# Calculate stagger offsets based on the number of levels in 'interval'
+num_levels <- length(levels(factor(subset_unique_data_fric$Segment)))
+stagger_offsets <- seq(-rain_height / 1.5, rain_height / 1.5, length.out = num_levels)
+
+
+#### COG ####
+plot1 <- ggplot(subset_unique_data_fric, aes(x = "", y = cog_mean_unique, fill = Segment)) +
+  # clouds
+  introdataviz::geom_flat_violin(trim=FALSE, alpha = 0.4,
+                                 position = position_nudge(x = rain_height+.05)) +
+  # rain
+  geom_point(aes(colour = Segment), size = 2, alpha = .5, show.legend = FALSE, 
+             position = position_jitter(width = rain_height, height = 0)) +
+  # boxplots
+  geom_boxplot(width = rain_height, alpha = 0.4, show.legend = FALSE, 
+               outlier.shape = NA,
+               # position = position_nudge(x = -rain_height*2) +
+               position = position_nudge(x = -rain_height*2), aes(x = 0.95 + stagger_offsets[as.numeric(factor(Segment))])) +
+  # coord_flip() +
+  # mean and SE point in the cloud
+  # stat_summary(fun.data = mean_cl_normal, mapping = aes(color = interval), show.legend = FALSE,
+  #              position = position_nudge(x = rain_height * 3)) +
+  # adjust layout
+  scale_x_discrete(name = "", expand = c(rain_height*3, 0, 0, 0.7)) +
+  scale_y_continuous(name = "CoG (Hz)",
+                     # breaks = seq(-30, 2, 30), 
+                     # limits = c(-30, 30)) +
+  ) +
+  coord_flip() +
+  # facet_wrap(~factor(facet_contrast, 
+  #                    levels = c("vcl", "v","son"), 
+  #                    labels = c("ħ", "ʕ","j/w")), 
+  #            nrow = 1) +
+  # custom colours and theme
+  scale_fill_brewer(palette = "Dark2", name = "Segment") +
+  scale_colour_brewer(palette = "Dark2") +
+  theme_minimal() +
+  theme(panel.grid.major.y = element_blank(),
+        legend.position.inside = c(0.9, 0.8),
+        legend.background = element_rect(fill = "white", color = "white"),
+        # strip.text = element_text(size = 12), # Adjust font size for facet labels
+        axis.title.x = element_text(size = 18), # Adjust font size for y-axis labels
+        axis.text.x = element_text(size = 14), # Adjust font size for x-axis tick labels
+        legend.text = element_text(size = 14), # Adjust font size for legend text
+        legend.title = element_text(size = 14) # Adjust font size for legend title
+  )
+
+#### Duration ####
+plot2 <- ggplot(subset_unique_data_fric, aes(x = "", y = duration_mean_unique, fill = Segment)) +
+  # clouds
+  introdataviz::geom_flat_violin(trim=FALSE, alpha = 0.4,
+                                 position = position_nudge(x = rain_height+.05)) +
+  # rain
+  geom_point(aes(colour = Segment), size = 2, alpha = .5, show.legend = FALSE, 
+             position = position_jitter(width = rain_height, height = 0)) +
+  # boxplots
+  geom_boxplot(width = rain_height, alpha = 0.4, show.legend = FALSE, 
+               outlier.shape = NA,
+               # position = position_nudge(x = -rain_height*2) +
+               position = position_nudge(x = -rain_height*2), aes(x = 0.95 + stagger_offsets[as.numeric(factor(Segment))])) +
+  # coord_flip() +
+  # mean and SE point in the cloud
+  # stat_summary(fun.data = mean_cl_normal, mapping = aes(color = interval), show.legend = FALSE,
+  #              position = position_nudge(x = rain_height * 3)) +
+  # adjust layout
+  scale_x_discrete(name = "", expand = c(rain_height*3, 0, 0, 0.7)) +
+  scale_y_continuous(name = "Duration (ms)",
+                     # breaks = seq(-30, 2, 30), 
+                     # limits = c(-30, 30)) +
+  ) +
+  coord_flip() +
+  # facet_wrap(~factor(facet_contrast, 
+  #                    levels = c("vcl", "v","son"), 
+  #                    labels = c("ħ", "ʕ","j/w")), 
+  #            nrow = 1) +
+  # custom colours and theme
+  scale_fill_brewer(palette = "Dark2", name = "Segment") +
+  scale_colour_brewer(palette = "Dark2") +
+  theme_minimal() +
+  theme(panel.grid.major.y = element_blank(),
+        legend.position.inside = c(0.9, 0.8),
+        legend.background = element_rect(fill = "white", color = "white"),
+        # strip.text = element_text(size = 12), # Adjust font size for facet labels
+        axis.title.x = element_text(size = 18), # Adjust font size for y-axis labels
+        axis.text.x = element_text(size = 14), # Adjust font size for x-axis tick labels
+        legend.text = element_text(size = 14), # Adjust font size for legend text
+        legend.title = element_text(size = 14) # Adjust font size for legend title
+  )
+
+#### skew ####
+plot3 <- ggplot(subset_unique_data_fric, aes(x = "", y = skew_mean_unique, fill = Segment)) +
+  # clouds
+  introdataviz::geom_flat_violin(trim=FALSE, alpha = 0.4,
+                                 position = position_nudge(x = rain_height+.05)) +
+  # rain
+  geom_point(aes(colour = Segment), size = 2, alpha = .5, show.legend = FALSE, 
+             position = position_jitter(width = rain_height, height = 0)) +
+  # boxplots
+  geom_boxplot(width = rain_height, alpha = 0.4, show.legend = FALSE, 
+               outlier.shape = NA,
+               # position = position_nudge(x = -rain_height*2) +
+               position = position_nudge(x = -rain_height*2), aes(x = 0.95 + stagger_offsets[as.numeric(factor(Segment))])) +
+  # coord_flip() +
+  # mean and SE point in the cloud
+  # stat_summary(fun.data = mean_cl_normal, mapping = aes(color = interval), show.legend = FALSE,
+  #              position = position_nudge(x = rain_height * 3)) +
+  # adjust layout
+  scale_x_discrete(name = "", expand = c(rain_height*3, 0, 0, 0.7)) +
+  scale_y_continuous(name = "Skew",
+                     # breaks = seq(-30, 2, 30), 
+                     # limits = c(-30, 30)) +
+  ) +
+  coord_flip() +
+  # facet_wrap(~factor(facet_contrast, 
+  #                    levels = c("vcl", "v","son"), 
+  #                    labels = c("ħ", "ʕ","j/w")), 
+  #            nrow = 1) +
+  # custom colours and theme
+  scale_fill_brewer(palette = "Dark2", name = "Segment") +
+  scale_colour_brewer(palette = "Dark2") +
+  theme_minimal() +
+  theme(panel.grid.major.y = element_blank(),
+        legend.position.inside = c(0.9, 0.8),
+        legend.background = element_rect(fill = "white", color = "white"),
+        # strip.text = element_text(size = 12), # Adjust font size for facet labels
+        axis.title.x = element_text(size = 18), # Adjust font size for y-axis labels
+        axis.text.x = element_text(size = 14), # Adjust font size for x-axis tick labels
+        legend.text = element_text(size = 14), # Adjust font size for legend text
+        legend.title = element_text(size = 14) # Adjust font size for legend title
+  )
+
+#### sdev ####
+plot4 <- ggplot(subset_unique_data_fric, aes(x = "", y = sdev_mean_unique, fill = Segment)) +
+  # clouds
+  introdataviz::geom_flat_violin(trim=FALSE, alpha = 0.4,
+                                 position = position_nudge(x = rain_height+.05)) +
+  # rain
+  geom_point(aes(colour = Segment), size = 2, alpha = .5, show.legend = FALSE, 
+             position = position_jitter(width = rain_height, height = 0)) +
+  # boxplots
+  geom_boxplot(width = rain_height, alpha = 0.4, show.legend = FALSE, 
+               outlier.shape = NA,
+               # position = position_nudge(x = -rain_height*2) +
+               position = position_nudge(x = -rain_height*2), aes(x = 0.95 + stagger_offsets[as.numeric(factor(Segment))])) +
+  # coord_flip() +
+  # mean and SE point in the cloud
+  # stat_summary(fun.data = mean_cl_normal, mapping = aes(color = interval), show.legend = FALSE,
+  #              position = position_nudge(x = rain_height * 3)) +
+  # adjust layout
+  scale_x_discrete(name = "", expand = c(rain_height*3, 0, 0, 0.7)) +
+  scale_y_continuous(name = "Standard Deviation",
+                     # breaks = seq(-30, 2, 30), 
+                     # limits = c(-30, 30)) +
+  ) +
+  coord_flip() +
+  # facet_wrap(~factor(facet_contrast, 
+  #                    levels = c("vcl", "v","son"), 
+  #                    labels = c("ħ", "ʕ","j/w")), 
+  #            nrow = 1) +
+  # custom colours and theme
+  scale_fill_brewer(palette = "Dark2", name = "Segment") +
+  scale_colour_brewer(palette = "Dark2") +
+  theme_minimal() +
+  theme(panel.grid.major.y = element_blank(),
+        legend.position.inside = c(0.9, 0.8),
+        legend.background = element_rect(fill = "white", color = "white"),
+        # strip.text = element_text(size = 12), # Adjust font size for facet labels
+        axis.title.x = element_text(size = 18), # Adjust font size for y-axis labels
+        axis.text.x = element_text(size = 14), # Adjust font size for x-axis tick labels
+        legend.text = element_text(size = 14), # Adjust font size for legend text
+        legend.title = element_text(size = 14) # Adjust font size for legend title
+  )
+
+#### kurt ####
+plot5 <- ggplot(subset_unique_data_fric, aes(x = "", y = kurt_mean_unique, fill = Segment)) +
+  # clouds
+  introdataviz::geom_flat_violin(trim=FALSE, alpha = 0.4,
+                                 position = position_nudge(x = rain_height+.05)) +
+  # rain
+  geom_point(aes(colour = Segment), size = 2, alpha = .5, show.legend = FALSE, 
+             position = position_jitter(width = rain_height, height = 0)) +
+  # boxplots
+  geom_boxplot(width = rain_height, alpha = 0.4, show.legend = FALSE, 
+               outlier.shape = NA,
+               # position = position_nudge(x = -rain_height*2) +
+               position = position_nudge(x = -rain_height*2), aes(x = 0.95 + stagger_offsets[as.numeric(factor(Segment))])) +
+  # coord_flip() +
+  # mean and SE point in the cloud
+  # stat_summary(fun.data = mean_cl_normal, mapping = aes(color = interval), show.legend = FALSE,
+  #              position = position_nudge(x = rain_height * 3)) +
+  # adjust layout
+  scale_x_discrete(name = "", expand = c(rain_height*3, 0, 0, 0.7)) +
+  scale_y_continuous(name = "Kurtosis",
+                     # breaks = seq(-30, 2, 30), 
+                     # limits = c(-30, 30)) +
+  ) +
+  coord_flip() +
+  # facet_wrap(~factor(facet_contrast, 
+  #                    levels = c("vcl", "v","son"), 
+  #                    labels = c("ħ", "ʕ","j/w")), 
+  #            nrow = 1) +
+  # custom colours and theme
+  scale_fill_brewer(palette = "Dark2", name = "Segment") +
+  scale_colour_brewer(palette = "Dark2") +
+  theme_minimal() +
+  theme(panel.grid.major.y = element_blank(),
+        legend.position.inside = c(0.9, 0.8),
+        legend.background = element_rect(fill = "white", color = "white"),
+        # strip.text = element_text(size = 12), # Adjust font size for facet labels
+        axis.title.x = element_text(size = 18), # Adjust font size for y-axis labels
+        axis.text.x = element_text(size = 14), # Adjust font size for x-axis tick labels
+        legend.text = element_text(size = 14), # Adjust font size for legend text
+        legend.title = element_text(size = 14) # Adjust font size for legend title
+  )
+
+
+grid.arrange(
+  plot1, plot2, plot3, plot4,
+  ncol = 2, nrow = 2,
+  top = grid::textGrob("Acoustic Feature Means for Pharyngeal and Sonorant Consonants", gp=grid::gpar(fontsize=20))
+)
 
 ###### Seyfarth & Garellek (2018) Analysis Type ##########
 
