@@ -22,7 +22,7 @@ os.chdir(output_dir)
 
 ### NEW SECTION: Import and concatenate fricative measurement data ###
 # Step 1: Locate all text files in the fricative_output_dir ending with '_logfile_s'
-fricative_files = glob.glob(os.path.join(fricative_output_dir, '*_logfile_h_phar.txt'))
+fricative_files = glob.glob(os.path.join(fricative_output_dir, '*.txt'))
 
 # Step 2: Read and concatenate these files into a single DataFrame
 fricative_data = pd.DataFrame()  # Initialize an empty DataFrame
@@ -51,6 +51,14 @@ print(f"Subset fricative data contains {len(fricative_data)} rows after filterin
 label_phrasenum_counts = fricative_data.groupby('label')['phrasenum'].nunique()
 print("Counts of unique phrasenum values by label:")
 print(label_phrasenum_counts)
+
+### Save the final subset data ###
+fricative_data.to_csv(os.path.join(output_dir, 'subset_fricative_data.csv'), index=False)
+
+#### ADD HERE SECTION for matching the above fricatives with the metadata.
+### each row in the fricative thing should already be a target phoneme, then export
+
+
 
 # vs_output = pd.read_csv(os.path.join(output_dir, 'output.txt'), sep='\t')
 # tg = textgrid.TextGrid.fromFile(os.path.join(input_dir, 'Y0395_expt_1_1_1.TextGrid'))
@@ -203,6 +211,8 @@ all_data.to_csv('preproc_output.csv', index=False)
 
 
 #### matches for means ####
+##### data for the intervals as extracted from overlap with tier 3 because there's no unique labels in tier 1.
+##### this makes it so the data is just the target phonemes, not all of them
 ### slicing the data below takes about 5 minutes to run because iterrows() is slow ####
 #Initialize an empty DataFrame to store matching rows
 time_start = time.ctime()
