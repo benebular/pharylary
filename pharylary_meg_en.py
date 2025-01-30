@@ -104,6 +104,7 @@ def run_experiment(spreadsheet):
     # Loop through each row in the spreadsheet
     for trial_number, row in trials_df.iterrows():
         audio_file = os.path.join("/Volumes/circe/alldata/dissertation/2/stimuli", row["TargetWordAudioFile"])
+        # audio_file = os.path.join(r"D:\cryo\dissertation\2\stimuli", row["TargetWordAudioFile"])
         left_word = row["TargetDisplay"]
         right_word = row["DistractorDisplay"]
 
@@ -113,6 +114,7 @@ def run_experiment(spreadsheet):
 # Run the experiment
 if __name__ == "__main__":
     spreadsheet_path = "/Volumes/circe/alldata/dissertation/2/garellek_2015_stimuli.csv"  # Update with the correct path to your spreadsheet
+    # spreadsheet_path = r"C:\Users\langb\Documents\GitHub\pharylary\garellek_2015_stimuli.csv"  # Update with the correct path to your spreadsheet
     run_experiment(spreadsheet_path)
     win.close()
     core.quit()

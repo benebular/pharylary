@@ -1,2 +1,1 @@
 Trial Log
-Trial 1, Audio: /Volumes/circe/alldata/dissertation/2/stimuli/button_t_b, LeftWord: button, RightWord: bun, Audio Start Time: 2025-01-29 18:27:40
