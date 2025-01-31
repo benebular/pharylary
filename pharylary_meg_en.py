@@ -10,14 +10,34 @@ import time  # For logging timestamps
 import pandas as pd  # For reading the spreadsheet
 import os
 import random
+from time import gmtime, strftime
+
+datetime = strftime("%Y-%m-%d_%Hh%Mm%Ss", gmtime())
+
+# Create a window
+win = visual.Window([800, 600], fullscr=True)
+
+#time align logging with stim channel
+clock = core.Clock()
+p_port = parallel.ParallelPort(address='0x3FF8')
+p_port.setData(0)
+
+win.callOnFlip(p_port.setData, 2)
+win.callOnFlip(clock.reset)
+win.flip()
+core.wait(0.01)
+p_port.setData(0)
 
 ## Set up parallel port for TTL pulses
 #port = parallel.ParallelPort(address=0x0378)  # Update address as needed
 # 0x3FF8
 
-def stim_trigger(sound_obj, n=8):
+## set up fixation
+fixation = visual.TextStim(win, text="+", color="white")
+
+def stim_trigger(sound_obj, n=1):
     # Set up parallel port for TTL pulses
-    p_port = parallel.ParallelPort(address='0x0378')
+    p_port = parallel.ParallelPort(address='0x3FF8')
     p_port.setData(0)
     
     nextFlip = win.getFutureFlipTime(clock='ptb')
@@ -29,70 +49,84 @@ def stim_trigger(sound_obj, n=8):
     core.wait(0.01)  # Send 10 ms pulse
     p_port.setData(0)
 
-# Create a window
-win = visual.Window([800, 600], color="black", fullscr=False)
-
 # Instructions screen
 def show_instructions():
     instructions = visual.TextStim(win, text="Welcome to the experiment!\n\nYou will hear a sound and then choose between two words.\n\nPress any key to begin.", color="white")
     instructions.draw()
     win.flip()
     event.waitKeys()  # Wait for any key press
+    
+    ## add fixation cross, turn it on
+    fixation.setAutoDraw(True)
+    fixation.draw()
+    win.flip()
+    
+    
 
 # Present audio and fixation cross
 def present_audio_and_fixation(audio_file, trial_number, log_file, left_word, right_word):
-    fixation = visual.TextStim(win, text="+", color="white")
+    #fixation = visual.TextStim(win, text="+", color="white")
     audio = sound.Sound(audio_file)
 
     # Log the trial and timestamp
-    audio_start_time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
+    audio_start_time = clock.getTime()
     with open(log_file, "a") as f:
         f.write(f"Trial {trial_number}, Audio: {audio_file}, LeftWord: {left_word}, RightWord: {right_word}, Audio Start Time: {audio_start_time}\n")
     
     # Use stim_trigger function to send TTL pulse and play audio
+    core.wait(1)
     stim_trigger(audio)
+    core.wait(0.1)
+    #fixation.draw()
 
     # Wait for audio to finish
     core.wait(audio.getDuration())
+    fixation.setAutoDraw(False)
+    win.flip()
 
 # Present two words and collect response
 def present_choices_and_get_response(left_word, right_word, trial_number, log_file):
     # Randomly assign left and right positions
-    choices = [(left_word, (-0.5, 0)), (right_word, (0.5, 0))]
+    choices = [(left_word, (-0.3, 0)), (right_word, (0.3, 0))]
     random.shuffle(choices)
     
     left_stim = visual.TextStim(win, text=choices[0][0], pos=choices[0][1], color="white")
     right_stim = visual.TextStim(win, text=choices[1][0], pos=choices[1][1], color="white")
-    fixation = visual.TextStim(win, text="+", color="white")
+#    fixation = visual.TextStim(win, text="+", color="white")
 
     # Draw the words and fixation cross
-    fixation.draw()
+#    fixation.draw()
     left_stim.draw()
     right_stim.draw()
     win.flip()
 
     # Wait for participant response
-    response_start_time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
-    keys = event.waitKeys(keyList=["left", "right", "escape"])
+    # left is 6, right is 1
+    response_start_time = clock.getTime()
+    keys = event.waitKeys(keyList=["6", "1", "escape"])
 
     # Handle responses
     if "escape" in keys:
         core.quit()  # Exit the experiment
-    elif "left" in keys:
+    elif "6" in keys: #left
         response = choices[0][0] if choices[0][1] == (-0.5, 0) else choices[1][0]
-    elif "right" in keys:
+    elif "1" in keys: #right
         response = choices[0][0] if choices[0][1] == (0.5, 0) else choices[1][0]
 
     # Log the response and timestamp
-    response_time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
+    response_time = clock.getTime()
     with open(log_file, "a") as f:
         f.write(f"Trial {trial_number}, Response: {response}, Response Start Time: {response_start_time}, Response End Time: {response_time}\n")
+
+    ## turn fixation cross back on
+    fixation.setAutoDraw(True)
+    win.flip()
 
     return response
 
 # Main experiment logic
 def run_experiment(spreadsheet):
-    log_file = "experiment_log.txt"
+    log_file = f"log_{datetime}.txt"
     with open(log_file, "w") as f:
         f.write("Trial Log\n")
 
@@ -103,8 +137,8 @@ def run_experiment(spreadsheet):
 
     # Loop through each row in the spreadsheet
     for trial_number, row in trials_df.iterrows():
-        audio_file = os.path.join("/Volumes/circe/alldata/dissertation/2/stimuli", row["TargetWordAudioFile"])
-        # audio_file = os.path.join(r"D:\cryo\dissertation\2\stimuli", row["TargetWordAudioFile"])
+        # audio_file = os.path.join("/Volumes/circe/alldata/dissertation/2/stimuli", row["TargetWordAudioFile"])
+        audio_file = os.path.join(r"C:\Users\stim3\Documents\NBL\pharylary\stimuli", row["TargetWordAudioFile"])
         left_word = row["TargetDisplay"]
         right_word = row["DistractorDisplay"]
 
@@ -113,8 +147,8 @@ def run_experiment(spreadsheet):
 
 # Run the experiment
 if __name__ == "__main__":
-    spreadsheet_path = "/Volumes/circe/alldata/dissertation/2/garellek_2015_stimuli.csv"  # Update with the correct path to your spreadsheet
-    # spreadsheet_path = r"C:\Users\langb\Documents\GitHub\pharylary\garellek_2015_stimuli.csv"  # Update with the correct path to your spreadsheet
+    # spreadsheet_path = "/Volumes/circe/alldata/dissertation/2/garellek_2015_stimuli.csv"  # Update with the correct path to your spreadsheet
+    spreadsheet_path = r"C:\Users\stim3\Documents\NBL\pharylary\garellek_2015_stimuli.csv"  # Update with the correct path to your spreadsheet
     run_experiment(spreadsheet_path)
     win.close()
     core.quit()
