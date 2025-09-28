@@ -30,7 +30,7 @@ library(emmeans)
 # library("splines")
 library("stringr")
 library("tidyverse")
-library("devtools")
+# library("devtools")
 library(grid)
 library(gridExtra)
 
@@ -69,12 +69,12 @@ library(gridExtra)
 #   )
 # )
 
-orig_data_path <- sprintf('/Volumes/circe/vs/output_preproc/preproc_output.csv')
+orig_data_path <- sprintf('/Volumes/cassandra/alldata/dissertation/vs/output_preproc/preproc_output.csv')
 # orig_data_path <- sprintf('/Users/bcl/Desktop/preproc_output.csv')
 orig_data = read.csv(orig_data_path)
 
 ##### data for the intervals as extracted from overlap with tier 3 because there's no unique labels in tier 1
-data_path <- sprintf('/Volumes/circe/vs/output_preproc/preproc_matchesformeans.csv')
+data_path <- sprintf('/Volumes/cassandra/alldata/dissertation/vs/output_preproc/preproc_matchesformeans.csv')
 # data_path <- sprintf('/Users/bcl/Desktop/preproc_matchesformeans.csv')
 data = read.csv(data_path)
 
@@ -120,7 +120,7 @@ subset_mean <- subset_mean %>% group_by(participant,phrase,interval) %>% mutate(
 # subset_mean <- subset_mean %>% group_by(participant,phrase,interval) %>% mutate(H1c.resid_mean = mean(H1c.resid, na.rm = TRUE))
 
 # write unfiltered subset_mean
-write.csv(subset_mean, "/Volumes/circe/vs/output_preproc/subset_mean.csv", row.names=FALSE)
+write.csv(subset_mean, "/Volumes/cassandra/alldata/dissertation/vs/output_preproc/subset_mean.csv", row.names=FALSE)
 # write.csv(subset_mean, "/Users/bcl/Desktop/subset_mean.csv", row.names=FALSE)
 
 
