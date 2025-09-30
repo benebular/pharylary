@@ -110,9 +110,9 @@ for file in voicesauce_files:
     voicesauce_data = pd.concat([voicesauce_data, temp_df], ignore_index=True)
 
 ## remove SD0009 temporarily due to missing label
-voicesauce_data = voicesauce_data[~voicesauce_data['Filename'].str.contains('SD0009', na=False)]
-voicesauce_data = voicesauce_data[~voicesauce_data['Filename'].str.contains('SD0015', na=False)]
-voicesauce_data = voicesauce_data[~voicesauce_data['Filename'].str.contains('SD0024', na=False)]
+# voicesauce_data = voicesauce_data[~voicesauce_data['Filename'].str.contains('SD0009', na=False)]
+# voicesauce_data = voicesauce_data[~voicesauce_data['Filename'].str.contains('SD0015', na=False)]
+# voicesauce_data = voicesauce_data[~voicesauce_data['Filename'].str.contains('SD0024', na=False)]
 
 # Save the concatenated data as a CSV
 print("Saving voicesauce_data.csv...")
@@ -327,8 +327,8 @@ for filename in os.listdir(textgrid_folder):
                 for tier_name, tier in tiers.items():
                     for interval in tier:
                         if interval.mark != '':
-                            start_time = interval.minTime * 1000
-                            end_time = interval.maxTime * 1000
+                            start_time = interval.minTime # these originally have a multiplier for 1000, unsure why, but check later pipeline
+                            end_time = interval.maxTime
 
                             # Extract relevant data from the subsetted VoiceSauce output
                             relevant_data = subset_voicesauce[(subset_voicesauce['t_ms'] >= start_time) & (subset_voicesauce['t_ms'] <= end_time)].copy()
@@ -350,9 +350,9 @@ for filename in os.listdir(textgrid_folder):
                             cols.insert(4, cols.pop(cols.index('comments')))
                             relevant_data = relevant_data[cols]
 
-                            # Save this TextGrid's relevant_data to CSV
-                            relevant_data.to_csv(output_csv, index=False)
-                            print(f"Saved {len(relevant_data)} rows to {output_csv}")
+                            # # Save this TextGrid's relevant_data to CSV
+                            # relevant_data.to_csv(output_csv, index=False)
+                            # print(f"Saved {len(relevant_data)} rows to {output_csv}")
 
                             # Append the relevant data to the DataFrame
                             all_relevant_data = pd.concat([all_relevant_data, relevant_data], ignore_index=True)
