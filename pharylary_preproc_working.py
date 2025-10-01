@@ -11,86 +11,20 @@ import time
 from tqdm.auto import tqdm
 
 output_dir = '/Volumes/circe/alldata/dissertation/vs/output_preproc'
-input_dir = '/Volumes/circe/alldata/dissertation/vs/input_preproc'
+textgrid_folder = '/Volumes/circe/alldata/dissertation/vs/input_preproc'
 vs_output_dir = '/Volumes/circe/alldata/dissertation/vs/vs_output'
 fricative_output_dir = '/Volumes/circe/alldata/dissertation/vs/fricative_output'
 
 # output_dir = '/Volumes/cassandra/alldata/dissertation/vs/output_preproc'
-# input_dir = '/Volumes/cassandra/alldata/dissertation/vs/input_preproc'
+# textgrid_folder = '/Volumes/cassandra/alldata/dissertation/vs/input_preproc'
 # vs_output_dir = '/Volumes/cassandra/alldata/dissertation/vs/vs_output'
 # fricative_output_dir = '/Volumes/cassandra/alldata/dissertation/vs/fricative_output'
 
 os.chdir(output_dir)
 
-### NEW SECTION: Import and concatenate fricative measurement data ###
-# Step 1: Locate all text files in the fricative_output_dir ending with '_logfile_s'
-fricative_files = glob.glob(os.path.join(fricative_output_dir, '*.txt'))
-
-# Step 2: Read and concatenate these files into a single DataFrame
-fricative_data = pd.DataFrame()  # Initialize an empty DataFrame
-
-for file in fricative_files:
-    # Read each file
-    temp_df = pd.read_csv(file, sep='\t')  # Assuming tab-separated files
-    fricative_data = pd.concat([fricative_data, temp_df], ignore_index=False)
-
-# Step 3: Output the concatenated DataFrame for verification
-print(f"Concatenated fricative data contains {len(fricative_data)} rows and {len(fricative_data.columns)} columns.")
-
-# Subset the data based on matching phrasenum values
-phrasenum_values = [1, 3, 4, 6, 7, 8, 9, 10, 11, 13, 14, 17, 18, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 37, 39, 41, 43, 45, 47, 49, 50, 53, 55, 57, 59, 60, 62, 71, 73, 75, 77, 79, 81, 83, 85, 87, 89, 91, 93, 95, 97, 99, 101, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 134, 135, 136, 137, 138, 139, 141, 142, 143, 145, 146, 149, 150, 156, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172]
-
-# Convert phrasenum_values to string to match the object type in fricative_data
-phrasenum_values = list(map(str, phrasenum_values))
-
-# Filter rows based on phrasenum_values
-fricative_data = fricative_data[fricative_data['phrasenum'].astype(str).isin(phrasenum_values)]
-
-# Output the subset DataFrame for verification
-print(f"Subset fricative data contains {len(fricative_data)} rows after filtering by phrasenum.")
-
-# Print the count of total phrasenum values by label
-label_phrasenum_counts = fricative_data.groupby('label')['phrasenum'].nunique()
-print("Counts of unique phrasenum values by label:")
-print(label_phrasenum_counts)
-
-#### ADD HERE SECTION for matching the above fricatives with the metadata.
-### each row in the fricative thing should already be a target phoneme, then export
-
-# Load the metadata CSV file
-metadata_path = os.path.join('/Users/bcl/GitHub/pharylary/PharyLary Stimuli - pharylary2.csv')  # Update the path to your metadata file
-metadata = pd.read_csv(metadata_path)
-metadata = metadata[['Phrasenum','IPA','Gloss','Gloss_2','Syllable','Segment','Type','Position','Position_2','Contrast_(IPA)','Contrast','Experiment']]
-
-# Ensure the Phrasenum column in metadata is of the same type as the phrasenum column in fricative_data
-metadata['Phrasenum'] = metadata['Phrasenum'].astype(str)
-fricative_data['phrasenum'] = fricative_data['phrasenum'].astype(str)
-
-# Merge fricative_data with metadata on phrasenum/Phrasenum
-fricative_data = pd.merge(
-    fricative_data,
-    metadata,
-    how='left',  # Use 'left' join to preserve the shape of fricative_data
-    left_on='phrasenum',
-    right_on='Phrasenum'
-)
-
-# Output the resulting DataFrame for verification
-print(f"fricative_data now contains {len(fricative_data)} rows and {len(fricative_data.columns)} columns after merging with metadata.")
-
-### Save the final subset data ###
-fricative_data.to_csv(os.path.join(output_dir, 'subset_fricative_data.csv'), index=False)
-
-
-
-
-
 # vs_output = pd.read_csv(os.path.join(output_dir, 'output.txt'), sep='\t')
 # tg = textgrid.TextGrid.fromFile(os.path.join(input_dir, 'Y0395_expt_1_1_1.TextGrid'))
 # point_tier = tg.getFirst('comment')
-
-# Path to the directory containing TextGrid files
-textgrid_folder = input_dir
 
 # Find all .txt files in the vs_output_dir
 voicesauce_files = glob.glob(os.path.join(vs_output_dir, '*.txt'))
@@ -327,8 +261,8 @@ for filename in os.listdir(textgrid_folder):
                 for tier_name, tier in tiers.items():
                     for interval in tier:
                         if interval.mark != '':
-                            start_time = interval.minTime # these originally have a multiplier for 1000, unsure why, but check later pipeline
-                            end_time = interval.maxTime
+                            start_time = interval.minTime *1000 # these originally have a multiplier for 1000, unsure why, but check later pipeline
+                            end_time = interval.maxTime *1000
 
                             # Extract relevant data from the subsetted VoiceSauce output
                             relevant_data = subset_voicesauce[(subset_voicesauce['t_ms'] >= start_time) & (subset_voicesauce['t_ms'] <= end_time)].copy()
@@ -362,6 +296,8 @@ time_end = time.ctime()
 print("End time:", time_end)
 seconds_end = time.time()
 print("Time elapsed (minutes): ", (seconds_end-seconds_start)/60)
+
+
 
 print('Processing all data for min, max, proportion, etc.')
 
@@ -432,6 +368,65 @@ all_data = pd.merge(all_relevant_data, stim_meta_df, on='phrase', how='inner')
 # Optionally, save to a file
 print('Saving as .csv in %s.'%(output_dir))
 all_data.to_csv('preproc_output.csv', index=False)
+
+### NEW SECTION: Import and concatenate fricative measurement data ###
+# Step 1: Locate all text files in the fricative_output_dir ending with '_logfile_s'
+fricative_files = glob.glob(os.path.join(fricative_output_dir, '*.txt'))
+
+# Step 2: Read and concatenate these files into a single DataFrame
+fricative_data = pd.DataFrame()  # Initialize an empty DataFrame
+
+for file in fricative_files:
+    # Read each file
+    temp_df = pd.read_csv(file, sep='\t')  # Assuming tab-separated files
+    fricative_data = pd.concat([fricative_data, temp_df], ignore_index=False)
+
+# Step 3: Output the concatenated DataFrame for verification
+print(f"Concatenated fricative data contains {len(fricative_data)} rows and {len(fricative_data.columns)} columns.")
+
+# Subset the data based on matching phrasenum values
+phrasenum_values = [1, 3, 4, 6, 7, 8, 9, 10, 11, 13, 14, 17, 18, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 37, 39, 41, 43, 45, 47, 49, 50, 53, 55, 57, 59, 60, 62, 71, 73, 75, 77, 79, 81, 83, 85, 87, 89, 91, 93, 95, 97, 99, 101, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 134, 135, 136, 137, 138, 139, 141, 142, 143, 145, 146, 149, 150, 156, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172]
+
+# Convert phrasenum_values to string to match the object type in fricative_data
+phrasenum_values = list(map(str, phrasenum_values))
+
+# Filter rows based on phrasenum_values
+fricative_data = fricative_data[fricative_data['phrasenum'].astype(str).isin(phrasenum_values)]
+
+# Output the subset DataFrame for verification
+print(f"Subset fricative data contains {len(fricative_data)} rows after filtering by phrasenum.")
+
+# Print the count of total phrasenum values by label
+label_phrasenum_counts = fricative_data.groupby('label')['phrasenum'].nunique()
+print("Counts of unique phrasenum values by label:")
+print(label_phrasenum_counts)
+
+#### ADD HERE SECTION for matching the above fricatives with the metadata.
+### each row in the fricative thing should already be a target phoneme, then export
+
+# Load the metadata CSV file
+metadata_path = os.path.join('/Users/bcl/GitHub/pharylary/PharyLary Stimuli - pharylary2.csv')  # Update the path to your metadata file
+metadata = pd.read_csv(metadata_path)
+metadata = metadata[['Phrasenum','IPA','Gloss','Gloss_2','Syllable','Segment','Type','Position','Position_2','Contrast_(IPA)','Contrast','Experiment']]
+
+# Ensure the Phrasenum column in metadata is of the same type as the phrasenum column in fricative_data
+metadata['Phrasenum'] = metadata['Phrasenum'].astype(str)
+fricative_data['phrasenum'] = fricative_data['phrasenum'].astype(str)
+
+# Merge fricative_data with metadata on phrasenum/Phrasenum
+fricative_data = pd.merge(
+    fricative_data,
+    metadata,
+    how='left',  # Use 'left' join to preserve the shape of fricative_data
+    left_on='phrasenum',
+    right_on='Phrasenum'
+)
+
+# Output the resulting DataFrame for verification
+print(f"fricative_data now contains {len(fricative_data)} rows and {len(fricative_data.columns)} columns after merging with metadata.")
+
+### Save the final subset data ###
+fricative_data.to_csv(os.path.join(output_dir, 'subset_fricative_data.csv'), index=False)
 
 
 #### matches for means ####
