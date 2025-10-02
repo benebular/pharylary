@@ -59,168 +59,6 @@ all_relevant_data = pd.DataFrame()
 # List or dictionary of tiers to process
 tiers_to_process = ['phonetic', 'glottis', 'V-sequence', 'word']
 
-# Identify your point tier
-# point_tier = tg.getFirst('comment')
-
-
-
-
-# time_start = time.ctime()
-# print("Start time:", time_start)
-# seconds_start = time.time()
-
-# for filename in os.listdir(textgrid_folder):
-#     if not filename.endswith('.TextGrid'):
-#         continue
-
-#     # Build expected output filename for this TextGrid
-#     output_csv = os.path.join(output_dir, f"{os.path.splitext(filename)[0]}_relevant.csv")
-
-#     # Skip if CSV already exists
-#     if os.path.exists(output_csv):
-#         print(f"Skipping {filename} — output already exists at {output_csv}")
-#         continue
-
-#     filepath = os.path.join(textgrid_folder, filename)
-#     tg = textgrid.TextGrid.fromFile(filepath)
-#     print(f'Extracting and appending {filename} TextGrid labels.')
-
-#     point_tier = tg.getFirst('comment')
-#     tiers = {tier_name: tg.getFirst(tier_name) for tier_name in tiers_to_process}
-#     phrasenum_tier = tg.getFirst('phrasenum')
-
-#     valid_phr_intervals = [pi for pi in phrasenum_tier if (pi.mark or '').strip() != '']
-#     pbar = tqdm(total=len(valid_phr_intervals), desc=f"{filename}", unit="phrase", leave=True)
-
-#     # Collect relevant rows for this one TextGrid
-#     tg_relevant_data = pd.DataFrame()
-
-#     for phrasenum_interval in phrasenum_tier:
-#         if phrasenum_interval.mark is not str(''):
-#             phrasenum_value = phrasenum_interval.mark
-
-#             # Subset the VoiceSauce output for the current phrasenum
-#             # print("Subsetting...")
-#             subset_voicesauce = voicesauce_data[voicesauce_data['Label'] == int(phrasenum_value)]
-
-#             for tier_name, tier in tiers.items():
-#                 for interval in tier:
-#                     if interval.mark != '':
-
-#                         start_time = interval.minTime * 1000
-#                         end_time   = interval.maxTime * 1000
-
-#                         relevant_data = subset_voicesauce[
-#                             (subset_voicesauce['t_ms'] >= start_time) &
-#                             (subset_voicesauce['t_ms'] <= end_time)
-#                         ].copy()
-
-#                         points_in_interval = [
-#                             point.mark for point in point_tier
-#                             if phrasenum_interval.minTime <= point.time <= phrasenum_interval.maxTime and point.mark
-#                         ]
-
-#                         relevant_data['comments'] = ', '.join(points_in_interval)
-#                         relevant_data['interval'] = interval.mark
-#                         relevant_data['tier']     = tier.name
-
-#                         cols = relevant_data.columns.tolist()
-#                         cols.insert(2, cols.pop(cols.index('interval')))
-#                         cols.insert(3, cols.pop(cols.index('tier')))
-#                         cols.insert(4, cols.pop(cols.index('comments')))
-#                         relevant_data = relevant_data[cols]
-
-#                         tg_relevant_data = pd.concat([tg_relevant_data, relevant_data], ignore_index=True)
-
-#             pbar.update(1)
-
-#         pbar.close()
-
-#     # Save this TextGrid's relevant_data to CSV
-#     tg_relevant_data.to_csv(output_csv, index=False)
-#     print(f"Saved {len(tg_relevant_data)} rows to {output_csv}")
-
-#     # (Optional) append to master dataframe if you want everything combined
-#     all_relevant_data = pd.concat([all_relevant_data, tg_relevant_data], ignore_index=True)
-
-# time_end = time.ctime()
-# print("End time:", time_end)
-# seconds_end = time.time()
-# print("Time elapsed (minutes): ", (seconds_end - seconds_start) / 60)
-# print('Processing all data for min, max, proportion, etc.')
-
-
-# from tqdm.auto import tqdm
-
-# time_start = time.ctime()
-# print("Start time:", time_start)
-# seconds_start = time.time()
-
-# for filename in os.listdir(textgrid_folder):
-#     if not filename.endswith('.TextGrid'):
-#         continue
-
-#     filepath = os.path.join(textgrid_folder, filename)
-#     tg = textgrid.TextGrid.fromFile(filepath)
-#     print(f'Extracting and appending {filename} TextGrid labels.')
-
-#     point_tier = tg.getFirst('comment')
-#     tiers = {tier_name: tg.getFirst(tier_name) for tier_name in tiers_to_process}
-#     phrasenum_tier = tg.getFirst('phrasenum')
-
-#     # progress counted by phrasenum intervals
-#     valid_phr_intervals = [pi for pi in phrasenum_tier if (pi.mark or '').strip() != '']
-#     pbar = tqdm(total=len(valid_phr_intervals), desc=f"{filename}", unit="phrase", leave=True)
-
-#     for phrasenum_interval in phrasenum_tier:
-#         pmark = (phrasenum_interval.mark or '').strip()
-#         if pmark == '':
-#             continue
-
-#         phrasenum_value = int(pmark)
-#         subset_voicesauce = voicesauce_data[voicesauce_data['Label'] == phrasenum_value]
-
-#         for tier_name, tier in tiers.items():
-#             for interval in tier:
-#                 if (interval.mark or '').strip() == '':
-#                     continue
-
-#                 start_time = interval.minTime * 1000
-#                 end_time   = interval.maxTime * 1000
-
-#                 relevant_data = subset_voicesauce[
-#                     (subset_voicesauce['t_ms'] >= start_time) &
-#                     (subset_voicesauce['t_ms'] <= end_time)
-#                 ].copy()
-
-#                 points_in_interval = [
-#                     point.mark for point in point_tier
-#                     if phrasenum_interval.minTime <= point.time <= phrasenum_interval.maxTime and point.mark
-#                 ]
-
-#                 relevant_data['comments'] = ', '.join(points_in_interval)
-#                 relevant_data['interval'] = interval.mark
-#                 relevant_data['tier']     = tier.name
-
-#                 cols = relevant_data.columns.tolist()
-#                 cols.insert(2, cols.pop(cols.index('interval')))
-#                 cols.insert(3, cols.pop(cols.index('tier')))
-#                 cols.insert(4, cols.pop(cols.index('comments')))
-#                 relevant_data = relevant_data[cols]
-
-#                 all_relevant_data = pd.concat([all_relevant_data, relevant_data], ignore_index=True)
-
-#         # one update per phrasenum
-#         pbar.update(1)
-
-#     pbar.close()
-
-# time_end = time.ctime()
-# print("End time:", time_end)
-# seconds_end = time.time()
-# print("Time elapsed (minutes): ", (seconds_end - seconds_start) / 60)
-# print('Processing all data for min, max, proportion, etc.')
-
 time_start = time.ctime()
 print("Start time:", time_start)
 seconds_start = time.time()
@@ -291,12 +129,12 @@ for filename in os.listdir(textgrid_folder):
                             # Append the relevant data to the DataFrame
                             all_relevant_data = pd.concat([all_relevant_data, relevant_data], ignore_index=True)
 
+all_relevant_data.to_csv('/Volumes/circe/alldata/dissertation/vs/output_preproc/all_relevant_data.csv', index=False)
 
 time_end = time.ctime()
 print("End time:", time_end)
 seconds_end = time.time()
 print("Time elapsed (minutes): ", (seconds_end-seconds_start)/60)
-
 
 
 print('Processing all data for min, max, proportion, etc.')
