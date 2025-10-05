@@ -140,14 +140,14 @@ contrasts(subset_mean$Position) <- contr.treatment(2)
 
 mod_CPP <- lmer(
   formula = CPP_mean ~
-    interval*Position + (1|participant) + (1|phrase),
+    interval + (1|participant) + (1|phrase),
   data = subset_mean,
   REML = FALSE
 )
 
 mod_soe <- lmer(
   formula = soe_mean ~
-    interval*Position + (1|participant) + (1|phrase),
+    interval + (1|participant) + (1|phrase),
   data = subset_mean,
   REML = FALSE
 )
@@ -165,13 +165,13 @@ subset_mean_F1 <- subset_mean %>%
   filter(sF1 >= (sF1_mean - 3 * sF1_sd) & sF1 <= (sF1_mean + 3 * sF1_sd))
 
 ### relevel
-subset_mean_F1$Position <-factor(subset_mean_F1$Position, levels = c("Initial", "Medial")) 
-contrasts(subset_mean_F1$Position) <- contr.treatment(2)
+# subset_mean_F1$Position <-factor(subset_mean_F1$Position, levels = c("Initial", "Medial")) 
+# contrasts(subset_mean_F1$Position) <- contr.treatment(2)
 
 # run the model
 mod_F1 <- lmer(
   formula = sF1_mean ~
-    interval*Position + (1|participant) + (1|phrase),
+    interval + (1|participant) + (1|phrase),
   data = subset_mean_F1,
   REML = FALSE
 )
@@ -259,20 +259,20 @@ ggplot(subset_mean_harmonics, aes(x = log(Energy))) +
   labs(title = "Histogram of log-transformed Energy", x = "Log(Energy)", y = "Density")
 
 ### relevel
-subset_mean_harmonics$Position <-factor(subset_mean_harmonics$Position, levels = c("Initial", "Medial")) 
-contrasts(subset_mean_harmonics$Position) <- contr.treatment(2)
+# subset_mean_harmonics$Position <-factor(subset_mean_harmonics$Position, levels = c("Initial", "Medial")) 
+# contrasts(subset_mean_harmonics$Position) <- contr.treatment(2)
 subset_mean_harmonics_removed <- subset(subset_mean_harmonics, (!is.na(subset_mean_harmonics$Energy_logged) & (!is.infinite(subset_mean_harmonics$Energy_logged))))
 
 ### run harmonic models
 mod_H1H2c <- lmer(
   formula = H1H2c_mean ~
-    interval*Position + Energy_logged + strF0 + (1|participant) + (1|phrase),
+    interval + Energy_logged + strF0 + (1|participant) + (1|phrase),
   data = subset_mean_harmonics_removed,
   REML = FALSE
 )
 
 mod_H1c <- lmer(
-  formula = H1c_mean ~ interval*Position + Energy_logged + strF0 + (1|participant) + (1|phrase),
+  formula = H1c_mean ~ interval + Energy_logged + strF0 + (1|participant) + (1|phrase),
   data = subset_mean_harmonics_removed,
   REML = FALSE
 )
@@ -595,7 +595,7 @@ plot7 <- ggplot(unique_data, aes(x = "", y = H1c.resid_mean_unique, fill = inter
 
 
 grid.arrange(
-  plot2, plot3, plot4,
+  plot1, plot2, plot3, plot4,
   ncol = 2, nrow = 2,
   top = grid::textGrob("Acoustic Feature Means for Pharyngeal and Sonorant Consonants", gp=grid::gpar(fontsize=20))
 )
