@@ -140,14 +140,14 @@ contrasts(subset_mean$Position) <- contr.treatment(2)
 
 mod_CPP <- lmer(
   formula = CPP_mean ~
-    interval + (1|participant) + (1|phrase),
+    interval*Position + (1|participant) + (1|phrase),
   data = subset_mean,
   REML = FALSE
 )
 
 mod_soe <- lmer(
   formula = soe_mean ~
-    interval + (1|participant) + (1|phrase),
+    interval*Position + (1|participant) + (1|phrase),
   data = subset_mean,
   REML = FALSE
 )
@@ -165,13 +165,13 @@ subset_mean_F1 <- subset_mean %>%
   filter(sF1 >= (sF1_mean - 3 * sF1_sd) & sF1 <= (sF1_mean + 3 * sF1_sd))
 
 ### relevel
-# subset_mean_F1$Position <-factor(subset_mean_F1$Position, levels = c("Initial", "Medial")) 
-# contrasts(subset_mean_F1$Position) <- contr.treatment(2)
+subset_mean_F1$Position <-factor(subset_mean_F1$Position, levels = c("Initial", "Medial"))
+contrasts(subset_mean_F1$Position) <- contr.treatment(2)
 
 # run the model
 mod_F1 <- lmer(
   formula = sF1_mean ~
-    interval + (1|participant) + (1|phrase),
+    interval*Position + (1|participant) + (1|phrase),
   data = subset_mean_F1,
   REML = FALSE
 )
@@ -266,13 +266,13 @@ subset_mean_harmonics_removed <- subset(subset_mean_harmonics, (!is.na(subset_me
 ### run harmonic models
 mod_H1H2c <- lmer(
   formula = H1H2c_mean ~
-    interval + Energy_logged + strF0 + (1|participant) + (1|phrase),
+    interval*Position + Energy_logged + strF0 + (1|participant) + (1|phrase),
   data = subset_mean_harmonics_removed,
   REML = FALSE
 )
 
 mod_H1c <- lmer(
-  formula = H1c_mean ~ interval + Energy_logged + strF0 + (1|participant) + (1|phrase),
+  formula = H1c_mean ~ interval*Position + Energy_logged + strF0 + (1|participant) + (1|phrase),
   data = subset_mean_harmonics_removed,
   REML = FALSE
 )
@@ -600,60 +600,79 @@ grid.arrange(
   top = grid::textGrob("Acoustic Feature Means for Pharyngeal and Sonorant Consonants", gp=grid::gpar(fontsize=20))
 )
 
+
+
+
+
+
+
+
+
+
 #### FRICATIVES ####
 
 #### data for fricatives
-orig_fric_data_path <- sprintf('/Volumes/circe/alldata/dissertation/vs/output_preproc/subset_fricative_data.csv')
-orig_fric_data <- read.csv(orig_fric_data_path)
+# orig_fric_data_path <- sprintf('/Volumes/circe/alldata/dissertation/vs/output_preproc/subset_fricative_data.csv')
+# orig_fric_data <- read.csv(orig_fric_data_path)
 
 #### fricative plotting and analaysis
 ## calculate mean values for all intervals in each word for each participant
 
-subset_mean_fric <- orig_fric_data %>% group_by(label,Segment) %>% mutate(duration_mean = mean(duration, na.rm = TRUE))
-subset_mean_fric <- subset_mean_fric %>% group_by(label,Segment) %>% mutate(cog_mean = mean(cog, na.rm = TRUE))
-subset_mean_fric <- subset_mean_fric %>% group_by(label,Segment) %>% mutate(sdev_mean = mean(sdev, na.rm = TRUE))
-subset_mean_fric <- subset_mean_fric %>% group_by(label,Segment) %>% mutate(skew_mean = mean(skew, na.rm = TRUE))
-subset_mean_fric <- subset_mean_fric %>% group_by(label,Segment) %>% mutate(kurt_mean = mean(kurt, na.rm = TRUE))
+subset_fric_data = subset(data, interval == 'ħ' | interval == 'ʕ' | interval == 'h' | interval == 's' |
+                          interval == 'sˤ' | interval == 'ð' | interval == 'ʁ' | interval == 'ðˤ'
+                          )
+
+subset_mean_fric <- subset_fric_data %>% group_by(participant,phrase,interval) %>% mutate(duration_mean = mean(duration, na.rm = TRUE))
+subset_mean_fric <- subset_mean_fric %>% group_by(participant,phrase,interval) %>% mutate(cog_mean = mean(cog, na.rm = TRUE))
+subset_mean_fric <- subset_mean_fric %>% group_by(participant,phrase,interval) %>% mutate(peak_mean = mean(peak, na.rm = TRUE))
+subset_mean_fric <- subset_mean_fric %>% group_by(participant,phrase,interval) %>% mutate(peakamp_mean = mean(peakamp, na.rm = TRUE))
+subset_mean_fric <- subset_mean_fric %>% group_by(participant,phrase,interval) %>% mutate(midbandpeak_mean = mean(midbandpeak, na.rm = TRUE))
+subset_mean_fric <- subset_mean_fric %>% group_by(participant,phrase,interval) %>% mutate(minbandmin_mean = mean(minbandmin, na.rm = TRUE))
+subset_mean_fric <- subset_mean_fric %>% group_by(participant,phrase,interval) %>% mutate(spectralvar_mean = mean(spectral.var, na.rm = TRUE))
+subset_mean_fric <- subset_mean_fric %>% group_by(participant,phrase,interval) %>% mutate(skew_mean = mean(skew, na.rm = TRUE))
+subset_mean_fric <- subset_mean_fric %>% group_by(participant,phrase,interval) %>% mutate(kurtosis_mean = mean(kurtosis, na.rm = TRUE))
+subset_mean_fric <- subset_mean_fric %>% group_by(participant,phrase,interval) %>% mutate(degsibilance_mean = mean(degsibilance, na.rm = TRUE))
 
 # write unfiltered subset_mean
-write.csv(subset_mean_fric, "/Volumes/circe/alldata/dissertation/vs/output_preproc/subset_mean_fric.csv", row.names=FALSE)
+# write.csv(subset_mean_fric, "/Volumes/circe/alldata/dissertation/vs/output_preproc/subset_mean_fric.csv", row.names=FALSE)
+write.csv(subset_mean_fric, "/Volumes/cassandra/alldata/dissertation/vs/output_preproc/subset_mean_fric.csv", row.names=FALSE)
 
 ### just grab the first value in the intervals for each word for each participant since it's not the same within interval, word, participant
-unique_data_fric <- subset_mean_fric %>% group_by(label,Segment) %>% summarize(
+unique_data_fric <- subset_mean_fric %>% group_by(participant,phrase,interval) %>% summarize(
   duration_mean_unique = first(duration_mean),
   cog_mean_unique = first(cog_mean),
-  sdev_mean_unique = first(sdev_mean),
+  peak_mean_unique = first(peak_mean),
+  peakamp_mean_unique = first(peakamp_mean),
+  spectralvar_mean_unique = first(spectralvar_mean),
   skew_mean_unique = first(skew_mean),
-  kurt_mean_unique = first(kurt_mean),
-  #HNR05_mean_unique = first(HNR05_mean),
-  # H1c.resid_mean_unique = first(H1c.resid_mean),
+  kurtosis_mean_unique = first(kurtosis_mean),
   #facet_contrast = first(facet_contrast),
   .groups = 'drop'  # This drops the grouping, so the data is no longer grouped after this operation
 )
 
-subset_unique_data_fric <- subset(unique_data_fric, Segment == 'ħ' | Segment == 'h' | Segment == 's' | Segment == 'sˤ' | 
-                                    Segment == 'ʕ' | Segment == 'ʁ' | Segment == 'ð' | Segment == 'ðˤ') 
+subset_unique_data_fric <- subset(unique_data_fric, interval == 'ħ' | interval == 'h' | interval == 's' | interval == 'sˤ' | 
+                                    interval == 'ʕ' | interval == 'ʁ' | interval == 'ð' | interval == 'ðˤ') 
 
 rain_height <- .1
 
 # Calculate stagger offsets based on the number of levels in 'interval'
-num_levels <- length(levels(factor(subset_unique_data_fric$Segment)))
+num_levels <- length(levels(factor(subset_unique_data_fric$interval)))
 stagger_offsets <- seq(-rain_height / 1.5, rain_height / 1.5, length.out = num_levels)
 
 
 #### COG ####
-plot1 <- ggplot(subset_unique_data_fric, aes(x = "", y = cog_mean_unique, fill = Segment)) +
+plot10 <- ggplot(subset_unique_data_fric, aes(x = "", y = cog_mean_unique, fill = interval)) +
   # clouds
   introdataviz::geom_flat_violin(trim=FALSE, alpha = 0.4,
                                  position = position_nudge(x = rain_height+.05)) +
   # rain
-  geom_point(aes(colour = Segment), size = 2, alpha = .5, show.legend = FALSE, 
+  geom_point(aes(colour = interval), size = 2, alpha = .5, show.legend = FALSE, 
              position = position_jitter(width = rain_height, height = 0)) +
   # boxplots
   geom_boxplot(width = rain_height, alpha = 0.4, show.legend = FALSE, 
                outlier.shape = NA,
                # position = position_nudge(x = -rain_height*2) +
-               position = position_nudge(x = -rain_height*2), aes(x = 0.95 + stagger_offsets[as.numeric(factor(Segment))])) +
+               position = position_nudge(x = -rain_height*2), aes(x = 0.95 + stagger_offsets[as.numeric(factor(interval))])) +
   # coord_flip() +
   # mean and SE point in the cloud
   # stat_summary(fun.data = mean_cl_normal, mapping = aes(color = interval), show.legend = FALSE,
@@ -684,18 +703,18 @@ plot1 <- ggplot(subset_unique_data_fric, aes(x = "", y = cog_mean_unique, fill =
   )
 
 #### Duration ####
-plot2 <- ggplot(subset_unique_data_fric, aes(x = "", y = duration_mean_unique, fill = Segment)) +
+plot11 <- ggplot(subset_unique_data_fric, aes(x = "", y = duration_mean_unique, fill = interval)) +
   # clouds
   introdataviz::geom_flat_violin(trim=FALSE, alpha = 0.4,
                                  position = position_nudge(x = rain_height+.05)) +
   # rain
-  geom_point(aes(colour = Segment), size = 2, alpha = .5, show.legend = FALSE, 
+  geom_point(aes(colour = interval), size = 2, alpha = .5, show.legend = FALSE, 
              position = position_jitter(width = rain_height, height = 0)) +
   # boxplots
   geom_boxplot(width = rain_height, alpha = 0.4, show.legend = FALSE, 
                outlier.shape = NA,
                # position = position_nudge(x = -rain_height*2) +
-               position = position_nudge(x = -rain_height*2), aes(x = 0.95 + stagger_offsets[as.numeric(factor(Segment))])) +
+               position = position_nudge(x = -rain_height*2), aes(x = 0.95 + stagger_offsets[as.numeric(factor(interval))])) +
   # coord_flip() +
   # mean and SE point in the cloud
   # stat_summary(fun.data = mean_cl_normal, mapping = aes(color = interval), show.legend = FALSE,
@@ -726,18 +745,18 @@ plot2 <- ggplot(subset_unique_data_fric, aes(x = "", y = duration_mean_unique, f
   )
 
 #### skew ####
-plot3 <- ggplot(subset_unique_data_fric, aes(x = "", y = skew_mean_unique, fill = Segment)) +
+plot12 <- ggplot(subset_unique_data_fric, aes(x = "", y = skew_mean_unique, fill = interval)) +
   # clouds
   introdataviz::geom_flat_violin(trim=FALSE, alpha = 0.4,
                                  position = position_nudge(x = rain_height+.05)) +
   # rain
-  geom_point(aes(colour = Segment), size = 2, alpha = .5, show.legend = FALSE, 
+  geom_point(aes(colour = interval), size = 2, alpha = .5, show.legend = FALSE, 
              position = position_jitter(width = rain_height, height = 0)) +
   # boxplots
   geom_boxplot(width = rain_height, alpha = 0.4, show.legend = FALSE, 
                outlier.shape = NA,
                # position = position_nudge(x = -rain_height*2) +
-               position = position_nudge(x = -rain_height*2), aes(x = 0.95 + stagger_offsets[as.numeric(factor(Segment))])) +
+               position = position_nudge(x = -rain_height*2), aes(x = 0.95 + stagger_offsets[as.numeric(factor(interval))])) +
   # coord_flip() +
   # mean and SE point in the cloud
   # stat_summary(fun.data = mean_cl_normal, mapping = aes(color = interval), show.legend = FALSE,
@@ -768,18 +787,18 @@ plot3 <- ggplot(subset_unique_data_fric, aes(x = "", y = skew_mean_unique, fill 
   )
 
 #### sdev ####
-plot4 <- ggplot(subset_unique_data_fric, aes(x = "", y = sdev_mean_unique, fill = Segment)) +
+plot13 <- ggplot(subset_unique_data_fric, aes(x = "", y = spectralvar_mean_unique, fill = interval)) +
   # clouds
   introdataviz::geom_flat_violin(trim=FALSE, alpha = 0.4,
                                  position = position_nudge(x = rain_height+.05)) +
   # rain
-  geom_point(aes(colour = Segment), size = 2, alpha = .5, show.legend = FALSE, 
+  geom_point(aes(colour = interval), size = 2, alpha = .5, show.legend = FALSE, 
              position = position_jitter(width = rain_height, height = 0)) +
   # boxplots
   geom_boxplot(width = rain_height, alpha = 0.4, show.legend = FALSE, 
                outlier.shape = NA,
                # position = position_nudge(x = -rain_height*2) +
-               position = position_nudge(x = -rain_height*2), aes(x = 0.95 + stagger_offsets[as.numeric(factor(Segment))])) +
+               position = position_nudge(x = -rain_height*2), aes(x = 0.95 + stagger_offsets[as.numeric(factor(interval))])) +
   # coord_flip() +
   # mean and SE point in the cloud
   # stat_summary(fun.data = mean_cl_normal, mapping = aes(color = interval), show.legend = FALSE,
@@ -810,18 +829,18 @@ plot4 <- ggplot(subset_unique_data_fric, aes(x = "", y = sdev_mean_unique, fill 
   )
 
 #### kurt ####
-plot5 <- ggplot(subset_unique_data_fric, aes(x = "", y = kurt_mean_unique, fill = Segment)) +
+plot14 <- ggplot(subset_unique_data_fric, aes(x = "", y = kurt_mean_unique, fill = interval)) +
   # clouds
   introdataviz::geom_flat_violin(trim=FALSE, alpha = 0.4,
                                  position = position_nudge(x = rain_height+.05)) +
   # rain
-  geom_point(aes(colour = Segment), size = 2, alpha = .5, show.legend = FALSE, 
+  geom_point(aes(colour = interval), size = 2, alpha = .5, show.legend = FALSE, 
              position = position_jitter(width = rain_height, height = 0)) +
   # boxplots
   geom_boxplot(width = rain_height, alpha = 0.4, show.legend = FALSE, 
                outlier.shape = NA,
                # position = position_nudge(x = -rain_height*2) +
-               position = position_nudge(x = -rain_height*2), aes(x = 0.95 + stagger_offsets[as.numeric(factor(Segment))])) +
+               position = position_nudge(x = -rain_height*2), aes(x = 0.95 + stagger_offsets[as.numeric(factor(interval))])) +
   # coord_flip() +
   # mean and SE point in the cloud
   # stat_summary(fun.data = mean_cl_normal, mapping = aes(color = interval), show.legend = FALSE,
@@ -851,165 +870,420 @@ plot5 <- ggplot(subset_unique_data_fric, aes(x = "", y = kurt_mean_unique, fill 
         legend.title = element_text(size = 14) # Adjust font size for legend title
   )
 
+#### peak ####
+plot15 <- ggplot(subset_unique_data_fric, aes(x = "", y = peak_mean_unique, fill = interval)) +
+  # clouds
+  introdataviz::geom_flat_violin(trim=FALSE, alpha = 0.4,
+                                 position = position_nudge(x = rain_height+.05)) +
+  # rain
+  geom_point(aes(colour = interval), size = 2, alpha = .5, show.legend = FALSE, 
+             position = position_jitter(width = rain_height, height = 0)) +
+  # boxplots
+  geom_boxplot(width = rain_height, alpha = 0.4, show.legend = FALSE, 
+               outlier.shape = NA,
+               # position = position_nudge(x = -rain_height*2) +
+               position = position_nudge(x = -rain_height*2), aes(x = 0.95 + stagger_offsets[as.numeric(factor(interval))])) +
+  # coord_flip() +
+  # mean and SE point in the cloud
+  # stat_summary(fun.data = mean_cl_normal, mapping = aes(color = interval), show.legend = FALSE,
+  #              position = position_nudge(x = rain_height * 3)) +
+  # adjust layout
+  scale_x_discrete(name = "", expand = c(rain_height*3, 0, 0, 0.7)) +
+  scale_y_continuous(name = "Peak (Hz)",
+                     # breaks = seq(-30, 2, 30), 
+                     # limits = c(-30, 30)) +
+  ) +
+  coord_flip() +
+  # facet_wrap(~factor(facet_contrast, 
+  #                    levels = c("vcl", "v","son"), 
+  #                    labels = c("ħ", "ʕ","j/w")), 
+  #            nrow = 1) +
+  # custom colours and theme
+  scale_fill_brewer(palette = "Dark2", name = "Segment") +
+  scale_colour_brewer(palette = "Dark2") +
+  theme_minimal() +
+  theme(panel.grid.major.y = element_blank(),
+        legend.position.inside = c(0.9, 0.8),
+        legend.background = element_rect(fill = "white", color = "white"),
+        # strip.text = element_text(size = 12), # Adjust font size for facet labels
+        axis.title.x = element_text(size = 18), # Adjust font size for y-axis labels
+        axis.text.x = element_text(size = 14), # Adjust font size for x-axis tick labels
+        legend.text = element_text(size = 14), # Adjust font size for legend text
+        legend.title = element_text(size = 14) # Adjust font size for legend title
+  )
+
+#### peakamp ####
+plot16 <- ggplot(subset_unique_data_fric, aes(x = "", y = peakamp_mean_unique, fill = interval)) +
+  # clouds
+  introdataviz::geom_flat_violin(trim=FALSE, alpha = 0.4,
+                                 position = position_nudge(x = rain_height+.05)) +
+  # rain
+  geom_point(aes(colour = interval), size = 2, alpha = .5, show.legend = FALSE, 
+             position = position_jitter(width = rain_height, height = 0)) +
+  # boxplots
+  geom_boxplot(width = rain_height, alpha = 0.4, show.legend = FALSE, 
+               outlier.shape = NA,
+               # position = position_nudge(x = -rain_height*2) +
+               position = position_nudge(x = -rain_height*2), aes(x = 0.95 + stagger_offsets[as.numeric(factor(interval))])) +
+  # coord_flip() +
+  # mean and SE point in the cloud
+  # stat_summary(fun.data = mean_cl_normal, mapping = aes(color = interval), show.legend = FALSE,
+  #              position = position_nudge(x = rain_height * 3)) +
+  # adjust layout
+  scale_x_discrete(name = "", expand = c(rain_height*3, 0, 0, 0.7)) +
+  scale_y_continuous(name = "Peak (Hz) Amplitude",
+                     # breaks = seq(-30, 2, 30), 
+                     # limits = c(-30, 30)) +
+  ) +
+  coord_flip() +
+  # facet_wrap(~factor(facet_contrast, 
+  #                    levels = c("vcl", "v","son"), 
+  #                    labels = c("ħ", "ʕ","j/w")), 
+  #            nrow = 1) +
+  # custom colours and theme
+  scale_fill_brewer(palette = "Dark2", name = "Segment") +
+  scale_colour_brewer(palette = "Dark2") +
+  theme_minimal() +
+  theme(panel.grid.major.y = element_blank(),
+        legend.position.inside = c(0.9, 0.8),
+        legend.background = element_rect(fill = "white", color = "white"),
+        # strip.text = element_text(size = 12), # Adjust font size for facet labels
+        axis.title.x = element_text(size = 18), # Adjust font size for y-axis labels
+        axis.text.x = element_text(size = 14), # Adjust font size for x-axis tick labels
+        legend.text = element_text(size = 14), # Adjust font size for legend text
+        legend.title = element_text(size = 14) # Adjust font size for legend title
+  )
+
+
+subset_mean_fric = subset(subset_mean_fric, interval == 'sˤ' | interval == 's')
+
+### just grab the first value in the intervals for each word for each participant since it's not the same within interval, word, participant
+unique_data_fric_s <- subset_mean_fric %>% group_by(participant,phrase,interval) %>% summarize(
+  duration_mean_unique = first(duration_mean),
+  cog_mean_unique = first(cog_mean),
+  peak_mean_unique = first(peak_mean),
+  peakamp_mean_unique = first(peakamp_mean),
+  midbandpeak_mean_unique = first(midbandpeak_mean),
+  minbandmin_mean_unique = first(minbandmin_mean),
+  spectralvar_mean_unique = first(spectralvar_mean),
+  skew_mean_unique = first(skew_mean),
+  kurtosis_mean_unique = first(kurtosis_mean),
+  degsibilance_mean_unique = first(degsibilance_mean),
+  #facet_contrast = first(facet_contrast),
+  .groups = 'drop'  # This drops the grouping, so the data is no longer grouped after this operation
+)
+
+subset_unique_data_fric <- subset(unique_data_fric_s, interval == 's' | interval == 'sˤ') 
+
+#### degsibilance ####
+plot17 <- ggplot(subset_unique_data_fric, aes(x = "", y = degsibilance_mean_unique, fill = interval)) +
+  # clouds
+  introdataviz::geom_flat_violin(trim=FALSE, alpha = 0.4,
+                                 position = position_nudge(x = rain_height+.05)) +
+  # rain
+  geom_point(aes(colour = interval), size = 2, alpha = .5, show.legend = FALSE, 
+             position = position_jitter(width = rain_height, height = 0)) +
+  # boxplots
+  geom_boxplot(width = rain_height, alpha = 0.4, show.legend = FALSE, 
+               outlier.shape = NA,
+               # position = position_nudge(x = -rain_height*2) +
+               position = position_nudge(x = -rain_height*2), aes(x = 0.95 + stagger_offsets[as.numeric(factor(interval))])) +
+  # coord_flip() +
+  # mean and SE point in the cloud
+  # stat_summary(fun.data = mean_cl_normal, mapping = aes(color = interval), show.legend = FALSE,
+  #              position = position_nudge(x = rain_height * 3)) +
+  # adjust layout
+  scale_x_discrete(name = "", expand = c(rain_height*3, 0, 0, 0.7)) +
+  scale_y_continuous(name = "A(M) - Amin (dB) (Degree of Sibilance)",
+                     # breaks = seq(-30, 2, 30), 
+                     # limits = c(-30, 30)) +
+  ) +
+  coord_flip() +
+  # facet_wrap(~factor(facet_contrast, 
+  #                    levels = c("vcl", "v","son"), 
+  #                    labels = c("ħ", "ʕ","j/w")), 
+  #            nrow = 1) +
+  # custom colours and theme
+  scale_fill_brewer(palette = "Dark2", name = "Segment") +
+  scale_colour_brewer(palette = "Dark2") +
+  theme_minimal() +
+  theme(panel.grid.major.y = element_blank(),
+        legend.position.inside = c(0.9, 0.8),
+        legend.background = element_rect(fill = "white", color = "white"),
+        # strip.text = element_text(size = 12), # Adjust font size for facet labels
+        axis.title.x = element_text(size = 18), # Adjust font size for y-axis labels
+        axis.text.x = element_text(size = 14), # Adjust font size for x-axis tick labels
+        legend.text = element_text(size = 14), # Adjust font size for legend text
+        legend.title = element_text(size = 14) # Adjust font size for legend title
+  )
+
+#### midbandpeak ####
+plot18 <- ggplot(subset_unique_data_fric, aes(x = "", y = midbandpeak_mean_unique, fill = interval)) +
+  # clouds
+  introdataviz::geom_flat_violin(trim=FALSE, alpha = 0.4,
+                                 position = position_nudge(x = rain_height+.05)) +
+  # rain
+  geom_point(aes(colour = interval), size = 2, alpha = .5, show.legend = FALSE, 
+             position = position_jitter(width = rain_height, height = 0)) +
+  # boxplots
+  geom_boxplot(width = rain_height, alpha = 0.4, show.legend = FALSE, 
+               outlier.shape = NA,
+               # position = position_nudge(x = -rain_height*2) +
+               position = position_nudge(x = -rain_height*2), aes(x = 0.95 + stagger_offsets[as.numeric(factor(interval))])) +
+  # coord_flip() +
+  # mean and SE point in the cloud
+  # stat_summary(fun.data = mean_cl_normal, mapping = aes(color = interval), show.legend = FALSE,
+  #              position = position_nudge(x = rain_height * 3)) +
+  # adjust layout
+  scale_x_discrete(name = "", expand = c(rain_height*3, 0, 0, 0.7)) +
+  scale_y_continuous(name = "Peak of Middle Band (Hz)",
+                     # breaks = seq(-30, 2, 30), 
+                     # limits = c(-30, 30)) +
+  ) +
+  coord_flip() +
+  # facet_wrap(~factor(facet_contrast, 
+  #                    levels = c("vcl", "v","son"), 
+  #                    labels = c("ħ", "ʕ","j/w")), 
+  #            nrow = 1) +
+  # custom colours and theme
+  scale_fill_brewer(palette = "Dark2", name = "Segment") +
+  scale_colour_brewer(palette = "Dark2") +
+  theme_minimal() +
+  theme(panel.grid.major.y = element_blank(),
+        legend.position.inside = c(0.9, 0.8),
+        legend.background = element_rect(fill = "white", color = "white"),
+        # strip.text = element_text(size = 12), # Adjust font size for facet labels
+        axis.title.x = element_text(size = 18), # Adjust font size for y-axis labels
+        axis.text.x = element_text(size = 14), # Adjust font size for x-axis tick labels
+        legend.text = element_text(size = 14), # Adjust font size for legend text
+        legend.title = element_text(size = 14) # Adjust font size for legend title
+  )
+
+#### midbandpeak ####
+plot19 <- ggplot(subset_unique_data_fric, aes(x = "", y = minbandmin_mean_unique, fill = interval)) +
+  # clouds
+  introdataviz::geom_flat_violin(trim=FALSE, alpha = 0.4,
+                                 position = position_nudge(x = rain_height+.05)) +
+  # rain
+  geom_point(aes(colour = interval), size = 2, alpha = .5, show.legend = FALSE, 
+             position = position_jitter(width = rain_height, height = 0)) +
+  # boxplots
+  geom_boxplot(width = rain_height, alpha = 0.4, show.legend = FALSE, 
+               outlier.shape = NA,
+               # position = position_nudge(x = -rain_height*2) +
+               position = position_nudge(x = -rain_height*2), aes(x = 0.95 + stagger_offsets[as.numeric(factor(interval))])) +
+  # coord_flip() +
+  # mean and SE point in the cloud
+  # stat_summary(fun.data = mean_cl_normal, mapping = aes(color = interval), show.legend = FALSE,
+  #              position = position_nudge(x = rain_height * 3)) +
+  # adjust layout
+  scale_x_discrete(name = "", expand = c(rain_height*3, 0, 0, 0.7)) +
+  scale_y_continuous(name = "Minimum of Minimum Band (Hz)",
+                     # breaks = seq(-30, 2, 30), 
+                     # limits = c(-30, 30)) +
+  ) +
+  coord_flip() +
+  # facet_wrap(~factor(facet_contrast, 
+  #                    levels = c("vcl", "v","son"), 
+  #                    labels = c("ħ", "ʕ","j/w")), 
+  #            nrow = 1) +
+  # custom colours and theme
+  scale_fill_brewer(palette = "Dark2", name = "Segment") +
+  scale_colour_brewer(palette = "Dark2") +
+  theme_minimal() +
+  theme(panel.grid.major.y = element_blank(),
+        legend.position.inside = c(0.9, 0.8),
+        legend.background = element_rect(fill = "white", color = "white"),
+        # strip.text = element_text(size = 12), # Adjust font size for facet labels
+        axis.title.x = element_text(size = 18), # Adjust font size for y-axis labels
+        axis.text.x = element_text(size = 14), # Adjust font size for x-axis tick labels
+        legend.text = element_text(size = 14), # Adjust font size for legend text
+        legend.title = element_text(size = 14) # Adjust font size for legend title
+  )
+
 
 grid.arrange(
-  plot1, plot2, plot3, plot4,
+  plot10, plot11, plot12, plot13,
   ncol = 2, nrow = 2,
-  top = grid::textGrob("Acoustic Feature Means for Pharyngeal and Sonorant Consonants", gp=grid::gpar(fontsize=20))
+  top = grid::textGrob("Acoustic Feature Means for Fricative Consonants", gp=grid::gpar(fontsize=20))
 )
+
+grid.arrange(
+  plot15, plot16,
+  ncol = 2, nrow = 1,
+  top = grid::textGrob("Acoustic Feature Means for Fricative Consonants", gp=grid::gpar(fontsize=20))
+)
+
+grid.arrange(
+  plot17, plot18, plot19,
+  ncol = 2, nrow = 2,
+  top = grid::textGrob("Acoustic Feature Means for Fricative Consonants", gp=grid::gpar(fontsize=20))
+)
+
+
+mod_cog <- lmer(
+  formula = cog_mean ~
+    interval + (1|participant) + (1|phrase),
+  data = subset_mean_fric,
+  REML = FALSE
+)
+
+
+
+
 
 ###### Seyfarth & Garellek (2018) Analysis Type ##########
 
 
-orig_data_path <- sprintf('/Volumes/circe/vs/output_preproc/preproc_output.csv')
-# orig_data_path <- sprintf('/Users/bcl/Desktop/preproc_output.csv')
-orig_data = read.csv(orig_data_path)
-data_path <- sprintf('/Volumes/circe/vs/output_preproc/preproc_matchesformeans.csv')
-data = read.csv(data_path)
-
-predict_with_se <- function(model, newdata, ...) {
-  response <- terms(model)[[2]]
-  
-  predicted <- newdata
-  predicted[[response]] <- predict(model, newdata = newdata, ...)
-  
-  newdata_matrix <- model.matrix(terms(model), predicted)
-  predicted[["standard_error"]] <- sqrt(
-    diag(newdata_matrix %*% tcrossprod(vcov(model), newdata_matrix))
-  )
-  
-  predicted
-}
-
-subset = subset(orig_data, tier == 'V-sequence')
-subset_subset = subset(subset, interval == 'ħ-V' | interval == 'h-V' | interval == 'ʔ-V' | interval == 'ʕ-V' |
-                         interval == 'V-ħ-V' | interval == 'V-h-V' | interval == 'V-ʔ-V' | interval == 'V-ʕ-V' |
-                         interval == 'V-ħ' | interval == 'V-h' | interval == 'V-ʔ' | interval == 'V-ʕ')
-
-subset_subset$interval <- as.factor(subset_subset$interval)
-
-initial_data <- subset_subset %>%
-  filter(Position.2 == "CV")
-
-medial_data <- subset_subset %>%
-  filter(Position.2 == "VCV")
-
-final_data <- subset_subset %>%
-  filter(Position.2 == "VC")
-
-# contrasts(initial_data$interval) <- contr.sum(4)
-# contrasts(medial_data$interval) <- contr.sum(4)
-# contrasts(final_data$interval)   <- contr.sum(4)
+# orig_data_path <- sprintf('/Volumes/circe/vs/output_preproc/preproc_output.csv')
+# # orig_data_path <- sprintf('/Users/bcl/Desktop/preproc_output.csv')
+# orig_data = read.csv(orig_data_path)
+# data_path <- sprintf('/Volumes/circe/vs/output_preproc/preproc_matchesformeans.csv')
+# data = read.csv(data_path)
+# 
+# predict_with_se <- function(model, newdata, ...) {
+#   response <- terms(model)[[2]]
+#   
+#   predicted <- newdata
+#   predicted[[response]] <- predict(model, newdata = newdata, ...)
+#   
+#   newdata_matrix <- model.matrix(terms(model), predicted)
+#   predicted[["standard_error"]] <- sqrt(
+#     diag(newdata_matrix %*% tcrossprod(vcov(model), newdata_matrix))
+#   )
+#   
+#   predicted
+# }
+# 
+# subset = subset(orig_data, tier == 'V-sequence')
+# subset_subset = subset(subset, interval == 'ħ-V' | interval == 'h-V' | interval == 'ʔ-V' | interval == 'ʕ-V' |
+#                          interval == 'V-ħ-V' | interval == 'V-h-V' | interval == 'V-ʔ-V' | interval == 'V-ʕ-V' |
+#                          interval == 'V-ħ' | interval == 'V-h' | interval == 'V-ʔ' | interval == 'V-ʕ')
 # 
 # subset_subset$interval <- as.factor(subset_subset$interval)
-# contrasts(subset_subset$interval) <- contr.sum(12)
-
-initial_newdata <- crossing(
-  interval = names(ms_colors),
-  t_prop  = seq(0, 1, by = 0.01)
-)
-
-medial_newdata <- crossing(
-  interval = names(ms_colors),
-  t_prop  = seq(0, 1, by = 0.01)
-)
-
-medial_newdata <- crossing(
-  interval = names(ms_colors),
-  t_prop  = seq(0, 1, by = 0.01)
-)
-
-
-bind_rows(initial_data, medial_data, final_data) %>%
-  group_by(participant) %>%
-  mutate(
-    H1H2z    = H1H2c - mean(H1H2c, na.rm = TRUE)
-  ) %>%
-  ungroup() %>%
-  ggplot(aes(t_prop, H1H2z, color = interval)) +
-  geom_smooth(fill = NA) +
-  facet_wrap(~ Position.2, scales = "free_x") +
-  ms_facets +
-  labs(x = "Proportion of time", y = "H1*-H2* (centered within-speaker)")
-
-
-subset_subset %>%
-  # mutate(
-  #   H1H2z    = H1H2c - mean(H1H2c, na.rm = TRUE),
-  # ) %>%
-  ggplot(aes(t_prop, H1H2c, color = interval)) +
-  geom_smooth(method = 'gam', fill = NA) +
-  facet_wrap(~ factor(Position.2, c('CV','VCV','VC')), scales = "free_x", ncol=3) +
-  ms_facets +
-  labs(x = "Proportion of interval duration", y = "H1*-H2*")
-
-subset_subset %>%
-  # mutate(
-  #   CPPz    = CPP - mean(CPP, na.rm = TRUE),
-  # ) %>%
-  ggplot(aes(t_prop, CPP, color = interval)) +
-  geom_smooth(method = 'gam', fill = NA) +
-  facet_wrap(~ factor(interval, c('h-V','ʔ-V','ħ-V','ʕ-V','V-h-V','V-ʔ-V','V-ħ-V','V-ʕ-V','V-h','V-ʔ','V-ħ','V-ʕ')), scales = "free_x", ncol=4) +
-  ms_facets +
-  labs(x = "Proportion of interval duration", y = "CPP")
-
-subset_subset %>%
-  # mutate(
-  #   f0z    = strF0 - mean(strF0, na.rm = TRUE),
-  # ) %>%
-  ggplot(aes(t_prop, strF0, color = interval)) +
-  geom_smooth(method = 'gam', fill = NA) +
-  facet_wrap(~ factor(interval, c('h-V','ʔ-V','ħ-V','ʕ-V','V-h-V','V-ʔ-V','V-ħ-V','V-ʕ-V','V-h','V-ʔ','V-ħ','V-ʕ')), scales = "free_x", ncol=4) +
-  ms_facets +
-  labs(x = "Proportion of interval duration", y = "f0")
-
-subset_subset %>%
-  # mutate(
-  #   f0z    = strF0 - mean(strF0, na.rm = TRUE),
-  # ) %>%
-  ggplot(aes(t_prop, energy_prop, color = interval)) +
-  geom_smooth(method = 'gam', fill = NA) +
-  facet_wrap(~ factor(interval, c('h-V','ʔ-V','ħ-V','ʕ-V','V-h-V','V-ʔ-V','V-ħ-V','V-ʕ-V','V-h','V-ʔ','V-ħ','V-ʕ')), scales = "free_x", ncol=4) +
-  ms_facets +
-  labs(x = "Proportion of interval duration", y = "RMS Energy (normalized)")
-
-subset_subset %>%
-  # mutate(
-  #   SoEz    = soe - mean(soe, na.rm = TRUE),
-  # ) %>%
-  ggplot(aes(t_prop, soe, color = interval)) +
-  geom_smooth(method = 'gam', fill = NA) +
-  facet_wrap(~ factor(interval, c('h-V','ʔ-V','ħ-V','ʕ-V','V-h-V','V-ʔ-V','V-ħ-V','V-ʕ-V','V-h','V-ʔ','V-ħ','V-ʕ')), scales = "free_x", ncol=4) +
-  ms_facets +
-  labs(x = "Proportion of interval duration", y = "SoE")
-
-
-
-
-### not working at the moment
-mod_H1H2c <- lmer(
-  formula = H1H2c ~
-    interval + t_ms + (1 | phrase),
-  data = subset_subset
-)
-
-predictions <- bind_rows(
-  mutate(predict_with_se(mod_H1H2c, subset_subset, re.form = NA),
-         position = "Intervals"
-  )
-) %>%
-  mutate(
-    interval  = fct_relevel(interval, names(ms_colors))
-  )
-
-ggplot(
-  predictions,
-  aes(
-    x = t_norm, y = H1H2c,
-    ymin = H1H2c - standard_error, ymax = H1H2c + standard_error,
-    color = interval, fill = interval)) +
-  geom_smooth(stat = "identity", alpha = 0.25) +
-  facet_wrap(~ factor(interval, c('h-V','ʔ-V','ħ-V','ʕ-V','V-h-V','V-ʔ-V','V-ħ-V','V-ʕ-V','V-h','V-ʔ','V-ħ','V-ʕ')), scales = "free_x") +
-  ms_facets +
-  labs(x = "Proportion of vowel duration", y = "H1*-H2*") +
-  theme(strip.text = element_text(size = 10, margin = margin(0, 0, 5, 0)))
+# 
+# initial_data <- subset_subset %>%
+#   filter(Position.2 == "CV")
+# 
+# medial_data <- subset_subset %>%
+#   filter(Position.2 == "VCV")
+# 
+# final_data <- subset_subset %>%
+#   filter(Position.2 == "VC")
+# 
+# # contrasts(initial_data$interval) <- contr.sum(4)
+# # contrasts(medial_data$interval) <- contr.sum(4)
+# # contrasts(final_data$interval)   <- contr.sum(4)
+# # 
+# # subset_subset$interval <- as.factor(subset_subset$interval)
+# # contrasts(subset_subset$interval) <- contr.sum(12)
+# 
+# initial_newdata <- crossing(
+#   interval = names(ms_colors),
+#   t_prop  = seq(0, 1, by = 0.01)
+# )
+# 
+# medial_newdata <- crossing(
+#   interval = names(ms_colors),
+#   t_prop  = seq(0, 1, by = 0.01)
+# )
+# 
+# medial_newdata <- crossing(
+#   interval = names(ms_colors),
+#   t_prop  = seq(0, 1, by = 0.01)
+# )
+# 
+# 
+# bind_rows(initial_data, medial_data, final_data) %>%
+#   group_by(participant) %>%
+#   mutate(
+#     H1H2z    = H1H2c - mean(H1H2c, na.rm = TRUE)
+#   ) %>%
+#   ungroup() %>%
+#   ggplot(aes(t_prop, H1H2z, color = interval)) +
+#   geom_smooth(fill = NA) +
+#   facet_wrap(~ Position.2, scales = "free_x") +
+#   ms_facets +
+#   labs(x = "Proportion of time", y = "H1*-H2* (centered within-speaker)")
+# 
+# 
+# subset_subset %>%
+#   # mutate(
+#   #   H1H2z    = H1H2c - mean(H1H2c, na.rm = TRUE),
+#   # ) %>%
+#   ggplot(aes(t_prop, H1H2c, color = interval)) +
+#   geom_smooth(method = 'gam', fill = NA) +
+#   facet_wrap(~ factor(Position.2, c('CV','VCV','VC')), scales = "free_x", ncol=3) +
+#   ms_facets +
+#   labs(x = "Proportion of interval duration", y = "H1*-H2*")
+# 
+# subset_subset %>%
+#   # mutate(
+#   #   CPPz    = CPP - mean(CPP, na.rm = TRUE),
+#   # ) %>%
+#   ggplot(aes(t_prop, CPP, color = interval)) +
+#   geom_smooth(method = 'gam', fill = NA) +
+#   facet_wrap(~ factor(interval, c('h-V','ʔ-V','ħ-V','ʕ-V','V-h-V','V-ʔ-V','V-ħ-V','V-ʕ-V','V-h','V-ʔ','V-ħ','V-ʕ')), scales = "free_x", ncol=4) +
+#   ms_facets +
+#   labs(x = "Proportion of interval duration", y = "CPP")
+# 
+# subset_subset %>%
+#   # mutate(
+#   #   f0z    = strF0 - mean(strF0, na.rm = TRUE),
+#   # ) %>%
+#   ggplot(aes(t_prop, strF0, color = interval)) +
+#   geom_smooth(method = 'gam', fill = NA) +
+#   facet_wrap(~ factor(interval, c('h-V','ʔ-V','ħ-V','ʕ-V','V-h-V','V-ʔ-V','V-ħ-V','V-ʕ-V','V-h','V-ʔ','V-ħ','V-ʕ')), scales = "free_x", ncol=4) +
+#   ms_facets +
+#   labs(x = "Proportion of interval duration", y = "f0")
+# 
+# subset_subset %>%
+#   # mutate(
+#   #   f0z    = strF0 - mean(strF0, na.rm = TRUE),
+#   # ) %>%
+#   ggplot(aes(t_prop, energy_prop, color = interval)) +
+#   geom_smooth(method = 'gam', fill = NA) +
+#   facet_wrap(~ factor(interval, c('h-V','ʔ-V','ħ-V','ʕ-V','V-h-V','V-ʔ-V','V-ħ-V','V-ʕ-V','V-h','V-ʔ','V-ħ','V-ʕ')), scales = "free_x", ncol=4) +
+#   ms_facets +
+#   labs(x = "Proportion of interval duration", y = "RMS Energy (normalized)")
+# 
+# subset_subset %>%
+#   # mutate(
+#   #   SoEz    = soe - mean(soe, na.rm = TRUE),
+#   # ) %>%
+#   ggplot(aes(t_prop, soe, color = interval)) +
+#   geom_smooth(method = 'gam', fill = NA) +
+#   facet_wrap(~ factor(interval, c('h-V','ʔ-V','ħ-V','ʕ-V','V-h-V','V-ʔ-V','V-ħ-V','V-ʕ-V','V-h','V-ʔ','V-ħ','V-ʕ')), scales = "free_x", ncol=4) +
+#   ms_facets +
+#   labs(x = "Proportion of interval duration", y = "SoE")
+# 
+# 
+# 
+# 
+# ### not working at the moment
+# mod_H1H2c <- lmer(
+#   formula = H1H2c ~
+#     interval + t_ms + (1 | phrase),
+#   data = subset_subset
+# )
+# 
+# predictions <- bind_rows(
+#   mutate(predict_with_se(mod_H1H2c, subset_subset, re.form = NA),
+#          position = "Intervals"
+#   )
+# ) %>%
+#   mutate(
+#     interval  = fct_relevel(interval, names(ms_colors))
+#   )
+# 
+# ggplot(
+#   predictions,
+#   aes(
+#     x = t_norm, y = H1H2c,
+#     ymin = H1H2c - standard_error, ymax = H1H2c + standard_error,
+#     color = interval, fill = interval)) +
+#   geom_smooth(stat = "identity", alpha = 0.25) +
+#   facet_wrap(~ factor(interval, c('h-V','ʔ-V','ħ-V','ʕ-V','V-h-V','V-ʔ-V','V-ħ-V','V-ʕ-V','V-h','V-ʔ','V-ħ','V-ʕ')), scales = "free_x") +
+#   ms_facets +
+#   labs(x = "Proportion of vowel duration", y = "H1*-H2*") +
+#   theme(strip.text = element_text(size = 10, margin = margin(0, 0, 5, 0)))

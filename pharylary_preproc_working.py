@@ -298,12 +298,12 @@ filename_parts = all_relevant_data['Filename'].str.split('_', expand=True)
 # Assuming the format is consistent and the desired parts are at specific indices
 all_relevant_data['participant'] = filename_parts[0]
 all_relevant_data['session'] = filename_parts[2]
-# all_relevant_data['phrase'] = filename_parts[4]
-all_relevant_data['phrase'] = filename_parts[4].str.extract(r'(\d+)(?=\.mat)')
+all_relevant_data['phrase'] = filename_parts[3]
+# all_relevant_data['phrase'] = filename_parts[4].str.extract(r'(\d+)(?=\.mat)')
 
 
 # Determine the position of the 'comments' column
-comments_col_idx = all_relevant_data.columns.get_loc('interval') - 1
+comments_col_idx = all_relevant_data.columns.get_loc('interval') + 2
 
 # Reorder columns to place the new columns after 'comments'
 cols = all_relevant_data.columns.tolist()
@@ -344,7 +344,7 @@ all_relevant_data['duration'] = all_relevant_data['t_max'] - all_relevant_data['
 
 ### add in other data from google sheet ###
 print('Adding metadata...')
-stim_meta = pd.read_csv('/Users/bcl/GitHub/pharylary/PharyLary Stimuli - Yes.csv')
+stim_meta = pd.read_csv('/Users/bcl/GitHub/pharylary/PharyLary Stimuli - pharylary2.csv')
 stim_meta_df = stim_meta[['Phrasenum','IPA','Gloss','Gloss_2','Syllable','Segment','Type','Position','Position_2','Contrast_(IPA)','Contrast','Experiment']]
 stim_meta_df = stim_meta_df.rename(columns={'Phrasenum':'phrase'})
 stim_meta_df = stim_meta_df.astype({'phrase': int})
@@ -354,8 +354,8 @@ all_data = pd.merge(all_relevant_data, stim_meta_df, on='phrase', how='inner')
 # Output the final DataFrame
 # print(all_relevant_data)
 # Optionally, save to a file
-print('Saving as .csv in %s.'%(output_dir))
-all_data.to_csv('preproc_output.csv', index=False)
+# print('Saving as .csv in %s.'%(output_dir))
+# all_data.to_csv('preproc_output.csv', index=False)
 
 ### NEW SECTION: Import and concatenate fricative measurement data ###
 
@@ -370,7 +370,7 @@ TIER_FILTER_INDEX = 0      # e.g., 1 for your "fricatives" tier (0-based); set t
 TIER_FILTER_NAME  = None   # or e.g., "fricatives"; set to None if using index
 
 # Labels to extract (each goes to its own subfolder inside out_root)
-labels = ["s", "sˤ", "ħ", "h", "ʕ", "ʁ", "ð", "ðħ", "sʕ"]
+labels = ["s", "sˤ", "ħ", "h", "ʕ", "ʁ", "ð", "ðħ", "sʕ","ðˤ"]
 
 # The two tiers to copy into the per-clip TextGrid (by NAME)
 COPY_TIER_NAMES = ["phonetic", "phrasenum"]
@@ -686,7 +686,7 @@ all_data.to_csv('preproc_output.csv', index=False)
 #### matches for means ####
 ##### data for the intervals as extracted from overlap with tier 3 because there's no unique labels in tier 1.
 ##### this makes it so the data is just the target phonemes, not all of them
-### slicing the data below takes about 5 minutes to run because iterrows() is slow ####
+
 
 ### new method
 
@@ -711,8 +711,9 @@ vseq_idx  = (
 matching_data = intervals.loc[intervals.index.isin(vseq_idx)].reset_index()
 
 print(f"Done in {(time.time()-t0):.2f}s — rows: {len(matching_data):,}")
-# matching_data.to_csv(os.path.join(output_dir, "preproc_matchesformeans.csv"), index=False)
 
+
+### slicing the data below takes about 5 minutes to run because iterrows() is slow ####
 # #Initialize an empty DataFrame to store matching rows
 # time_start = time.ctime()
 # print("Start time:", time_start)
