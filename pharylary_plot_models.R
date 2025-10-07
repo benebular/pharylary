@@ -184,7 +184,7 @@ subset_mean <- subset_mean %>%
   mutate(strF0_mean = mean(strF0, na.rm = TRUE), strF0_sd = sd(strF0, na.rm = TRUE)) %>%
   ungroup()
 
-# Filter out rows where F1 is outside the range of 2.5 standard deviations from the mean
+# Filter out rows where f0 is outside the range of 2.5 standard deviations from the mean
 subset_mean_harmonics <- subset_mean %>%
   filter(strF0 >= (strF0_mean - 3 * strF0_sd) & strF0 <= (strF0_mean + 3 * strF0_sd))
 
@@ -278,10 +278,11 @@ mod_H1c <- lmer(
 )
 
 ## grab residual H1c for plotting
-energy.factor = fixef(mod_H1c)[2]
+energy.factor = fixef(mod_H1c)[8]
 
 subset_mean_harmonics$H1c.resid = subset_mean_harmonics$H1c - subset_mean_harmonics$Energy * energy.factor
 
+# subset_mean <- subset_mean %>% group_by(participant,phrase,interval) %>% mutate(energyz = Energy - mean(Energy, na.rm = TRUE))
 
 ### just grab the first value in the intervals for each word for each participant since it's not the same within interval, word, participant
 unique_data <- subset_mean %>% group_by(participant,phrase,interval) %>% summarize(
