@@ -69,12 +69,14 @@ library(gridExtra)
 #   )
 # )
 
-orig_data_path <- sprintf('/Volumes/cassandra/alldata/dissertation/vs/output_preproc/preproc_output.csv')
+orig_data_path <- sprintf('/Volumes/circe/alldata/dissertation/vs/output_preproc/preproc_output.csv')
+# data_path <- sprintf('/Volumes/cassandra/alldata/dissertation/vs/output_preproc/preproc_matchesformeans.csv')
 # orig_data_path <- sprintf('/Users/bcl/Desktop/preproc_output.csv')
 orig_data = read.csv(orig_data_path)
 
 ##### data for the intervals as extracted from overlap with tier 3 because there's no unique labels in tier 1
-data_path <- sprintf('/Volumes/cassandra/alldata/dissertation/vs/output_preproc/preproc_matchesformeans.csv')
+data_path <- sprintf('/Volumes/circe/alldata/dissertation/vs/output_preproc/preproc_matchesformeans.csv')
+# data_path <- sprintf('/Volumes/cassandra/alldata/dissertation/vs/output_preproc/preproc_matchesformeans.csv')
 # data_path <- sprintf('/Users/bcl/Desktop/preproc_matchesformeans.csv')
 data = read.csv(data_path)
 
@@ -137,6 +139,8 @@ contrasts(subset_mean$Position) <- contr.treatment(2)
 # contrasts(subset_mean$interval) <- contr.treatment(6)
 
 ## run models that don't need any outlier adjustments for f0 and formants
+
+lmer(CPP_mean ~ interval*ns(time,df=3)+(1+ns(time, df = 3)|participant)+(1|phrase))
 
 mod_CPP <- lmer(
   formula = CPP_mean ~
@@ -352,7 +356,7 @@ plot1 <- ggplot(unique_data, aes(x = "", y = H1H2c_mean_unique, fill = interval)
 
 
 
-##### CPP ####
+#### CPP ####
 
 plot2 <- ggplot(unique_data, aes(x = "", y = CPP_mean_unique, fill = interval)) +
   # clouds
@@ -396,7 +400,7 @@ plot2 <- ggplot(unique_data, aes(x = "", y = CPP_mean_unique, fill = interval)) 
         legend.title = element_text(size = 14) # Adjust font size for legend title
   ) #+ facet_wrap(~Position, ncol = 2)
 
-##### SoE ####
+#### SoE ####
 
 plot3 <- ggplot(unique_data, aes(x = "", y = soe_mean_unique*10, fill = interval)) +
   # clouds
@@ -439,7 +443,7 @@ plot3 <- ggplot(unique_data, aes(x = "", y = soe_mean_unique*10, fill = interval
   )
 
 
-##### F1 ####
+#### F1 ####
 
 plot4 <- ggplot(unique_data, aes(x = "", y = sF1_mean_unique, fill = interval)) +
   # clouds
@@ -480,7 +484,7 @@ plot4 <- ggplot(unique_data, aes(x = "", y = sF1_mean_unique, fill = interval)) 
         legend.title = element_text(size = 14) # Adjust font size for legend title
   )
 
-##### F2 ####
+#### F2 ####
 
 plot5 <- ggplot(unique_data, aes(x = "", y = sF2_mean_unique, fill = interval)) +
   # clouds
@@ -516,7 +520,7 @@ plot5 <- ggplot(unique_data, aes(x = "", y = sF2_mean_unique, fill = interval)) 
         legend.position.inside = c(0.9, 0.9),
         legend.background = element_rect(fill = "white", color = "white"))
 
-##### HNR05 ####
+#### HNR05 ####
 
 plot6 <- ggplot(unique_data, aes(x = "", y = HNR05_mean_unique, fill = interval)) +
   # clouds
@@ -552,7 +556,7 @@ plot6 <- ggplot(unique_data, aes(x = "", y = HNR05_mean_unique, fill = interval)
         legend.position.inside = c(0.9, 0.9),
         legend.background = element_rect(fill = "white", color = "white"))
 
-##### Residual H1* ####
+#### Residual H1* ####
 
 plot7 <- ggplot(unique_data, aes(x = "", y = H1c.resid_mean_unique, fill = interval)) +
   # clouds
