@@ -16,7 +16,7 @@ import ptitprince as pt
 #     print(data[['interval','Position','Position_2']])
 
 
-data = pd.read_csv('/Volumes/circe/vs/output_preproc/preproc_output.csv', encoding='utf8')
+base_data = pd.read_csv('/Volumes/cassandra/alldata/dissertation/vs/output_preproc/preproc_output.csv', encoding='utf8')
 # data = pd.read_csv('/Users/bcl/Desktop/preproc_output.csv', encoding='utf8')
 
 # data = data[data['tier'] == 'phonetic']
@@ -44,7 +44,7 @@ data = pd.read_csv('/Volumes/circe/vs/output_preproc/preproc_output.csv', encodi
 #             matching_data = matching_data.append(interval_row)
 
 # matching_data.to_csv('preproc_matchesformeans.csv', index=False)
-matching_data = pd.read_csv('/Volumes/circe/vs/output_preproc/preproc_matchesformeans.csv', encoding='utf8')
+matching_data = pd.read_csv('/Volumes/cassandra/alldata/dissertation/vs/output_preproc/preproc_matchesformeans.csv', encoding='utf8')
 
 ### now slice so that it's just the C segments
 means_data = matching_data[(matching_data['interval'] == 'ħ') | (matching_data['interval'] == 'h') | (matching_data['interval'] == 'ʔ') | (matching_data['interval'] == 'ʕ')]
@@ -86,7 +86,7 @@ palette = [color_dict[label] for label in means_data['interval'].unique()]
 ####### Look at those GAMs baby #########
 #########################################
 
-data = data[data['tier'] == 'V-sequence']
+data = base_data[base_data['tier'] == 'V-sequence']
 
 # exclude the consonants for now
 exclude_intervals = ['V-h-C','C-h-V','C-ħ-V','C-h','C-ħ','C-ʕ-V','V-ʔ-C','V-ħ-C']
@@ -106,7 +106,7 @@ acoustic_features = ['H1H2c','CPP','HNR05','SHR','strF0','soe','energy_prop','sF
 features = ['H1H2c','CPP','soe'] ## gamm plot
 # features = ['SHR','strF0','HNR05'] ## gamm plot 2
 # features = ['sF1','sF2','sF3'] ## gamm plot 3
-positions = data['Position 2'].unique()
+positions = data['Position'].unique()
 
 # establish labels of interest
 # all_labels = ['ħ-V', 'h-V', 'ʔ-V', 'ʕ-V', 'V-ħ-V', 'V-h-V', 'V-ʔ-V', 'V-ʕ-V', 'V-ħ', 'V-h', 'V-ʔ', 'V-ʕ']
@@ -149,7 +149,7 @@ for i, feature in enumerate(features):
         designated_labels = position_label_map.get(position, [])
 
         # Filter data for this feature and position
-        subset = data[(data['Position 2'] == position) & (data['interval'].isin(designated_labels))]
+        subset = data[(data['Position'] == position) & (data['interval'].isin(designated_labels))]
 
         # Fit and plot GAM for each label
         # if pos == 'init':
@@ -263,10 +263,12 @@ plt.show()
 ##################
 
 
-data = data[data['tier'] == 'V-sequence']
-data = data[(data['interval'] == 'ħ-V') | (data['interval'] == 'h-V') | (data['interval'] == 'ʔ-V') | (data['interval'] == 'ʕ-V') |
-                    (data['interval'] == 'V-ħ-V') | (data['interval'] == 'V-h-V') | (data['interval'] == 'V-ʔ-V') | (data['interval'] == 'V-ʕ-V') |
-                    (data['interval'] == 'V-ħ') | (data['interval'] == 'V-h') | (data['interval'] == 'V-ʔ') | (data['interval'] == 'V-ʕ')]
+
+
+data = base_data[base_data['tier'] == 'V-sequence']
+data = base_data[(base_data['interval'] == 'ħ-V') | (base_data['interval'] == 'h-V') | (base_data['interval'] == 'ʔ-V') | (base_data['interval'] == 'ʕ-V') |
+                    (base_data['interval'] == 'V-ħ-V') | (base_data['interval'] == 'V-h-V') | (base_data['interval'] == 'V-ʔ-V') | (base_data['interval'] == 'V-ʕ-V') |
+                    (base_data['interval'] == 'V-ħ') | (base_data['interval'] == 'V-h') | (base_data['interval'] == 'V-ʔ') | (base_data['interval'] == 'V-ʕ')]
 
 acoustic_features = ['H1H2c','CPP','HNR05','SHR','strF0','soe','energy_prop','sF1','sF2','sF3']
 # acoustic_features = ['sF1','sF2','sF3']
@@ -298,7 +300,7 @@ for i, feature in enumerate(acoustic_features):
     # # Add grid
     # plt.grid(color='grey', alpha=0.3)
 
-    for label in final_labels:
+    for label in medial_labels:
         subset = data[data['interval'] == label]
 
         # Fitting a GAM

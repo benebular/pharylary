@@ -69,14 +69,14 @@ library(gridExtra)
 #   )
 # )
 
-orig_data_path <- sprintf('/Volumes/circe/alldata/dissertation/vs/output_preproc/preproc_output.csv')
-# data_path <- sprintf('/Volumes/cassandra/alldata/dissertation/vs/output_preproc/preproc_matchesformeans.csv')
+# orig_data_path <- sprintf('/Volumes/circe/alldata/dissertation/vs/output_preproc/preproc_output.csv')
+orig_data_path <- sprintf('/Volumes/cassandra/alldata/dissertation/vs/output_preproc/preproc_output.csv')
 # orig_data_path <- sprintf('/Users/bcl/Desktop/preproc_output.csv')
 orig_data = read.csv(orig_data_path)
 
 ##### data for the intervals as extracted from overlap with tier 3 because there's no unique labels in tier 1
-data_path <- sprintf('/Volumes/circe/alldata/dissertation/vs/output_preproc/preproc_matchesformeans.csv')
-# data_path <- sprintf('/Volumes/cassandra/alldata/dissertation/vs/output_preproc/preproc_matchesformeans.csv')
+# data_path <- sprintf('/Volumes/circe/alldata/dissertation/vs/output_preproc/preproc_matchesformeans.csv')
+data_path <- sprintf('/Volumes/cassandra/alldata/dissertation/vs/output_preproc/preproc_matchesformeans.csv')
 # data_path <- sprintf('/Users/bcl/Desktop/preproc_matchesformeans.csv')
 data = read.csv(data_path)
 
@@ -140,7 +140,7 @@ contrasts(subset_mean$Position) <- contr.treatment(2)
 
 ## run models that don't need any outlier adjustments for f0 and formants
 
-lmer(CPP_mean ~ interval*ns(time,df=3)+(1+ns(time, df = 3)|participant)+(1|phrase))
+# lmer(CPP_mean ~ interval*ns(time,df=3)+(1+ns(time, df = 3)|participant)+(1|phrase))
 
 mod_CPP <- lmer(
   formula = CPP_mean ~
@@ -1133,6 +1133,211 @@ mod_cog <- lmer(
   REML = FALSE
 )
 
+
+library(dplyr)
+library(ggplot2)
+library(scales)
+
+# --- pick one feature and position ---
+feature  <- "CPP"
+position <- "medial"
+
+labels <- c("V-ħ-V","V-h-V","V-ʔ-V","V-ʕ-V")  # adjust as needed
+color_vec <- c(
+  "V-ħ-V"="#1b9e77","V-h-V"="#d95f02","V-ʔ-V"="#7570b3","V-ʕ-V"="#e7298a"
+)
+
+# --- subset and average across tokens ---
+df_mean <- orig_data %>%
+  filter(tier == "V-sequence",
+         interval %in% labels,
+         !is.na(t_prop),
+         !is.na(.data[[feature]])) %>%
+  group_by(interval, t_prop) %>%
+  summarise(mean_value = mean(.data[[feature]], na.rm = TRUE),
+            sd_value   = sd(.data[[feature]], na.rm = TRUE),
+            n          = n(),
+            se_value   = sd_value / sqrt(n),
+            .groups = "drop")
+
+# --- plot only the averaged trajectories ---
+ggplot(df_mean, aes(x = t_prop, y = mean_value, color = interval, fill = interval)) +
+  geom_line(linewidth = 1) +
+  geom_ribbon(aes(ymin = mean_value - se_value, ymax = mean_value + se_value),
+              alpha = 0.2, color = NA) +
+  scale_color_manual(values = color_vec) +
+  scale_fill_manual(values  = alpha(color_vec, 0.2)) +
+  labs(
+    title = paste0(feature, " averaged time series (", position, ")"),
+    x = "Proportional Time (t_prop)",
+    y = feature
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(
+    legend.title = element_blank(),
+    panel.grid.minor = element_blank()
+  )
+
+
+
+# --- packages ---
+library(dplyr)
+library(ggplot2)
+library(scales)  # for alpha()
+
+# --- filter base data once ---
+data0 <- orig_data %>%
+  filter(tier == "V-sequence") %>%
+  filter(interval %in% c(
+    "ħ-V","h-V","ʔ-V","ʕ-V",
+    "V-ħ-V","V-h-V","V-ʔ-V","V-ʕ-V",
+    "V-ħ","V-h","V-ʔ","V-ʕ"
+  ))
+
+# --- color mapping ---
+color_vec <- c(
+  "ħ-V"  = "#1b9e77", "h-V"  = "#d95f02", "ʔ-V"  = "#7570b3", "ʕ-V"  = "#e7298a",
+  "V-ħ-V"= "#1b9e77", "V-h-V"= "#d95f02", "V-ʔ-V"= "#7570b3", "V-ʕ-V"= "#e7298a",
+  "V-ħ"  = "#1b9e77", "V-h"  = "#d95f02", "V-ʔ"  = "#7570b3", "V-ʕ"  = "#e7298a"
+)
+
+# --- label sets ---
+initial_labels <- c("ħ-V","h-V","ʔ-V","ʕ-V")
+medial_labels  <- c("V-ħ-V","V-h-V","V-ʔ-V","V-ʕ-V")
+final_labels   <- c("V-ħ","V-h","V-ʔ","V-ʕ")
+
+# --- choose what to plot ---
+feature  <- "CPP"        # <-- change this
+position <- "medial"     # one of: "initial", "medial", "final"
+
+labels <- switch(
+  position,
+  initial = initial_labels,
+  medial  = medial_labels,
+  final   = final_labels
+)
+
+# --- subset the data ---
+df <- data0 %>%
+  filter( %in% labels) %>%
+  select(t_prop, interval, !!sym(feature)) %>%
+  rename(value = !!sym(feature)) %>%
+  filter(!is.na(t_prop), !is.na(value)) %>%
+  arrange(interval, t_prop)
+
+# --- basic time-series plot ---
+ggplot(data0, aes(x = t_prop, y = CPP, color = interval)) +
+  geom_line(alpha = 0.5, linewidth = 0.8) +              # draw individual traces
+  geom_smooth(se = FALSE, method = "loess", span = 0.3,  # optional local smoothing
+              linewidth = 1) +
+  scale_color_manual(values = color_vec[labels]) +
+  labs(
+    title = paste0(feature, " raw time series (", position, ")"),
+    x = "Proportional Time (t_prop)",
+    y = feature
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(
+    legend.title = element_blank(),
+    panel.grid.minor = element_blank()
+  )
+
+
+# --- packages ---
+library(dplyr)
+library(ggplot2)
+library(mgcv)
+library(purrr)
+library(scales)  # for alpha()
+
+# --- filter base data once ---
+data0 <- base_data %>%
+  filter(tier == "V-sequence") %>%
+  filter(interval %in% c(
+    "ħ-V","h-V","ʔ-V","ʕ-V",
+    "V-ħ-V","V-h-V","V-ʔ-V","V-ʕ-V",
+    "V-ħ","V-h","V-ʔ","V-ʕ"
+  ))
+
+# --- color mapping (named vector) ---
+color_vec <- c(
+  "ħ-V"  = "#1b9e77", "h-V"  = "#d95f02", "ʔ-V"  = "#7570b3", "ʕ-V"  = "#e7298a",
+  "V-ħ-V"= "#1b9e77", "V-h-V"= "#d95f02", "V-ʔ-V"= "#7570b3", "V-ʕ-V"= "#e7298a",
+  "V-ħ"  = "#1b9e77", "V-h"  = "#d95f02", "V-ʔ"  = "#7570b3", "V-ʕ"  = "#e7298a"
+)
+
+# --- label sets ---
+initial_labels <- c("ħ-V","h-V","ʔ-V","ʕ-V")
+medial_labels  <- c("V-ħ-V","V-h-V","V-ʔ-V","V-ʕ-V")
+final_labels   <- c("V-ħ","V-h","V-ʔ","V-ʕ")
+
+# --- choose what to plot ---
+feature  <- "CPP"        # <-- change this
+position <- "medial"     # one of: "initial", "medial", "final"
+
+labels <- switch(
+  position,
+  initial = initial_labels,
+  medial  = medial_labels,
+  final   = final_labels
+)
+
+# --- storage for predictions ---
+pred_list <- list()
+
+# --- GAM settings (tweak as needed) ---
+k_splines <- 20       # basis size
+n_points  <- 200      # prediction grid points
+ci_mult   <- 1.96     # ~95% CI for Gaussian
+
+# --- fit per label and predict ---
+for (lab in labels) {
+  sub <- data0 %>%
+    filter(interval == lab) %>%
+    select(t_prop, !!sym(feature)) %>%
+    rename(y = !!sym(feature)) %>%
+    filter(!is.na(t_prop), !is.na(y)) %>%
+    arrange(t_prop)
+  
+  if (nrow(sub) < 8) next  # skip if too few points
+  
+  # fit a simple 1D GAM
+  m <- mgcv::gam(y ~ s(t_prop, k = k_splines), data = sub, method = "REML")
+  
+  # prediction grid within observed range
+  nd <- data.frame(t_prop = seq(min(sub$t_prop), max(sub$t_prop), length.out = n_points))
+  pr <- predict(m, newdata = nd, se.fit = TRUE)
+  
+  pred_df <- nd %>%
+    mutate(
+      fit = as.numeric(pr$fit),
+      se  = as.numeric(pr$se.fit),
+      lwr = fit - ci_mult * se,
+      upr = fit + ci_mult * se,
+      interval = lab
+    )
+  
+  pred_list[[lab]] <- pred_df
+}
+
+preds <- bind_rows(pred_list)
+
+# --- plot ---
+ggplot(preds, aes(x = t_prop, y = fit, color = interval, fill = interval)) +
+  geom_ribbon(aes(ymin = lwr, ymax = upr), alpha = 0.2, linewidth = 0, show.legend = FALSE) +
+  geom_line(linewidth = 1) +
+  scale_color_manual(values = color_vec[labels]) +
+  scale_fill_manual(values  = alpha(color_vec[labels], 0.2)) +
+  labs(
+    title = paste0(feature, " over proportional time (", position, ")"),
+    x = "Proportional Time (t_prop)",
+    y = feature
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(
+    legend.title = element_blank(),
+    panel.grid.minor = element_blank()
+  )
 
 
 
