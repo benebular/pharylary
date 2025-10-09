@@ -619,8 +619,8 @@ else:
 # Output the final DataFrame
 # print(all_relevant_data)
 # Optionally, save to a file
-print('Saving as .csv in %s.'%(output_dir))
-all_data.to_csv('preproc_output.csv', index=False)
+# print('Saving as .csv in %s.'%(output_dir))
+# all_data.to_csv('preproc_output.csv', index=False)
 
 
 # ### old code using the extractions from the dicanio script
@@ -690,31 +690,57 @@ all_data.to_csv('preproc_output.csv', index=False)
 
 ### new method
 
+# t0 = time.time()
+
+# # Ensure comparable dtypes
+# all_data = all_data.copy()
+# all_data['phrase'] = all_data['phrase'].astype(str)
+# all_data['t_ms']   = pd.to_numeric(all_data['t_ms'], errors='coerce')
+
+# # Split once
+# intervals = all_data.loc[all_data['tier'].eq('phonetic')].set_index(['phrase','t_ms'])
+# vseq_idx  = (
+#     all_data
+#     .loc[all_data['tier'].eq('V-sequence'), ['phrase','t_ms']]
+#     .drop_duplicates()
+#     .set_index(['phrase','t_ms'])
+#     .index
+# )
+
+# # Keep only intervals whose (phrase, t_ms) are present in V-sequence
+# matching_data2 = intervals.loc[intervals.index.isin(vseq_idx)].reset_index()
+
+# print(f"Done in {(time.time()-t0):.2f}s — rows: {len(matching_data2):,}")
+
 t0 = time.time()
 
-# Ensure comparable dtypes
+# Ensure comparable dtypes (same as your snippet)
 all_data = all_data.copy()
 all_data['phrase'] = all_data['phrase'].astype(str)
 all_data['t_ms']   = pd.to_numeric(all_data['t_ms'], errors='coerce')
 
-# Split once
-intervals = all_data.loc[all_data['tier'].eq('phonetic')].set_index(['phrase','t_ms'])
-vseq_idx  = (
-    all_data
-    .loc[all_data['tier'].eq('V-sequence'), ['phrase','t_ms']]
-    .drop_duplicates()
-    .set_index(['phrase','t_ms'])
-    .index
+# Build the set of (phrase, t_ms) pairs from V-sequence
+vseq_idx = pd.MultiIndex.from_frame(
+    all_data.loc[all_data['tier'].eq('V-sequence'), ['phrase', 't_ms']].drop_duplicates()
 )
 
-# Keep only intervals whose (phrase, t_ms) are present in V-sequence
-matching_data = intervals.loc[intervals.index.isin(vseq_idx)].reset_index()
+# Identify phonetic rows and their (phrase, t_ms)
+mask_phonetic = all_data['tier'].eq('phonetic')
+phon_idx = pd.MultiIndex.from_frame(all_data.loc[mask_phonetic, ['phrase', 't_ms']])
 
-print(f"Done in {(time.time()-t0):.2f}s — rows: {len(matching_data):,}")
+# Compute match mask for phonetic rows
+match_mask = phon_idx.isin(vseq_idx)
+
+# Create/assign the dummy column (0/1) across the full DataFrame
+all_data['target_match'] = 0
+all_data.loc[mask_phonetic, 'target_match'] = match_mask.astype(int)
+
+print(f"Done in {(time.time()-t0):.2f}s — matches: {all_data['target_match'].sum():,}")
 
 
-### slicing the data below takes about 5 minutes to run because iterrows() is slow ####
-# #Initialize an empty DataFrame to store matching rows
+
+## slicing the data below takes about 5 minutes to run because iterrows() is slow ####
+#Initialize an empty DataFrame to store matching rows
 # time_start = time.ctime()
 # print("Start time:", time_start)
 # seconds_start = time.time()
@@ -784,6 +810,6 @@ print(f"Done in {(time.time()-t0):.2f}s — rows: {len(matching_data):,}")
 # print("Time elapsed (minutes): ", (seconds_end-seconds_start)/60)
 
 print('Saving matches for means as .csv in %s.'%(output_dir))
-# matching_data.to_csv('/Volumes/circe/vs/output_preproc/preproc_matchesformeans.csv', index=False)
-matching_data.to_csv(os.path.join(output_dir, "preproc_matchesformeans.csv"), index=False)
+# all_data.to_csv('/Volumes/circe/vs/output_preproc/preproc_matchesformeans.csv', index=False)
+all_data.to_csv(os.path.join(output_dir, "preproc_matchesformeans.csv"), index=False)
 # matching_data = pd.read_csv('/Volumes/circe/vs/output_preproc/preproc_matchesformeans.csv', encoding='utf8')
