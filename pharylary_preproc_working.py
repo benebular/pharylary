@@ -619,8 +619,8 @@ else:
 # Output the final DataFrame
 # print(all_relevant_data)
 # Optionally, save to a file
-# print('Saving as .csv in %s.'%(output_dir))
-# all_data.to_csv('preproc_output.csv', index=False)
+print('Saving as .csv in %s.'%(output_dir))
+all_data.to_csv('preproc_output.csv', index=False)
 
 
 # ### old code using the extractions from the dicanio script
