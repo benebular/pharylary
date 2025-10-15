@@ -409,24 +409,24 @@ ms_colors <- c(
   "son-V" = "#000000"
 )
 
-# subset_mean_time_filtered <- subset_mean_time %>%
-#   filter(interval == 'ħ-V' | interval == 'h-V' | interval == 'ʔ-V' | interval == 'ʕ-V' |
-#            interval == 'V-ħ-V' | interval == 'V-h-V' | interval == 'V-ʔ-V' | interval == 'V-ʕ-V' |
-#            interval == 'V-ħ' | interval == 'V-h' | interval == 'V-ʔ' | interval == 'V-ʕ')
-
-## removing interval == 'ʔ-V'  temporarily
-subset_mean_time_filtered <- subset(subset_mean_time, interval == 'ħ-V' | interval == 'h-V' | interval == 'ʕ-V' |
+subset_mean_time_filtered <- subset_mean_time %>%
+  filter(interval == 'ħ-V' | interval == 'h-V' | interval == 'ʔ-V' | interval == 'ʕ-V' |
            interval == 'V-ħ-V' | interval == 'V-h-V' | interval == 'V-ʔ-V' | interval == 'V-ʕ-V' |
            interval == 'V-ħ' | interval == 'V-h' | interval == 'V-ʔ' | interval == 'V-ʕ')
+
+## removing interval == 'ʔ-V'  temporarily
+# subset_mean_time_filtered <- subset(subset_mean_time, interval == 'ħ-V' | interval == 'h-V' | interval == 'ʕ-V' |
+#            interval == 'V-ħ-V' | interval == 'V-h-V' | interval == 'V-ʔ-V' | interval == 'V-ʕ-V' |
+#            interval == 'V-ħ' | interval == 'V-h' | interval == 'V-ʔ' | interval == 'V-ʕ')
 
 subset_mean_time_filtered  %>% 
   #filter(str_outlier=="OK") %>%
   ggplot(aes(t_prop, CPP, color = interval)) +
   geom_smooth(method = "loess", alpha=0.25) +
-  scale_color_manual(name = NULL, values = ms_colors)+
-  theme_bw(base_size = 18)+
-  scale_x_continuous(limits=c(0,1))+
-  theme(legend.position = "none")+
+  scale_color_manual(name = NULL, values = ms_colors) +
+  theme_bw(base_size = 18) +
+  scale_x_continuous(limits=c(0,1)) +
+  theme(legend.position = "none") +
   # facet_wrap(~factor(interval, c('h-V','ʔ-V','ħ-V','ʕ-V','son-V','V-h-V','V-ʔ-V','V-ħ-V','V-ʕ-V','V-son-V','V-h','V-ʔ','V-ħ','V-ʕ','V-son')), scales = "free_x") +
   facet_wrap(~factor(interval, c('h-V','ʔ-V','ħ-V','ʕ-V','V-h-V','V-ʔ-V','V-ħ-V','V-ʕ-V','V-h','V-ʔ','V-ħ','V-ʕ')), scales = "free_x") +
   labs(x = "Proportion of sequence duration", y = "CPP (dB)")
@@ -443,7 +443,7 @@ subset_mean_time_filtered  %>%
   scale_x_continuous(limits=c(0,1))+
   theme(legend.position = "none")+
   # facet_wrap(~factor(interval, c('h-V','ʔ-V','ħ-V','ʕ-V','son-V','V-h-V','V-ʔ-V','V-ħ-V','V-ʕ-V','V-son-V','V-h','V-ʔ','V-ħ','V-ʕ','V-son')), scales = "free_x") +
-  facet_wrap(~factor(interval, c('h-V','ħ-V','ʕ-V','V-h-V','V-ʔ-V','V-ħ-V','V-ʕ-V','V-h','V-ʔ','V-ħ','V-ʕ')), scales = "free_x") +
+  facet_wrap(~factor(interval, c('h-V','ʔ-V','ħ-V','ʕ-V','V-h-V','V-ʔ-V','V-ħ-V','V-ʕ-V','V-h','V-ʔ','V-ħ','V-ʕ')), scales = "free_x") +
   labs(x = "Proportion of sequence duration", y = "Residual H1 (dB)")
 
 subset_mean_time_filtered  %>% 
@@ -470,6 +470,29 @@ subset_mean_time_filtered  %>%
   facet_wrap(~factor(interval, c('h-V','ʔ-V','ħ-V','ʕ-V','V-h-V','V-ʔ-V','V-ħ-V','V-ʕ-V','V-h','V-ʔ','V-ħ','V-ʕ')), scales = "free_x") +
   labs(x = "Proportion of sequence duration", y = "SoE")
 
+subset_mean_time_filtered  %>% 
+  #filter(str_outlier=="OK") %>%
+  ggplot(aes(t_prop, H1H2c, color = interval)) +
+  geom_smooth(method = "loess", alpha=0.25) +
+  scale_color_manual(name = NULL, values = ms_colors)+
+  theme_bw(base_size = 18)+
+  scale_x_continuous(limits=c(0,1))+
+  theme(legend.position = "none")+
+  # facet_wrap(~factor(interval, c('h-V','ʔ-V','ħ-V','ʕ-V','son-V','V-h-V','V-ʔ-V','V-ħ-V','V-ʕ-V','V-son-V','V-h','V-ʔ','V-ħ','V-ʕ','V-son')), scales = "free_x") +
+  facet_wrap(~factor(interval, c('h-V','ʔ-V','ħ-V','ʕ-V','V-h-V','V-ʔ-V','V-ħ-V','V-ʕ-V','V-h','V-ʔ','V-ħ','V-ʕ')), scales = "free_x") +
+  labs(x = "Proportion of sequence duration", y = "H1H2c")
+
+subset_mean_time_filtered %>% group_by(participant, interval, t_prop) %>%
+  summarize(CPPz = scale(CPP)) %>%
+  ggplot(aes(t_prop, CPPz, color = interval)) +
+  geom_smooth(method = "loess", alpha=0.25) +
+  scale_color_manual(name = NULL, values = ms_colors) +
+  theme_bw(base_size = 18) +
+  scale_x_continuous(limits=c(0,1)) +
+  theme(legend.position = "none") +
+  # facet_wrap(~factor(interval, c('h-V','ʔ-V','ħ-V','ʕ-V','son-V','V-h-V','V-ʔ-V','V-ħ-V','V-ʕ-V','V-son-V','V-h','V-ʔ','V-ħ','V-ʕ','V-son')), scales = "free_x") +
+  facet_wrap(~factor(interval, c('h-V','ʔ-V','ħ-V','ʕ-V','V-h-V','V-ʔ-V','V-ħ-V','V-ʕ-V','V-h','V-ʔ','V-ħ','V-ʕ')), scales = "free_x") +
+  labs(x = "Proportion of sequence duration", y = "CPP (dB)")
 
 ### run some models!
 
