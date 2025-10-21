@@ -39,8 +39,8 @@ library("tidyverse")
 # orig_data = read.csv(orig_data_path)
 
 ### data for the intervals as extracted from overlap with tier 3 because there's no unique labels in tier 1
-# data_path <- sprintf('/Volumes/circe/alldata/dissertation/vs/output_preproc/preproc_matchesformeans.csv')
-data_path <- sprintf('/Volumes/cassandra/alldata/dissertation/vs/output_preproc/preproc_matchesformeans.csv')
+data_path <- sprintf('/Volumes/circe/alldata/dissertation/vs/output_preproc/preproc_matchesformeans.csv')
+# data_path <- sprintf('/Volumes/cassandra/alldata/dissertation/vs/output_preproc/preproc_matchesformeans.csv')
 # data_path <- sprintf('/Users/bcl/Desktop/preproc_matchesformeans.csv')
 data = read.csv(data_path)
 
@@ -84,36 +84,26 @@ subset_int <- rbind(subset_int, sonorant_subset)
 # subset_mean_harmonics <- subset_mean %>%
 #   filter(strF0 >= (strF0_mean - 3 * strF0_sd) & strF0 <= (strF0_mean + 3 * strF0_sd))
 
-subset_int = subset_int %>%
+cols_to_z <- c("strF0", "CPP", "soe", "H1H2c", "sF3", "HNR05")
+thresh <- 3
+
+subset_int <- subset_int %>%
   group_by(participant) %>%
-  mutate(strF0z = (strF0 - mean(strF0, na.rm = T))/sd(strF0, na.rm = T)) %>%
-  ungroup()
-
-subset_int = subset_int %>%
-  mutate(str_outlier = if_else(abs(strF0z) > 3, "outlier", "OK"))
-
-# data <- data %>%
-#   group_by(participant) %>%
-#   mutate(
-#     # compute z-scores using only rows where interval is a target AND target_match == 1
-#     .m = mean(strF0[interval %in% targets & target_match == 1], na.rm = TRUE),
-#     .s = sd(  strF0[interval %in% targets & target_match == 1], na.rm = TRUE),
-#     strF0z = if_else(
-#       interval %in% targets & target_match == 1 & is.finite(.s) & .s > 0,
-#       (strF0 - .m) / .s,
-#       NA_real_
-#     )
-#   ) %>%
-#   ungroup() %>%
-#   mutate(
-#     str_outlier = if_else(
-#       interval %in% targets & target_match == 1 & is.finite(strF0z) & abs(strF0z) > 3,
-#       "outlier",
-#       if_else(interval %in% targets & target_match == 1, "OK", NA_character_)
-#     )
-#   ) %>%
-#   select(-.m, -.s)
-
+  mutate(
+    across(all_of(cols_to_z), ~{
+      m <- mean(.x, na.rm = TRUE)
+      s <- sd(.x,   na.rm = TRUE)
+      if (is.finite(s) && s > 0) (.x - m) / s else NA_real_
+    }, .names = "{.col}z")
+  ) %>%
+  ungroup() %>%
+  mutate(
+    across(ends_with("z"),
+           ~ if_else(is.finite(.x) & abs(.x) > thresh, "outlier", "OK"),
+           .names = "{.col}_outlier")
+  ) %>%
+  # rename "strF0z_outlier" -> "strF0_outlier", etc.
+  rename_with(~ sub("z_outlier$", "_outlier", .x), ends_with("z_outlier"))
 
 ### flagging formant outliers
 ### Calculate Mahalanobis distance for formants
@@ -268,13 +258,34 @@ subset_time = subset(subset_time, interval == 'ħ-V' | interval == 'h-V' | inter
                       interval == 'V-son' | interval == 'V-son-V' | interval == 'son-V'
                      )
 
-subset_time = subset_time %>%
-  group_by(participant) %>%
-  mutate(strF0z = (strF0 - mean(strF0, na.rm = T))/sd(strF0, na.rm = T)) %>%
-  ungroup()
+# subset_time = subset_time %>%
+#   group_by(participant) %>%
+#   mutate(strF0z = (strF0 - mean(strF0, na.rm = T))/sd(strF0, na.rm = T)) %>%
+#   ungroup()
+# 
+# subset_time = subset_time %>%
+#   mutate(str_outlier = if_else(abs(strF0z) > 3, "outlier", "OK"))
 
-subset_time = subset_time %>%
-  mutate(str_outlier = if_else(abs(strF0z) > 3, "outlier", "OK"))
+cols_to_z <- c("strF0", "CPP", "soe", "H1H2c", "sF3", "HNR05")
+thresh <- 3
+
+subset_int <- subset_int %>%
+  group_by(participant) %>%
+  mutate(
+    across(all_of(cols_to_z), ~{
+      m <- mean(.x, na.rm = TRUE)
+      s <- sd(.x,   na.rm = TRUE)
+      if (is.finite(s) && s > 0) (.x - m) / s else NA_real_
+    }, .names = "{.col}z")
+  ) %>%
+  ungroup() %>%
+  mutate(
+    across(ends_with("z"),
+           ~ if_else(is.finite(.x) & abs(.x) > thresh, "outlier", "OK"),
+           .names = "{.col}_outlier")
+  ) %>%
+  # rename "strF0z_outlier" -> "strF0_outlier", etc.
+  rename_with(~ sub("z_outlier$", "_outlier", .x), ends_with("z_outlier"))
 
 
 ### flagging formant outliers
