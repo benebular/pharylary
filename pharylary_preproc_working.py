@@ -320,27 +320,75 @@ cols.insert(comments_col_idx + 2, cols.pop(phrase_num_idx))
 all_relevant_data = all_relevant_data[cols]
 
 ## find min and max for each interval
-tier_min_max = all_relevant_data.groupby(['phrase', 'tier', 'interval'])['t_ms'].agg([min, max]).reset_index()
-energy_min_max = all_relevant_data.groupby(['phrase','tier','interval'])['Energy'].agg([min,max]).reset_index()
+# tier_min_max = all_relevant_data.groupby(['phrase', 'tier', 'interval'])['t_ms'].agg([min, max]).reset_index()
+# energy_min_max = all_relevant_data.groupby(['phrase','tier','interval'])['Energy'].agg([min,max]).reset_index()
 
-## merge to df
-all_relevant_data = all_relevant_data.merge(tier_min_max, on=['phrase', 'tier', 'interval'])
-## rename the max and min column
-all_relevant_data = all_relevant_data.rename(columns={'min':'t_min','max':'t_max'})
+# tier_min_max = (
+#     all_relevant_data
+#     .groupby(['phrase', 'tier', 'interval'])['t_ms']
+#     .agg(['min', 'max'])
+#     .reset_index()
+# )
 
-## same as above, except for RMS to normalize within participants
-all_relevant_data = all_relevant_data.merge(energy_min_max, on=['phrase', 'tier', 'interval'])
-all_relevant_data = all_relevant_data.rename(columns={'min':'energy_min','max':'energy_max'})
+# energy_min_max = (
+#     all_relevant_data
+#     .groupby(['phrase', 'tier', 'interval'])['Energy']
+#     .agg(['min', 'max'])
+#     .reset_index()
+# )
 
-### proportion column
-all_relevant_data['t_prop'] = (all_relevant_data['t_ms'] - all_relevant_data['t_min']) / (all_relevant_data['t_max'] - all_relevant_data['t_min'])
-all_relevant_data['t_prop'] = all_relevant_data['t_prop'] * 100
+# ## merge to df
+# all_relevant_data = all_relevant_data.merge(tier_min_max, on=['phrase', 'tier', 'interval'])
+# ## rename the max and min column
+# all_relevant_data = all_relevant_data.rename(columns={'min':'t_min','max':'t_max'})
 
-all_relevant_data['energy_prop'] = (all_relevant_data['Energy'] - all_relevant_data['energy_min']) / (all_relevant_data['energy_max'] - all_relevant_data['energy_min'])
-# all_relevant_data['energy_prop'] = all_relevant_data['energy_prop'] * 100
+# ## same as above, except for RMS to normalize within participants
+# all_relevant_data = all_relevant_data.merge(energy_min_max, on=['phrase', 'tier', 'interval'])
+# all_relevant_data = all_relevant_data.rename(columns={'min':'energy_min','max':'energy_max'})
 
-### duration column
-all_relevant_data['duration'] = all_relevant_data['t_max'] - all_relevant_data['t_min']
+# Ensure numeric (optional but helps if there are stray strings)
+all_relevant_data['t_ms']  = pd.to_numeric(all_relevant_data['t_ms'], errors='coerce')
+all_relevant_data['Energy'] = pd.to_numeric(all_relevant_data['Energy'], errors='coerce')
+
+g = all_relevant_data.groupby(['phrase', 'tier', 'interval'])
+
+# t_ms min/max per (phrase, tier, interval)
+all_relevant_data['t_min'] = g['t_ms'].transform('min')
+all_relevant_data['t_max'] = g['t_ms'].transform('max')
+
+# Energy min/max per (phrase, tier, interval)
+all_relevant_data['energy_min'] = g['Energy'].transform('min')
+all_relevant_data['energy_max'] = g['Energy'].transform('max')
+
+
+# ### proportion column
+# all_relevant_data['t_prop'] = (all_relevant_data['t_ms'] - all_relevant_data['t_min']) / (all_relevant_data['t_max'] - all_relevant_data['t_min'])
+# all_relevant_data['t_prop'] = all_relevant_data['t_prop'] * 100
+
+# all_relevant_data['energy_prop'] = (all_relevant_data['Energy'] - all_relevant_data['energy_min']) / (all_relevant_data['energy_max'] - all_relevant_data['energy_min'])
+# # all_relevant_data['energy_prop'] = all_relevant_data['energy_prop'] * 100
+
+# ### duration column
+# all_relevant_data['duration'] = all_relevant_data['t_max'] - all_relevant_data['t_min']
+
+# Group once
+g = all_relevant_data.groupby(['phrase', 'tier', 'interval'], group_keys=False)
+
+# Precompute range denominators to avoid division repetition
+t_range = g['t_ms'].transform('max') - g['t_ms'].transform('min')
+e_range = g['Energy'].transform('max') - g['Energy'].transform('min')
+
+# Compute proportions (with safe division)
+all_relevant_data['t_prop'] = ((all_relevant_data['t_ms'] - g['t_ms'].transform('min')) / t_range) * 100
+all_relevant_data['energy_prop'] = (all_relevant_data['Energy'] - g['Energy'].transform('min')) / e_range
+
+# Compute duration per group
+all_relevant_data['duration'] = t_range
+
+# (optional) replace inf/nan if any denominators were zero
+all_relevant_data[['energy_prop']] = (
+    all_relevant_data[['energy_prop']].fillna(0)
+)
 
 ### add in other data from google sheet ###
 print('Adding metadata...')

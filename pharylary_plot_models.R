@@ -414,14 +414,14 @@ subset_mean_time_filtered <- subset_mean_time %>%
            interval == 'V-ħ-V' | interval == 'V-h-V' | interval == 'V-ʔ-V' | interval == 'V-ʕ-V' |
            interval == 'V-ħ' | interval == 'V-h' | interval == 'V-ʔ' | interval == 'V-ʕ')
 
-## removing interval == 'ʔ-V'  temporarily
+# # removing interval == 'ʔ-V'  temporarily
 # subset_mean_time_filtered <- subset(subset_mean_time, interval == 'ħ-V' | interval == 'h-V' | interval == 'ʕ-V' |
 #            interval == 'V-ħ-V' | interval == 'V-h-V' | interval == 'V-ʔ-V' | interval == 'V-ʕ-V' |
 #            interval == 'V-ħ' | interval == 'V-h' | interval == 'V-ʔ' | interval == 'V-ʕ')
 
 subset_mean_time_filtered  %>% 
-  #filter(str_outlier=="OK") %>%
-  ggplot(aes(t_prop, CPP, color = interval)) +
+  filter(CPPz_outlier=="OK") %>%
+  ggplot(aes(t_prop, CPPz, color = interval)) +
   geom_smooth(method = "loess", alpha=0.25) +
   scale_color_manual(name = NULL, values = ms_colors) +
   theme_bw(base_size = 18) +
@@ -429,14 +429,14 @@ subset_mean_time_filtered  %>%
   theme(legend.position = "none") +
   # facet_wrap(~factor(interval, c('h-V','ʔ-V','ħ-V','ʕ-V','son-V','V-h-V','V-ʔ-V','V-ħ-V','V-ʕ-V','V-son-V','V-h','V-ʔ','V-ħ','V-ʕ','V-son')), scales = "free_x") +
   facet_wrap(~factor(interval, c('h-V','ʔ-V','ħ-V','ʕ-V','V-h-V','V-ʔ-V','V-ħ-V','V-ʕ-V','V-h','V-ʔ','V-ħ','V-ʕ')), scales = "free_x") +
-  labs(x = "Proportion of sequence duration", y = "CPP (dB)")
+  labs(x = "Proportion of sequence duration", y = "CPP (dB, z-scored)")
 
 file.path("/Volumes/cassandra/alldata/dissertation/1A/figs/", "CPP_time.pdf") %>%
   ggsave(height = 6, width = 10, device = cairo_pdf, family="Arial Unicode MS")
 
-subset_mean_time_filtered  %>% 
-  #filter(str_outlier=="OK") %>%
-  ggplot(aes(t_prop, H1res, color = interval)) +
+subset_mean_time_filtered  %>%
+  filter(H1resz_outlier=="OK") %>%
+  ggplot(aes(t_prop, H1resz, color = interval)) +
   geom_smooth(method = "loess", alpha=0.25) +
   scale_color_manual(name = NULL, values = ms_colors)+
   theme_bw(base_size = 18)+
@@ -444,10 +444,10 @@ subset_mean_time_filtered  %>%
   theme(legend.position = "none")+
   # facet_wrap(~factor(interval, c('h-V','ʔ-V','ħ-V','ʕ-V','son-V','V-h-V','V-ʔ-V','V-ħ-V','V-ʕ-V','V-son-V','V-h','V-ʔ','V-ħ','V-ʕ','V-son')), scales = "free_x") +
   facet_wrap(~factor(interval, c('h-V','ʔ-V','ħ-V','ʕ-V','V-h-V','V-ʔ-V','V-ħ-V','V-ʕ-V','V-h','V-ʔ','V-ħ','V-ʕ')), scales = "free_x") +
-  labs(x = "Proportion of sequence duration", y = "Residual H1 (dB)")
+  labs(x = "Proportion of sequence duration", y = "Residual H1 (dB, z-scored)")
 
 subset_mean_time_filtered  %>% 
-  #filter(str_outlier=="OK") %>%
+  filter(strF0z_outlier=="OK") %>%
   ggplot(aes(t_prop, strF0z, color = interval)) +
   geom_smooth(method = "loess", alpha=0.25) +
   scale_color_manual(name = NULL, values = ms_colors)+
@@ -459,7 +459,7 @@ subset_mean_time_filtered  %>%
   labs(x = "Proportion of sequence duration", y = "f0 (normalized)")
 
 subset_mean_time_filtered  %>% 
-  #filter(str_outlier=="OK") %>%
+  filter(soez_outlier=="OK") %>%
   ggplot(aes(t_prop, soe, color = interval)) +
   geom_smooth(method = "loess", alpha=0.25) +
   scale_color_manual(name = NULL, values = ms_colors)+
@@ -483,7 +483,6 @@ subset_mean_time_filtered  %>%
   labs(x = "Proportion of sequence duration", y = "H1H2c")
 
 subset_mean_time_filtered %>% group_by(participant, interval, t_prop) %>%
-  summarize(CPPz = scale(CPP)) %>%
   ggplot(aes(t_prop, CPPz, color = interval)) +
   geom_smooth(method = "loess", alpha=0.25) +
   scale_color_manual(name = NULL, values = ms_colors) +
