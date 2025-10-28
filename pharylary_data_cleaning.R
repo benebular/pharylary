@@ -34,8 +34,8 @@ library("tidyverse")
 # library(gridExtra)
 
 ### data for the intervals as extracted from overlap with tier 3 because there's no unique labels in tier 1
-# data_path <- sprintf('/Volumes/circe/alldata/dissertation/vs/output_preproc/preproc_matchesformeans.csv')
-data_path <- sprintf('/Volumes/cassandra/alldata/dissertation/vs/output_preproc/preproc_matchesformeans.csv')
+data_path <- sprintf('/Volumes/circe/alldata/dissertation/vs/output_preproc/preproc_matchesformeans.csv')
+# data_path <- sprintf('/Volumes/cassandra/alldata/dissertation/vs/output_preproc/preproc_matchesformeans.csv')
 data = read.csv(data_path)
 
 ### time-series data cleaning
@@ -271,17 +271,15 @@ subset_int <- rbind(subset_int, sonorant_subset)
 
 ### remove f0 outliers
 
-## Calculate mean and standard deviation for each participant
-# subset_mean <- subset_mean %>%
+# subset_time = subset_time %>%
 #   group_by(participant) %>%
-#   mutate(strF0_mean = mean(strF0, na.rm = TRUE), strF0_sd = sd(strF0, na.rm = TRUE)) %>%
+#   mutate(strF0z = (strF0 - mean(strF0, na.rm = T))/sd(strF0, na.rm = T)) %>%
 #   ungroup()
+# 
+# subset_time = subset_time %>%
+#   mutate(str_outlier = if_else(abs(strF0z) > 3, "outlier", "OK"))
 
-# Filter out rows where f0 is outside the range of 2.5 standard deviations from the mean
-# subset_mean_harmonics <- subset_mean %>%
-#   filter(strF0 >= (strF0_mean - 3 * strF0_sd) & strF0 <= (strF0_mean + 3 * strF0_sd))
-
-cols_to_z <- c("strF0", "CPP", "soe", "H1c","H1H2c", "sF3", "HNR05", "Energy")
+cols_to_z <- c("strF0", "CPP", "soe", "H1c", "H1H2c","Energy")
 thresh <- 3
 
 subset_int <- subset_int %>%
@@ -295,12 +293,12 @@ subset_int <- subset_int %>%
   ) %>%
   ungroup() %>%
   mutate(
-    across(ends_with("z"),
-           ~ if_else(is.finite(.x) & abs(.x) > thresh, "outlier", "OK"),
-           .names = "{.col}_outlier")
-  ) %>%
-  # rename "strF0z_outlier" -> "strF0_outlier", etc.
-  rename_with(~ sub("z_outlier$", "_outlier", .x), ends_with("z_outlier"))
+    across(
+      ends_with("z"),
+      ~ if_else(is.finite(.x) & abs(.x) > thresh, "outlier", "OK"),
+      .names = "{.col}_outlier"
+    )
+  )
 
 ### flagging formant outliers
 ### Calculate Mahalanobis distance for formants
@@ -371,73 +369,94 @@ subset_int = subset_int %>%
          F2n = sF2/DF,
          F3n = sF3/DF)
 
-### Calculate H1res (residual H1c)
-
-# subset <- subset %>% group_by(participant, phrase, interval) %>% mutate(H1cz = H1c - mean(H1c, na.rm = TRUE))
-# subset <- subset %>% group_by(participant, phrase, interval) %>% mutate(energyz = Energy - mean(Energy, na.rm = TRUE))
-# mod_h1 <- lmer(H1c ~ energy + (energyz||participant), data = subset, REML = FALSE)
-# 
-# energy.factor = fixef(mod_h1)[2]
-# 
-# subset$H1c.resid = subset$H1cz - subset$energyz * energy.factor
-
-# 1) Diagnose quickly
+# --- 1) Diagnose quickly -----------------------------------------------------
 c(
-  H1c_nonfinite    = sum(!is.finite(subset_time$H1c)),
-  Energy_NA        = sum(is.na(subset_time$Energy)),
-  Energy_nonfinite = sum(!is.finite(subset_time$Energy)),
-  Energy_le0       = sum(subset_time$Energy <= 0, na.rm = TRUE)
+  H1c_nonfinite    = sum(!is.finite(subset_int$H1c)),
+  Energy_NA        = sum(is.na(subset_int$Energy)),
+  Energy_nonfinite = sum(!is.finite(subset_int$Energy)),
+  Energy_le0       = sum(subset_int$Energy <= 0, na.rm = TRUE)
 )
 
-# 2) Clean + prepare model frame
+# --- 2) Clean + prepare model frame ------------------------------------------
 H1c_mod_dat <- subset_int %>%
   mutate(
     participant = as.factor(participant),
-    logEnergy   = log(Energy)
+    logEnergy   = if_else(Energy > 0 & is.finite(Energy), log(Energy), NA_real_)
   ) %>%
   filter(
     is.finite(H1c),
-    is.finite(logEnergy), # drops NA/NaN/Inf, e.g., Energy <= 0 or NA
+    is.finite(logEnergy),
     !is.na(strF0z_outlier),
     !is.na(H1cz_outlier),
     Energy >= 0
   )
 
-# 3) Fit model using logEnergy (easier to reference than log(Energy))
-mod <- lmer(H1c ~ logEnergy + strF0z + (logEnergy || participant), H1c_mod_dat)
+# --- 3) Fit model ------------------------------------------------------------
+mod <- lmer(H1c ~ logEnergy + strF0z + (logEnergy || participant), data = H1c_mod_dat)
 
-# 4) Grab the estimate for log(Energy) from the model summary
-summary(mod)
 sm <- summary(mod)
 H1res_estimate <- coef(sm)["logEnergy", "Estimate"]
 
-subset_int = subset_int %>%
-  rowwise() %>% 
-  mutate(H1res = H1c - H1res_estimate*(log(Energy))
+# --- 4) Compute H1res safely in-place on subset_time -------------------------
+# use the same logEnergy definition as above, ensure finite computation only
+subset_int <- subset_int %>%
+  mutate(
+    logEnergy = if_else(Energy > 0 & is.finite(Energy), log(Energy), NA_real_)
+  ) %>%
+  mutate(
+    H1res = if_else(
+      is.finite(H1c) & is.finite(logEnergy),
+      H1c - H1res_estimate * logEnergy,
+      NA_real_
+    )
+  )
+
+# optional: check non-finite values
+sum(!is.finite(subset_int$H1res))
+
+subset_int <- subset_int %>%
+  group_by(participant) %>%
+  mutate(
+    H1resz = (H1res - mean(H1res, na.rm = TRUE)) / sd(H1res, na.rm = TRUE)
+  ) %>%
+  ungroup() %>%
+  mutate(
+    H1resz_outlier = if_else(abs(H1resz) > 3, "outlier", "OK")
   )
 
 ## calculate mean values for all intervals in each word for each participant
 
-subset_mean <- subset_int %>% group_by(participant,phrase,interval) %>% mutate(strF0_mean = mean(strF0, na.rm = TRUE))
-subset_mean <- subset_mean %>% group_by(participant,phrase,interval) %>% mutate(strF0z_mean = mean(strF0z, na.rm = TRUE))
-subset_mean <- subset_mean %>% group_by(participant,phrase,interval) %>% mutate(H1H2c_mean = mean(H1H2c, na.rm = TRUE))
-subset_mean <- subset_mean %>% group_by(participant,phrase,interval) %>% mutate(CPP_mean = mean(CPP, na.rm = TRUE))
-subset_mean <- subset_mean %>% group_by(participant,phrase,interval) %>% mutate(soe_mean = mean(soe, na.rm = TRUE))
-subset_mean <- subset_mean %>% group_by(participant,phrase,interval) %>% mutate(sF1_mean = mean(sF1, na.rm = TRUE))
-subset_mean <- subset_mean %>% group_by(participant,phrase,interval) %>% mutate(sF2_mean = mean(sF2, na.rm = TRUE))
-subset_mean <- subset_mean %>% group_by(participant,phrase,interval) %>% mutate(sF3_mean = mean(sF3, na.rm = TRUE))
-subset_mean <- subset_mean %>% group_by(participant,phrase,interval) %>% mutate(F1n_mean = mean(F1n, na.rm = TRUE))
-subset_mean <- subset_mean %>% group_by(participant,phrase,interval) %>% mutate(F2n_mean = mean(F2n, na.rm = TRUE))
-subset_mean <- subset_mean %>% group_by(participant,phrase,interval) %>% mutate(F3n_mean = mean(F3n, na.rm = TRUE))
-subset_mean <- subset_mean %>% group_by(participant,phrase,interval) %>% mutate(HNR05_mean = mean(HNR05, na.rm = TRUE))
-subset_mean <- subset_mean %>% group_by(participant,phrase,interval) %>% mutate(H1c_mean = mean(H1c, na.rm = TRUE))
-subset_mean <- subset_mean %>% group_by(participant,phrase,interval) %>% mutate(H1res_mean = mean(H1res, na.rm = TRUE))
+# subset_mean <- subset_int %>% group_by(participant,phrase,interval) %>% mutate(strF0_mean = mean(strF0, na.rm = TRUE))
+# subset_mean <- subset_mean %>% group_by(participant,phrase,interval) %>% mutate(strF0z_mean = mean(strF0z, na.rm = TRUE))
+# subset_mean <- subset_mean %>% group_by(participant,phrase,interval) %>% mutate(H1H2c_mean = mean(H1H2c, na.rm = TRUE))
+# subset_mean <- subset_mean %>% group_by(participant,phrase,interval) %>% mutate(CPP_mean = mean(CPP, na.rm = TRUE))
+# subset_mean <- subset_mean %>% group_by(participant,phrase,interval) %>% mutate(soe_mean = mean(soe, na.rm = TRUE))
+# subset_mean <- subset_mean %>% group_by(participant,phrase,interval) %>% mutate(sF1_mean = mean(sF1, na.rm = TRUE))
+# subset_mean <- subset_mean %>% group_by(participant,phrase,interval) %>% mutate(sF2_mean = mean(sF2, na.rm = TRUE))
+# subset_mean <- subset_mean %>% group_by(participant,phrase,interval) %>% mutate(sF3_mean = mean(sF3, na.rm = TRUE))
+# subset_mean <- subset_mean %>% group_by(participant,phrase,interval) %>% mutate(F1n_mean = mean(F1n, na.rm = TRUE))
+# subset_mean <- subset_mean %>% group_by(participant,phrase,interval) %>% mutate(F2n_mean = mean(F2n, na.rm = TRUE))
+# subset_mean <- subset_mean %>% group_by(participant,phrase,interval) %>% mutate(F3n_mean = mean(F3n, na.rm = TRUE))
+# subset_mean <- subset_mean %>% group_by(participant,phrase,interval) %>% mutate(HNR05_mean = mean(HNR05, na.rm = TRUE))
+# subset_mean <- subset_mean %>% group_by(participant,phrase,interval) %>% mutate(H1c_mean = mean(H1c, na.rm = TRUE))
+# subset_mean <- subset_mean %>% group_by(participant,phrase,interval) %>% mutate(H1res_mean = mean(H1res, na.rm = TRUE))
+# subset_mean <- subset_mean %>% group_by(participant,phrase,interval) %>% mutate(H1resz_mean = mean(H1resz, na.rm = TRUE))
 
-# Histogram of raw Energy values
-ggplot(subset_mean, aes(x = Energy)) +
-  geom_histogram(aes(y = ..density..), binwidth = 0.5, colour = "black", fill = "white") +
-  geom_density(alpha = .2, fill = "#FF6666") +
-  labs(title = "Histogram of Energy", x = "Energy", y = "Density")
+
+# set the features you want means for (edit this list as needed)
+features <- c(
+  "strF0","H1H2c","CPP","soe",
+  "strF0z","H1H2cz","CPPz","soez",
+  "sF1","sF2","sF3","F1n","F2n","F3n",
+  "H1c","H1res","H1resz"
+)
+
+subset_mean <- subset_int %>%
+  group_by(participant, phrase, interval) %>%
+  mutate(
+    across(all_of(features), ~ mean(.x, na.rm = TRUE), .names = "{.col}_mean")
+  ) %>%
+  ungroup()
 
 # Histogram of log-transformed Energy values
 ggplot(subset_mean, aes(x = log(Energy))) +
@@ -449,8 +468,8 @@ ggplot(subset_mean, aes(x = log(Energy))) +
 #   left_join(subset_mean, by = c("Filename","participant", "interval", "tier","phrase"))
 
 # write unfiltered subset_mean
-write.csv(subset_mean, "/Volumes/cassandra/alldata/dissertation/vs/output_preproc/pharylary_subset_mean.csv", row.names=FALSE)
-# write.csv(subset_mean, "/Volumes/circe/alldata/dissertation/vs/output_preproc/pharylary_subset_mean.csv", row.names=FALSE)
+# write.csv(subset_mean, "/Volumes/cassandra/alldata/dissertation/vs/output_preproc/pharylary_subset_mean.csv", row.names=FALSE)
+write.csv(subset_mean, "/Volumes/circe/alldata/dissertation/vs/output_preproc/pharylary_subset_mean.csv", row.names=FALSE)
 # write.csv(subset_mean, "/Users/bcl/Desktop/subset_mean.csv", row.names=FALSE)
 
 
