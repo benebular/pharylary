@@ -9,6 +9,7 @@ library(magrittr)
 # library(effects)
 library(ggplot2)
 # library(ggsignif)
+library(purrr)
 library(tidyr)
 # library(scales)
 # library(reshape2)
@@ -34,8 +35,8 @@ library("tidyverse")
 # library(gridExtra)
 
 ### data for the intervals as extracted from overlap with tier 3 because there's no unique labels in tier 1
-# data_path <- sprintf('/Volumes/circe/alldata/dissertation/vs/output_preproc/preproc_matchesformeans.csv')
-data_path <- sprintf('/Volumes/cassandra/alldata/dissertation/vs/output_preproc/preproc_matchesformeans.csv')
+data_path <- sprintf('/Volumes/circe/alldata/dissertation/vs/output_preproc/preproc_matchesformeans.csv')
+# data_path <- sprintf('/Volumes/cassandra/alldata/dissertation/vs/output_preproc/preproc_matchesformeans.csv')
 data = read.csv(data_path)
 
 ### time-series data cleaning
@@ -231,10 +232,15 @@ ggplot(subset_mean_time, aes(x = log(Energy))) +
 
 
 # write unfiltered subset_mean
-write.csv(subset_mean_time, "/Volumes/cassandra/alldata/dissertation/vs/output_preproc/pharylary_subset_mean_time.csv", row.names=FALSE)
-# write.csv(subset_mean, "/Volumes/circe/alldata/dissertation/vs/output_preproc/pharylary_subset_mean_time.csv", row.names=FALSE)
+# write.csv(subset_mean_time, "/Volumes/cassandra/alldata/dissertation/vs/output_preproc/pharylary_subset_mean_time.csv", row.names=FALSE)
+write.csv(subset_mean, "/Volumes/circe/alldata/dissertation/vs/output_preproc/pharylary_subset_mean_time.csv", row.names=FALSE)
 # write.csv(subset_mean, "/Users/bcl/Desktop/subset_mean.csv", row.names=FALSE)
 
+
+
+
+### Interval and means section for abstracts
+# order of operations
 # average token
 
 # vowels
@@ -250,7 +256,8 @@ write.csv(subset_mean_time, "/Volumes/cassandra/alldata/dissertation/vs/output_p
 
 # res H1
 # remove f0 and remove f1 and f2 outliers
-# z-score
+# calculate using means and. logged values
+# z-score and flag outliers
 
 ### subsetting laryngeal and pharyngeal segments
 subset_int = subset(data, interval == 'ħ' | interval == 'ʕ' | interval == 'h' | interval == 'ʔ')
@@ -280,36 +287,21 @@ sonorant_subset = subset(data, interval == 'w' | interval == 'j')
 # 
 subset_int <- rbind(subset_int, sonorant_subset)
 
-### remove f0 outliers
 
-# subset_time = subset_time %>%
-#   group_by(participant) %>%
-#   mutate(strF0z = (strF0 - mean(strF0, na.rm = T))/sd(strF0, na.rm = T)) %>%
-#   ungroup()
-# 
-# subset_time = subset_time %>%
-#   mutate(str_outlier = if_else(abs(strF0z) > 3, "outlier", "OK"))
+# set the features you want means for (edit this list as needed)
+features <- c(
+  "strF0",
+  "H1H2c","H1c","HNR05",
+  "CPP","soe","Energy",
+  "sF1","sF2","sF3"
+)
 
-cols_to_z <- c("strF0", "CPP", "soe", "H1c", "H1H2c","Energy")
-thresh <- 3
-
-subset_int <- subset_int %>%
-  group_by(participant) %>%
+subset_mean <- subset_int %>%
+  group_by(participant, phrase, interval) %>%
   mutate(
-    across(all_of(cols_to_z), ~{
-      m <- mean(.x, na.rm = TRUE)
-      s <- sd(.x,   na.rm = TRUE)
-      if (is.finite(s) && s > 0) (.x - m) / s else NA_real_
-    }, .names = "{.col}z")
+    across(all_of(features), ~ mean(.x, na.rm = TRUE), .names = "{.col}_mean")
   ) %>%
-  ungroup() %>%
-  mutate(
-    across(
-      ends_with("z"),
-      ~ if_else(is.finite(.x) & abs(.x) > thresh, "outlier", "OK"),
-      .names = "{.col}_outlier"
-    )
-  )
+  ungroup()
 
 ### flagging formant outliers
 ### Calculate Mahalanobis distance for formants
@@ -319,10 +311,10 @@ vmahalanobis = function (dat) {
     dat$zF1F2 = NA
     return(dat)
   }
-  means = c(mean(dat$sF1, na.rm=T), mean(dat$sF2, na.rm=T))
-  cov = cov(cbind(dat$sF1, dat$sF2))
+  means = c(mean(dat$sF1_mean, na.rm=T), mean(dat$sF2_mean, na.rm=T))
+  cov = cov(cbind(dat$sF1_mean, dat$sF2_mean))
   
-  dat$zF1F2 = mahalanobis(cbind(dat$sF1, dat$sF2),
+  dat$zF1F2 = mahalanobis(cbind(dat$sF1_mean, dat$sF2_mean),
                           center=means, cov=cov)
   dat
 }
@@ -331,16 +323,16 @@ vmahalanobis = function (dat) {
 distance_cutoff = 6
 
 # Perform Mahalanobis on dataset
-subset_int =  subset_int %>%                 #MG: this was cut from a dataset called "tot_fin"
-  group_by(interval) %>%
+subset_mean =  subset_mean %>%                 #MG: this was cut from a dataset called "tot_fin"
+  group_by(participant,interval) %>%
   do(vmahalanobis(.)) %>%
   ungroup() %>%
   mutate(formant_outlier = NA)
 
 # Visualize the formants with flagged values
-subset_int %>%
+subset_mean %>%
   filter(is.na(formant_outlier)) %>%
-  ggplot(aes(x = sF2, y = sF1, color = zF1F2 > distance_cutoff)) +       #MG: sF2 and sF1 = Snack values from VS
+  ggplot(aes(x = sF2_mean, y = sF1_mean, color = zF1F2 > distance_cutoff)) +       #MG: sF2 and sF1 = Snack values from VS
   geom_point(size = 0.6) +
   facet_wrap(.~interval)+
   scale_y_reverse(limits = c(2000,0),position = "right") +
@@ -348,19 +340,19 @@ subset_int %>%
   theme_bw()
 
 # Tag flagged values
-for (i in 1:nrow(subset_int)) {
-  if (!is.na(subset_int$zF1F2[i])) {
-    if (subset_int$zF1F2[i] > distance_cutoff){
-      subset_int$formant_outlier[i] = "outlier"
+for (i in 1:nrow(subset_mean)) {
+  if (!is.na(subset_mean$zF1F2[i])) {
+    if (subset_mean$zF1F2[i] > distance_cutoff){
+      subset_mean$formant_outlier[i] = "outlier"
     }
   }
   
 }
 
 # Visualize the vowel formant after exclusion
-subset_int %>%
+subset_mean %>%
   filter(is.na(formant_outlier)) %>%
-  ggplot(aes(x = sF2, y = sF1)) +
+  ggplot(aes(x = sF2_mean, y = sF1_mean)) +
   geom_point(size = 0.6) +
   #geom_text()+
   facet_wrap(.~interval)+
@@ -373,66 +365,177 @@ subset_int %>%
 #### Formant normalization 
 
 ### Delta-F method for normalizing VT length (Johnson 2020)
-subset_int = subset_int %>%
+subset_mean = subset_mean %>%
+  group_by(participant) %>%
   rowwise() %>% 
-  mutate(DF = mean(c(sF1/0.5, sF2/1.5, sF3/2.5)),
-         F1n = sF1/DF,
-         F2n = sF2/DF,
-         F3n = sF3/DF)
+  mutate(DF = mean(c(sF1_mean/0.5, sF2_mean/1.5, sF3_mean/2.5)),
+         F1n_mean = sF1_mean/DF,
+         F2n_mean = sF2_mean/DF,
+         F3n_mean = sF3_mean/DF)
+
+# list of features to plot
+features <- c("H1c_mean","H1H2c_mean","HNR05_mean","strF0_mean","CPP_mean","Energy_mean", "soe_mean")
+
+# create a named list of ggplot objects
+plots <- map(features, function(feat) {
+  ggplot(subset_mean %>% filter(is.finite(.data[[feat]])),
+         aes(x = .data[[feat]])) +
+    geom_histogram(aes(y = after_stat(density)),
+                   bins = 30, colour = "black", fill = "white") +
+    geom_density(alpha = 0.2, fill = "#FF6666") +
+    labs(
+      title = paste("Histogram of", feat),
+      x = feat,
+      y = "Density"
+    ) +
+    theme_minimal()
+})
+
+# optionally name the list for easier reference
+names(plots) <- features
+
+# or display all in sequence
+walk(plots, print)
+
+## log transforming
+cols_to_log <- c("soe_mean", "Energy_mean", "CPP_mean")
+feats <- intersect(cols_to_log, names(subset_mean))
+
+subset_mean <- subset_mean %>%
+  group_by(participant) %>%
+  mutate(
+    across(
+      all_of(feats),
+      ~ {
+        v <- suppressWarnings(as.numeric(.x))     # coerce if needed
+        out <- ifelse(is.finite(v) & v > 0, log(v), NA_real_)  # log only positive, finite
+        out
+      },
+      .names = "{.col}_log"
+    )
+  )
+
+# list of features to plot post transform
+features <- c("CPP_mean_log","Energy_mean_log", "soe_mean_log")
+
+# create a named list of ggplot objects
+plots <- map(features, function(feat) {
+  ggplot(subset_mean %>% filter(is.finite(.data[[feat]])),
+         aes(x = .data[[feat]])) +
+    geom_histogram(aes(y = after_stat(density)),
+                   bins = 30, colour = "black", fill = "white") +
+    geom_density(alpha = 0.2, fill = "#FF6666") +
+    labs(
+      title = paste("Histogram of", feat),
+      x = feat,
+      y = "Density"
+    ) +
+    theme_minimal()
+})
+
+# optionally name the list for easier reference
+names(plots) <- features
+
+# or display all in sequence
+walk(plots, print)
+
+# plot log-transformed measures
+# ggplot(subset_mean %>% filter(is.finite(log_Energy)),
+#        aes(x = log_Energy)) +
+#   geom_histogram(aes(y = after_stat(density)),
+#                  bins = 30, colour = "black", fill = "white") +
+#   geom_density(alpha = 0.2, fill = "#FF6666") +
+#   labs(title = "Histogram of logEnergy", x = "log_Energy", y = "Density") +
+#   theme_minimal()
+# 
+# ggplot(subset_mean %>% filter(is.finite(log_soe)),
+#        aes(x = log_soe)) +
+#   geom_histogram(aes(y = after_stat(density)),
+#                  bins = 30, colour = "black", fill = "white") +
+#   geom_density(alpha = 0.2, fill = "#FF6666") +
+#   labs(title = "Histogram of log SoE", x = "log_soe", y = "Density") +
+#   theme_minimal()
+
+
+## z-scoring any existing normal or logged to normal
+cols_to_z <- c("strF0_mean","H1H2c_mean","CPP_mean_log","Energy_mean_log","soe_mean_log")
+thresh <- 3
+
+subset_mean <- subset_mean %>%
+  group_by(participant) %>%
+  mutate(
+    across(all_of(cols_to_z), ~{
+      m <- mean(.x, na.rm = TRUE)
+      s <- sd(.x,   na.rm = TRUE)
+      if (is.finite(s) && s > 0) (.x - m) / s else NA_real_
+    }, .names = "{.col}_z")
+  ) %>%
+  ungroup() %>%
+  mutate(
+    across(
+      ends_with("z"),
+      ~ if_else(is.finite(.x) & abs(.x) > thresh, "outlier", "OK"),
+      .names = "{.col}_outlier"
+    )
+  )
 
 # --- 1) Diagnose quickly -----------------------------------------------------
 c(
-  H1c_nonfinite    = sum(!is.finite(subset_int$H1c)),
-  Energy_NA        = sum(is.na(subset_int$Energy)),
-  Energy_nonfinite = sum(!is.finite(subset_int$Energy)),
-  Energy_le0       = sum(subset_int$Energy <= 0, na.rm = TRUE)
+  H1c_nonfinite    = sum(!is.finite(subset_mean$H1c_mean)),
+  Energy_NA        = sum(is.na(subset_mean$Energy_mean_log_z)),
+  Energy_nonfinite = sum(!is.finite(subset_mean$Energy_mean_log_z)),
+  Energy_le0       = sum(subset_mean$Energy_mean_log_z <= 0, na.rm = TRUE)
 )
 
 # --- 2) Clean + prepare model frame ------------------------------------------
-H1c_mod_dat <- subset_int %>%
-  mutate(
-    participant = as.factor(participant),
-    logEnergy   = if_else(Energy > 0 & is.finite(Energy), log(Energy), NA_real_)
-  ) %>%
+H1c_mod_dat <- subset_mean %>%
   filter(
-    is.finite(H1c),
-    is.finite(logEnergy),
-    !is.na(strF0z_outlier),
-    !is.na(H1cz_outlier),
-    Energy >= 0
-  )
+    is.finite(H1c_mean),
+    is.finite(Energy_mean_log_z),
+    !is.na(strF0_mean_z_outlier),
+  ) %>%
+  filter(formant_outlier != "outlier" | is.na(formant_outlier))
 
 # --- 3) Fit model ------------------------------------------------------------
-mod <- lmer(H1c ~ logEnergy + strF0z + (logEnergy || participant), data = H1c_mod_dat)
+mod <- lmer(H1c_mean ~ Energy_mean_log + strF0_mean + (Energy_mean_log | participant), data = H1c_mod_dat)
 
 sm <- summary(mod)
-H1res_estimate <- coef(sm)["logEnergy", "Estimate"]
+H1res_estimate <- coef(sm)["Energy_mean_log", "Estimate"]
 
 # --- 4) Compute H1res safely in-place on subset_time -------------------------
 # use the same logEnergy definition as above, ensure finite computation only
-subset_int <- subset_int %>%
+subset_mean <- subset_mean %>%
   mutate(
-    logEnergy = if_else(Energy > 0 & is.finite(Energy), log(Energy), NA_real_)
-  ) %>%
-  mutate(
-    H1res = if_else(
-      is.finite(H1c) & is.finite(logEnergy),
-      H1c - H1res_estimate * logEnergy,
+    H1res_mean = if_else(
+      is.finite(H1c_mean) & is.finite(Energy_mean_log),
+      H1c_mean - H1res_estimate * Energy_mean_log,
       NA_real_
     )
   )
 
 # optional: check non-finite values
-sum(!is.finite(subset_int$H1res))
+sum(!is.finite(subset_int$H1res_mean))
 
-subset_int <- subset_int %>%
+## z-scoring any existing normal or logged to normal
+cols_to_z <- c("H1res_mean")
+thresh <- 3
+
+subset_mean <- subset_mean %>%
   group_by(participant) %>%
   mutate(
-    H1resz = (H1res - mean(H1res, na.rm = TRUE)) / sd(H1res, na.rm = TRUE)
+    across(all_of(cols_to_z), ~{
+      m <- mean(.x, na.rm = TRUE)
+      s <- sd(.x,   na.rm = TRUE)
+      if (is.finite(s) && s > 0) (.x - m) / s else NA_real_
+    }, .names = "{.col}_z")
   ) %>%
   ungroup() %>%
   mutate(
-    H1resz_outlier = if_else(abs(H1resz) > 3, "outlier", "OK")
+    across(
+      ends_with("z"),
+      ~ if_else(is.finite(.x) & abs(.x) > thresh, "outlier", "OK"),
+      .names = "{.col}_outlier"
+    )
   )
 
 ## calculate mean values for all intervals in each word for each participant
@@ -454,33 +557,12 @@ subset_int <- subset_int %>%
 # subset_mean <- subset_mean %>% group_by(participant,phrase,interval) %>% mutate(H1resz_mean = mean(H1resz, na.rm = TRUE))
 
 
-# set the features you want means for (edit this list as needed)
-features <- c(
-  "strF0","H1H2c","CPP","soe",
-  "strF0z","H1H2cz","CPPz","soez",
-  "sF1","sF2","sF3","F1n","F2n","F3n",
-  "H1c","H1res","H1resz"
-)
-
-subset_mean <- subset_int %>%
-  group_by(participant, phrase, interval) %>%
-  mutate(
-    across(all_of(features), ~ mean(.x, na.rm = TRUE), .names = "{.col}_mean")
-  ) %>%
-  ungroup()
-
-# Histogram of log-transformed Energy values
-ggplot(subset_mean, aes(x = log(Energy))) +
-  geom_histogram(aes(y = ..density..), binwidth = 0.5, colour = "black", fill = "white") +
-  geom_density(alpha = .2, fill = "#FF6666") +
-  labs(title = "Histogram of log-transformed Energy", x = "Log(Energy)", y = "Density")
-
 # merged_df <- data %>%
 #   left_join(subset_mean, by = c("Filename","participant", "interval", "tier","phrase"))
 
 # write unfiltered subset_mean
-write.csv(subset_mean, "/Volumes/cassandra/alldata/dissertation/vs/output_preproc/pharylary_subset_mean.csv", row.names=FALSE)
-# write.csv(subset_mean, "/Volumes/circe/alldata/dissertation/vs/output_preproc/pharylary_subset_mean.csv", row.names=FALSE)
+# write.csv(subset_mean, "/Volumes/cassandra/alldata/dissertation/vs/output_preproc/pharylary_subset_mean.csv", row.names=FALSE)
+write.csv(subset_mean, "/Volumes/circe/alldata/dissertation/vs/output_preproc/pharylary_subset_mean.csv", row.names=FALSE)
 # write.csv(subset_mean, "/Users/bcl/Desktop/subset_mean.csv", row.names=FALSE)
 
 
