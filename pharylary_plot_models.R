@@ -8,6 +8,7 @@ library(dplyr) # this checks for normality
 library(magrittr)
 # library(effects)
 library(ggplot2)
+library(gghalves)
 # library(ggsignif)
 library(tidyr)
 # library(scales)
@@ -67,6 +68,7 @@ unique_data <- subset_mean %>%
   group_by(participant, phrase, interval) %>%
   summarize(
     # raw values
+    strF0_mean_unique = first(strF0_mean),
     H1H2c_mean_unique = first(H1H2c_mean),
     CPP_mean_unique   = first(CPP_mean),
     soe_mean_unique   = first(soe_mean),
@@ -74,6 +76,7 @@ unique_data <- subset_mean %>%
     sF2_mean_unique   = first(sF2_mean),
     H1res_mean_unique = first(H1res_mean),
     # normalized values
+    strF0z_mean_unique   = first(strF0z_mean),
     H1H2cz_mean_unique   = first(H1H2cz_mean),
     CPPz_mean_unique   = first(CPPz_mean),
     soez_mean_unique   = first(soez_mean),
@@ -81,6 +84,7 @@ unique_data <- subset_mean %>%
     F2n_mean_unique    = first(F2n_mean),
     H1resz_mean_unique = first(H1resz_mean),
     # outlier flags (keeps the first one)
+    strF0z_outlier_unique = first(strF0z_outlier),
     H1resz_outlier_unique = first(H1resz_outlier),
     CPPz_outlier_unique   = first(CPPz_outlier),
     soez_outlier_unique   = first(soez_outlier),
@@ -92,6 +96,7 @@ unique_data <- subset_mean %>%
 
 # combine sonorant label so they are collapsed
 unique_data$interval <- str_replace(unique_data$interval, "j|w", "j/w")
+subset_mean$interval <- str_replace(subset_mean$interval, "j|w", "j/w")
 
 rain_height <- .1
 
@@ -389,13 +394,13 @@ plot7 <- ggplot(unique_data, aes(x = "", y = H1c.resid_mean_unique, fill = inter
 # Desired order of intervals
 # Desired order of intervals# Desired order of intervals
 # interval_order <- c("j/w", "ħ", "ʕ", "h", "ʔ")
-interval_order <- c("h", "j/w", "ʕ", "ħ",   "ʔ")
+interval_order <- c("h", "j/w", "ʕ", "ʔ", "ħ")
 
 plot8 <- ggplot(
-  unique_data %>%
-    filter(H1resz_outlier_unique == "OK") %>%
+  subset_mean %>%
+    filter(H1resz_outlier == "OK") %>%
     mutate(interval = factor(interval, levels = interval_order)),
-  aes(x = interval, y = H1resz_mean_unique, fill = interval)
+  aes(x = interval, y = H1resz, fill = interval)
 ) +
   # half violin
   geom_half_violin(
@@ -408,7 +413,7 @@ plot8 <- ggplot(
   ) +
   # invisible points for solid legend squares
   geom_point(
-    data = distinct(unique_data, interval) %>%
+    data = distinct(subset_mean, interval) %>%
       mutate(interval = factor(interval, levels = interval_order)),
     aes(x = interval, y = NA, fill = interval),
     shape = 22, size = 8, alpha = 0, inherit.aes = FALSE, show.legend = TRUE
@@ -439,8 +444,8 @@ plot8 <- ggplot(
   )
 
 plot9 <- ggplot(
-  unique_data %>% filter(CPPz_outlier_unique=="OK") %>% mutate(interval = factor(interval, levels = interval_order)),
-  aes(x = interval, y = CPPz_mean_unique, fill = interval)
+  subset_mean %>% filter(CPPz_outlier=="OK") %>% mutate(interval = factor(interval, levels = interval_order)),
+  aes(x = interval, y = CPPz, fill = interval)
 ) +
   # half violin (no legend)
   geom_half_violin(
@@ -453,7 +458,7 @@ plot9 <- ggplot(
   ) +
   # invisible points for solid legend squares
   geom_point(
-    data = distinct(unique_data, interval) %>%
+    data = distinct(subset_mean, interval) %>%
       mutate(interval = factor(interval, levels = interval_order)),
     aes(x = interval, y = NA, fill = interval),
     shape = 22, size = 8, alpha = 0, inherit.aes = FALSE, show.legend = TRUE
@@ -484,8 +489,8 @@ plot9 <- ggplot(
   )
 
 plot10 <- ggplot(
-  unique_data %>% filter(soez_outlier_unique=="OK") %>% mutate(interval = factor(interval, levels = interval_order)),
-  aes(x = interval, y = soez_mean_unique, fill = interval)
+  subset_mean %>% filter(soez_outlier=="OK") %>% mutate(interval = factor(interval, levels = interval_order)),
+  aes(x = interval, y = soez, fill = interval)
 ) +
   # half violin (no legend)
   geom_half_violin(
@@ -498,7 +503,7 @@ plot10 <- ggplot(
   ) +
   # invisible points for solid legend squares
   geom_point(
-    data = distinct(unique_data, interval) %>%
+    data = distinct(subset_mean, interval) %>%
       mutate(interval = factor(interval, levels = interval_order)),
     aes(x = interval, y = NA, fill = interval),
     shape = 22, size = 8, alpha = 0, inherit.aes = FALSE, show.legend = TRUE
@@ -529,8 +534,8 @@ plot10 <- ggplot(
   )
 
 plot11 <- ggplot(
-  unique_data %>% filter(formant_outlier_unique != "outlier" | is.na(formant_outlier_unique)) %>% mutate(interval = factor(interval, levels = interval_order)),
-  aes(x = interval, y = F1n_mean_unique, fill = interval)
+  subset_mean %>% filter(formant_outlier != "outlier" | is.na(formant_outlier)) %>% mutate(interval = factor(interval, levels = interval_order)),
+  aes(x = interval, y = F1n, fill = interval)
 ) +
   # half violin (no legend)
   geom_half_violin(
@@ -543,13 +548,58 @@ plot11 <- ggplot(
   ) +
   # invisible points for solid legend squares
   geom_point(
-    data = distinct(unique_data, interval) %>%
+    data = distinct(subset_mean, interval) %>%
       mutate(interval = factor(interval, levels = interval_order)),
     aes(x = interval, y = NA, fill = interval),
     shape = 22, size = 8, alpha = 0, inherit.aes = FALSE, show.legend = TRUE
   ) +
   coord_flip(clip = "off") +
   labs(x = NULL, y = "Normalized F1") +
+  scale_fill_brewer(palette = "Dark2", name = "Segment") +
+  guides(
+    fill = guide_legend(
+      reverse = TRUE,
+      override.aes = list(shape = 22, size = 8, colour = "black", alpha = 1)
+    )
+  ) +
+  theme_minimal(base_size = 18) +
+  theme(
+    panel.grid.major.y = element_blank(),
+    legend.position = "left",              # bottom-left inside
+    legend.direction = "vertical",
+    legend.background = element_rect(fill = "white", color = "white"),
+    legend.key.size = unit(1.2, "cm"),            # makes legend squares larger
+    legend.title = element_text(size = 18),  # larger title
+    legend.text  = element_text(size = 16),        # larger labels
+    axis.text.y  = element_blank(),
+    axis.ticks.y = element_blank(),
+    axis.text.x  = element_text(size = 20),
+    axis.title.x = element_text(size = 18, margin = margin(t = 10)),
+    plot.margin  = margin(20, 20, 20, 20)
+  )
+
+plot12 <- ggplot(
+  subset_mean %>% filter(strF0z_outlier == "OK" | is.na(strF0z_outlier)) %>% mutate(interval = factor(interval, levels = interval_order)),
+  aes(x = interval, y = strF0z, fill = interval)
+) +
+  # half violin (no legend)
+  geom_half_violin(
+    side = "r", alpha = 0.7, trim = FALSE, width = 1, show.legend = FALSE
+  ) +
+  # boxplot (no legend)
+  geom_boxplot(
+    width = 0.3, alpha = 0.7, outlier.shape = NA,
+    position = position_nudge(x = -0.2), show.legend = FALSE
+  ) +
+  # invisible points for solid legend squares
+  geom_point(
+    data = distinct(subset_mean, interval) %>%
+      mutate(interval = factor(interval, levels = interval_order)),
+    aes(x = interval, y = NA, fill = interval),
+    shape = 22, size = 8, alpha = 0, inherit.aes = FALSE, show.legend = TRUE
+  ) +
+  coord_flip(clip = "off") +
+  labs(x = NULL, y = "Normalized f0") +
   scale_fill_brewer(palette = "Dark2", name = "Segment") +
   guides(
     fill = guide_legend(
@@ -601,7 +651,15 @@ subset_mean$interval <- str_replace(subset_mean$interval, "j|w", "j/w")
 
 # lmer(CPP_mean ~ interval*ns(time,df=3)+(1+ns(time, df = 3)|participant)+(1|phrase))
 
+mod_strF0z <- lmer(
+  formula = strF0z ~
+    interval + (1|participant) + (1|phrase),
+  data = subset_mean %>% filter(strF0z_outlier=="OK")
+)
+summary(mod_strF0z)
 
+emms_strF0z <- emmeans(mod_strF0z, ~ interval)
+pairs(emms_strF0z)  # all pairwise comparisons
 
 mod_CPPz <- lmer(
   formula = CPPz ~

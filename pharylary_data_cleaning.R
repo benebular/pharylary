@@ -235,11 +235,22 @@ write.csv(subset_mean_time, "/Volumes/cassandra/alldata/dissertation/vs/output_p
 # write.csv(subset_mean, "/Volumes/circe/alldata/dissertation/vs/output_preproc/pharylary_subset_mean_time.csv", row.names=FALSE)
 # write.csv(subset_mean, "/Users/bcl/Desktop/subset_mean.csv", row.names=FALSE)
 
+# average token
 
+# vowels
+# average token
+# mahalanobis
+# delta F
+# stop here for formants
 
+# then check distribution for CPP, H1, soe, f0, HNR05, H1H2c, energy
+# if log normal, log transform
+# then z score all, including the log ones
+# all by speaker
 
-
-
+# res H1
+# remove f0 and remove f1 and f2 outliers
+# z-score
 
 ### subsetting laryngeal and pharyngeal segments
 subset_int = subset(data, interval == 'ħ' | interval == 'ʕ' | interval == 'h' | interval == 'ʔ')
