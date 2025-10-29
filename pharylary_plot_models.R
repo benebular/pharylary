@@ -55,9 +55,8 @@ ms_colors <- c(
 # )
 
 #paths
-orig_data_path <- sprintf('/Volumes/circe/alldata/dissertation/vs/output_preproc/pharylary_subset_mean.csv')
-# orig_data_path <- sprintf('/Volumes/cassandra/alldata/dissertation/vs/output_preproc/pharylary_subset_mean.csv')
-# orig_data_path <- sprintf('/Users/bcl/Desktop/preproc_output.csv')
+# orig_data_path <- sprintf('/Volumes/circe/alldata/dissertation/vs/output_preproc/pharylary_subset_mean.csv')
+orig_data_path <- sprintf('/Volumes/cassandra/alldata/dissertation/vs/output_preproc/pharylary_subset_mean.csv')
 
 subset_mean = read.csv(orig_data_path)
 
@@ -75,7 +74,7 @@ unique_data <- subset_mean %>%
     sF2_mean_unique   = first(sF2_mean),
     H1res_mean_unique = first(H1res_mean),
     # normalized values
-    H1H2cz_mean_unique = first(H1H2cz_mean),
+    H1H2cz_mean_unique   = first(H1H2cz_mean),
     CPPz_mean_unique   = first(CPPz_mean),
     soez_mean_unique   = first(soez_mean),
     F1n_mean_unique    = first(F1n_mean),
@@ -393,14 +392,16 @@ plot7 <- ggplot(unique_data, aes(x = "", y = H1c.resid_mean_unique, fill = inter
 interval_order <- c("h", "j/w", "ʕ", "ħ",   "ʔ")
 
 plot8 <- ggplot(
-  unique_data %>% filter(H1resz_outlier_unique=="OK") %>% mutate(interval = factor(interval, levels = interval_order)),
+  unique_data %>%
+    filter(H1resz_outlier_unique == "OK") %>%
+    mutate(interval = factor(interval, levels = interval_order)),
   aes(x = interval, y = H1resz_mean_unique, fill = interval)
 ) +
-  # half violin (no legend)
+  # half violin
   geom_half_violin(
     side = "r", alpha = 0.7, trim = FALSE, width = 1, show.legend = FALSE
   ) +
-  # boxplot (no legend)
+  # boxplot
   geom_boxplot(
     width = 0.3, alpha = 0.7, outlier.shape = NA,
     position = position_nudge(x = -0.2), show.legend = FALSE
@@ -424,13 +425,12 @@ plot8 <- ggplot(
   theme_minimal(base_size = 18) +
   theme(
     panel.grid.major.y = element_blank(),
-    legend.position = c(0.01, 0.18),              # bottom-left inside
-    legend.justification = c("left", "bottom"),
+    legend.position = "left",                    # <-- clean, external left legend
     legend.direction = "vertical",
     legend.background = element_rect(fill = "white", color = "white"),
-    legend.key.size = unit(1.2, "cm"),            # makes legend squares larger
-    legend.title = element_text(size = 18, face = "bold"),  # larger title
-    legend.text  = element_text(size = 16),        # larger labels
+    legend.key.size = unit(1.2, "cm"),
+    legend.title = element_text(size = 16),
+    legend.text  = element_text(size = 16),
     axis.text.y  = element_blank(),
     axis.ticks.y = element_blank(),
     axis.text.x  = element_text(size = 20),
@@ -470,12 +470,11 @@ plot9 <- ggplot(
   theme_minimal(base_size = 18) +
   theme(
     panel.grid.major.y = element_blank(),
-    legend.position = c(0.01, 0.18),              # bottom-left inside
-    legend.justification = c("left", "bottom"),
+    legend.position = "left",              # bottom-left inside
     legend.direction = "vertical",
     legend.background = element_rect(fill = "white", color = "white"),
     legend.key.size = unit(1.2, "cm"),            # makes legend squares larger
-    legend.title = element_text(size = 18, face = "bold"),  # larger title
+    legend.title = element_text(size = 18),  # larger title
     legend.text  = element_text(size = 16),        # larger labels
     axis.text.y  = element_blank(),
     axis.ticks.y = element_blank(),
@@ -516,12 +515,11 @@ plot10 <- ggplot(
   theme_minimal(base_size = 18) +
   theme(
     panel.grid.major.y = element_blank(),
-    legend.position = c(0.01, 0.18),              # bottom-left inside
-    legend.justification = c("left", "bottom"),
+    legend.position = "left",              # bottom-left inside
     legend.direction = "vertical",
     legend.background = element_rect(fill = "white", color = "white"),
     legend.key.size = unit(1.2, "cm"),            # makes legend squares larger
-    legend.title = element_text(size = 18, face = "bold"),  # larger title
+    legend.title = element_text(size = 18),  # larger title
     legend.text  = element_text(size = 16),        # larger labels
     axis.text.y  = element_blank(),
     axis.ticks.y = element_blank(),
@@ -562,12 +560,11 @@ plot11 <- ggplot(
   theme_minimal(base_size = 18) +
   theme(
     panel.grid.major.y = element_blank(),
-    legend.position = c(0.01, 0.18),              # bottom-left inside
-    legend.justification = c("left", "bottom"),
+    legend.position = "left",              # bottom-left inside
     legend.direction = "vertical",
     legend.background = element_rect(fill = "white", color = "white"),
     legend.key.size = unit(1.2, "cm"),            # makes legend squares larger
-    legend.title = element_text(size = 18, face = "bold"),  # larger title
+    legend.title = element_text(size = 18),  # larger title
     legend.text  = element_text(size = 16),        # larger labels
     axis.text.y  = element_blank(),
     axis.ticks.y = element_blank(),
@@ -604,6 +601,8 @@ subset_mean$interval <- str_replace(subset_mean$interval, "j|w", "j/w")
 
 # lmer(CPP_mean ~ interval*ns(time,df=3)+(1+ns(time, df = 3)|participant)+(1|phrase))
 
+
+
 mod_CPPz <- lmer(
   formula = CPPz ~
     interval + (1|participant) + (1|phrase),
@@ -611,12 +610,18 @@ mod_CPPz <- lmer(
 )
 summary(mod_CPPz)
 
+emms_CPP <- emmeans(mod_CPPz, ~ interval)
+pairs(emms_CPP)  # all pairwise comparisons
+
 mod_soez <- lmer(
   formula = soez ~
     interval + (1|participant) + (1|phrase),
   data = subset_mean %>% filter(soez_outlier=="OK")
 )
 summary(mod_soez)
+
+emms_soez <- emmeans(mod_soez, ~ interval)
+pairs(emms_soez)  # all pairwise comparisons
 
 ## filter out the outliers from mahalanobis
 
@@ -627,10 +632,13 @@ mod_F1n <- lmer(
 )
 summary(mod_F1n)
 
+emms_F1n <- emmeans(mod_F1n, ~ interval)
+pairs(emms_F1n)  # all pairwise comparisons
+
 ### run harmonic model
 
-subset_mean <- subset_mean %>%
-  mutate(interval = relevel(factor(interval), ref = "ʔ"))
+# subset_mean <- subset_mean %>%
+#   mutate(interval = relevel(factor(interval), ref = "ʔ"))
 
 mod_H1resz <- lmer(
   formula = H1resz ~ interval  + (1|participant) + (1|phrase),
@@ -638,6 +646,8 @@ mod_H1resz <- lmer(
 )
 summary(mod_H1resz)
 
+emms_H1res <- emmeans(mod_H1resz, ~ interval)
+pairs(emms_H1res)  # all pairwise comparisons
 
 #### Time Series Plots
 

@@ -34,8 +34,8 @@ library("tidyverse")
 # library(gridExtra)
 
 ### data for the intervals as extracted from overlap with tier 3 because there's no unique labels in tier 1
-data_path <- sprintf('/Volumes/circe/alldata/dissertation/vs/output_preproc/preproc_matchesformeans.csv')
-# data_path <- sprintf('/Volumes/cassandra/alldata/dissertation/vs/output_preproc/preproc_matchesformeans.csv')
+# data_path <- sprintf('/Volumes/circe/alldata/dissertation/vs/output_preproc/preproc_matchesformeans.csv')
+data_path <- sprintf('/Volumes/cassandra/alldata/dissertation/vs/output_preproc/preproc_matchesformeans.csv')
 data = read.csv(data_path)
 
 ### time-series data cleaning
@@ -468,8 +468,8 @@ ggplot(subset_mean, aes(x = log(Energy))) +
 #   left_join(subset_mean, by = c("Filename","participant", "interval", "tier","phrase"))
 
 # write unfiltered subset_mean
-# write.csv(subset_mean, "/Volumes/cassandra/alldata/dissertation/vs/output_preproc/pharylary_subset_mean.csv", row.names=FALSE)
-write.csv(subset_mean, "/Volumes/circe/alldata/dissertation/vs/output_preproc/pharylary_subset_mean.csv", row.names=FALSE)
+write.csv(subset_mean, "/Volumes/cassandra/alldata/dissertation/vs/output_preproc/pharylary_subset_mean.csv", row.names=FALSE)
+# write.csv(subset_mean, "/Volumes/circe/alldata/dissertation/vs/output_preproc/pharylary_subset_mean.csv", row.names=FALSE)
 # write.csv(subset_mean, "/Users/bcl/Desktop/subset_mean.csv", row.names=FALSE)
 
 
