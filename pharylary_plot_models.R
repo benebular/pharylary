@@ -130,7 +130,7 @@ plot8 <- ggplot(
     shape = 22, size = 8, alpha = 0, inherit.aes = FALSE, show.legend = TRUE
   ) +
   coord_flip(clip = "off") +
-  labs(x = NULL, y = "Normalized Residual H1*") +
+  labs(x = NULL, y = "Normalized Residual H1") +
   scale_fill_brewer(palette = "Dark2", name = "Segment") +
   guides(
     fill = guide_legend(
@@ -338,7 +338,7 @@ plot12 <- ggplot(
 grid.arrange(
   plot8, plot9, plot10, plot11,
   ncol = 2, nrow = 2,
-  top = grid::textGrob("Acoustic Feature Means for Pharyngeal and Sonorant Consonants", gp=grid::gpar(fontsize=20))
+  top = grid::textGrob("Acoustic Feature Means for Laryngeal and Pharyngeal Consonants", gp=grid::gpar(fontsize=20))
 )
 
 

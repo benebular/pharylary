@@ -18,15 +18,16 @@ from scipy import linalg
 import matplotlib.pyplot as plt
 from statsmodels.regression.mixed_linear_model import MixedLM
 
-# output_dir = '/Volumes/circe/alldata/dissertation/vs/output_preproc'
-# textgrid_folder = '/Volumes/circe/alldata/dissertation/vs/input_preproc'
-# vs_output_dir = '/Volumes/circe/alldata/dissertation/vs/vs_output'
-# fricative_output_dir = '/Volumes/circe/alldata/dissertation/vs/fricative_output'
+output_dir = '/Volumes/circe/alldata/dissertation/vs/output_preproc'
+report_dir = output_dir + '/reports'
+textgrid_folder = '/Volumes/circe/alldata/dissertation/vs/input_preproc'
+vs_output_dir = '/Volumes/circe/alldata/dissertation/vs/vs_output'
+fricative_output_dir = '/Volumes/circe/alldata/dissertation/vs/fricative_output'
 
-output_dir = '/Volumes/cassandra/alldata/dissertation/vs/output_preproc'
-textgrid_folder = '/Volumes/cassandra/alldata/dissertation/vs/input_preproc'
-vs_output_dir = '/Volumes/cassandra/alldata/dissertation/vs/vs_output'
-fricative_output_dir = '/Volumes/cassandra/alldata/dissertation/vs/fricative_output'
+# output_dir = '/Volumes/cassandra/alldata/dissertation/vs/output_preproc'
+# textgrid_folder = '/Volumes/cassandra/alldata/dissertation/vs/input_preproc'
+# vs_output_dir = '/Volumes/cassandra/alldata/dissertation/vs/vs_output'
+# fricative_output_dir = '/Volumes/cassandra/alldata/dissertation/vs/fricative_output'
 
 os.chdir(output_dir)
 
@@ -290,7 +291,7 @@ else:
 #### MORE PREPROC #####
 
 print('Processing all data for min, max, proportion, etc.')
-all_relevant_data = pd.read_csv(os.path.join(output_dir, "all_relevant_data.csv"), encoding='utf-8')
+# all_relevant_data = pd.read_csv(os.path.join(output_dir, "all_relevant_data.csv"), encoding='utf-8')
 
 # Drop the 'Label' column
 all_relevant_data.drop(['Label','Unnamed: 72'], axis=1, inplace=True)
@@ -323,33 +324,6 @@ cols.insert(comments_col_idx + 2, cols.pop(phrase_num_idx))
 # Reassign reordered columns to DataFrame
 all_relevant_data = all_relevant_data[cols]
 
-## find min and max for each interval
-# tier_min_max = all_relevant_data.groupby(['phrase', 'tier', 'interval'])['t_ms'].agg([min, max]).reset_index()
-# energy_min_max = all_relevant_data.groupby(['phrase','tier','interval'])['Energy'].agg([min,max]).reset_index()
-
-# tier_min_max = (
-#     all_relevant_data
-#     .groupby(['phrase', 'tier', 'interval'])['t_ms']
-#     .agg(['min', 'max'])
-#     .reset_index()
-# )
-
-# energy_min_max = (
-#     all_relevant_data
-#     .groupby(['phrase', 'tier', 'interval'])['Energy']
-#     .agg(['min', 'max'])
-#     .reset_index()
-# )
-
-# ## merge to df
-# all_relevant_data = all_relevant_data.merge(tier_min_max, on=['phrase', 'tier', 'interval'])
-# ## rename the max and min column
-# all_relevant_data = all_relevant_data.rename(columns={'min':'t_min','max':'t_max'})
-
-# ## same as above, except for RMS to normalize within participants
-# all_relevant_data = all_relevant_data.merge(energy_min_max, on=['phrase', 'tier', 'interval'])
-# all_relevant_data = all_relevant_data.rename(columns={'min':'energy_min','max':'energy_max'})
-
 # Ensure numeric (optional but helps if there are stray strings)
 all_relevant_data['t_ms']  = pd.to_numeric(all_relevant_data['t_ms'], errors='coerce')
 all_relevant_data['Energy'] = pd.to_numeric(all_relevant_data['Energy'], errors='coerce')
@@ -363,17 +337,6 @@ all_relevant_data['t_max'] = g['t_ms'].transform('max')
 # Energy min/max per (phrase, tier, interval)
 all_relevant_data['energy_min'] = g['Energy'].transform('min')
 all_relevant_data['energy_max'] = g['Energy'].transform('max')
-
-
-# ### proportion column
-# all_relevant_data['t_prop'] = (all_relevant_data['t_ms'] - all_relevant_data['t_min']) / (all_relevant_data['t_max'] - all_relevant_data['t_min'])
-# all_relevant_data['t_prop'] = all_relevant_data['t_prop'] * 100
-
-# all_relevant_data['energy_prop'] = (all_relevant_data['Energy'] - all_relevant_data['energy_min']) / (all_relevant_data['energy_max'] - all_relevant_data['energy_min'])
-# # all_relevant_data['energy_prop'] = all_relevant_data['energy_prop'] * 100
-
-# ### duration column
-# all_relevant_data['duration'] = all_relevant_data['t_max'] - all_relevant_data['t_min']
 
 # Group once
 g = all_relevant_data.groupby(['phrase', 'tier', 'interval'], group_keys=False)
@@ -588,6 +551,13 @@ print(f"Total clips written: {total_written}")
 print(f"Output root: {out_root}")
 
 
+#################################################
+#                                               #
+#       GO TO MULTITAPER MODIFIED SCRIPT        #
+#                                               #
+#################################################
+
+
 # ---- CONFIG ----
 csv_dir = os.path.join(output_dir, "fricatives")  # <- folder containing the per-TextGrid CSVs
 # If your CSVs are in output_dir directly, set: csv_dir = output_dir
@@ -668,425 +638,92 @@ else:
 
     print(f"Merged metadata onto all_data. New shape: {all_data.shape}")
 
+# Flag rows where "comments" contains "ignore" (case-insensitive)
+all_data['ignore_flag'] = (
+    all_data['comments']
+    .astype(str)                     # ensure it's string
+    .str.contains('ignore', case=False, na=False)
+    .astype(int)                     # convert True/False → 1/0
+)
+
+print(f"Flagged {all_data['ignore_flag'].sum()} rows containing 'ignore'.")
+
+
 # Output the final DataFrame
-# print(all_relevant_data)
+# print(all_data)
 # Optionally, save to a file
 print('Saving as .csv in %s.'%(output_dir))
 all_data.to_csv('preproc_output.csv', index=False)
 
-# -*- coding: utf-8 -*-
-"""
-##### Data Cleaning for PharyLary (Python port)
-#### author: ben lang, blang@ucsd.edu
-"""
 
-# --- Dependencies ---
-# pip install pandas numpy scipy statsmodels matplotlib
+# Make sure phrase values are numeric
+all_data['phrase'] = pd.to_numeric(all_data['phrase'], errors='coerce')
 
-import os
-import math
-import numpy as np
-import pandas as pd
-from scipy import linalg
-import matplotlib.pyplot as plt
-from statsmodels.regression.mixed_linear_model import MixedLM
+# Build report of missing phrases per participant
+missing_report = []
 
-# ---------------------------------------------------------------------
-# 1) Load data
-# ---------------------------------------------------------------------
-data_path = '/Volumes/circe/alldata/dissertation/vs/output_preproc/preproc_matchesformeans.csv'
-# data_path = '/Volumes/cassandra/alldata/dissertation/vs/output_preproc/preproc_matchesformeans.csv'
-data = pd.read_csv(data_path)
+for participant, df_part in all_data.groupby('participant'):
+    phrases = sorted(df_part['phrase'].dropna().unique())
+    if len(phrases) == 0:
+        continue  # skip participants with no phrase data
+    
+    # Find the range of possible phrases for this participant
+    min_phrase = int(np.nanmin(phrases))
+    max_phrase = int(np.nanmax(phrases))
+    expected = set(range(min_phrase, max_phrase + 1))
+    actual = set(phrases)
+    
+    missing = sorted(expected - actual)
+    
+    missing_report.append({
+        'participant': participant,
+        'min_phrase': min_phrase,
+        'max_phrase': max_phrase,
+        'total_expected': len(expected),
+        'total_present': len(actual),
+        'total_missing': len(missing),
+        'missing_phrases': missing
+    })
 
-# ---------------------------------------------------------------------
-# 2) Time-series data filtering (tier + intervals)
-# ---------------------------------------------------------------------
-subset_time = data.query("tier == 'V-sequence'").copy()
+# Convert report to DataFrame
+missing_report_df = pd.DataFrame(missing_report)
 
-interval_keep = {
-    'ħ-V','h-V','ʔ-V','ʕ-V',
-    'V-ħ-V','V-h-V','V-ʔ-V','V-ʕ-V',
-    'V-ħ','V-h','V-ʔ','V-ʕ',
-    'V-son','V-son-V','son-V'
-}
-subset_time = subset_time[subset_time['interval'].isin(interval_keep)].copy()
+# Save the report to CSV
+output_csv = os.path.join(report_dir, 'missing_phrases_by_participant.csv')
+missing_report_df.to_csv(output_csv, index=False)
 
-# ---------------------------------------------------------------------
-# 3) Per-participant z-scores + outlier flags for multiple columns
-# ---------------------------------------------------------------------
-cols_to_z = ["strF0", "CPP", "soe", "H1c", "H1H2c", "sF3", "HNR05", "Energy"]
-thresh = 3.0
+print(f"Saved missing-phrase report to: {output_csv}")
 
-def z_by_group(df, cols):
-    out = df.copy()
-    for c in cols:
-        zc = f"{c}z"
-        mu = df[c].mean(skipna=True)
-        sd = df[c].std(skipna=True)
-        if np.isfinite(sd) and sd > 0:
-            out[zc] = (df[c] - mu) / sd
-        else:
-            out[zc] = np.nan
-    return out
+## requires having all_data loaded from preproc
 
-subset_time = (
-    subset_time
-    .groupby('participant', group_keys=False)
-    .apply(lambda g: z_by_group(g, cols_to_z))
+# Filter for phonetic-tier rows and keep only relevant columns
+phonetic_df = all_data.loc[
+    all_data['tier'] == 'phonetic',
+    ['participant', 'phrase', 'interval', 'Segment']
+].dropna()
+
+# Group by interval, phrase, and Segment, collecting unique participants
+interval_participants = (
+    phonetic_df
+    .groupby(['interval', 'phrase', 'Segment'])['participant']
+    .unique()
+    .reset_index()
 )
 
-# outlier flags for all *_z columns
-for c in [f"{c}z" for c in cols_to_z]:
-    flagc = f"{c}_outlier"
-    subset_time[flagc] = np.where(
-        np.isfinite(subset_time[c]) & (subset_time[c].abs() > thresh),
-        "outlier", "OK"
-    )
-
-# ---------------------------------------------------------------------
-# 4) Formant outliers via (squared) Mahalanobis distance on sF1/sF2 per interval
-#    (R used mahalanobis with a distance_cutoff = 6; keep same)
-# ---------------------------------------------------------------------
-import numpy as np
-import matplotlib.pyplot as plt
-import math
-
-distance_cutoff = 6.0  # same as R
-
-def vmahalanobis_py(df):
-    out = df.copy()
-    if len(out) < 25:
-        out['zF1F2'] = np.nan
-        return out
-
-    # finite rows for sF1/sF2
-    X = out[['sF1', 'sF2']].to_numpy(dtype=float)
-    mask = np.isfinite(X).all(axis=1)
-
-    if mask.sum() < 3:
-        out['zF1F2'] = np.nan
-        return out
-
-    # means and covariance computed on complete rows (R-like behavior)
-    Xc = X[mask]
-    center = np.nanmean(Xc, axis=0)
-    cov = np.cov(Xc, rowvar=False)
-
-    # try regular inverse; if singular, fallback to pseudo-inverse
-    try:
-        VI = np.linalg.inv(cov)
-    except np.linalg.LinAlgError:
-        VI = np.linalg.pinv(cov)
-
-    # squared Mahalanobis distance for complete rows; NA elsewhere
-    z = np.full(len(out), np.nan, dtype=float)
-    diffs = X[mask] - center
-    md2 = np.einsum('ij,jk,ik->i', diffs, VI, diffs)  # squared (no sqrt) to match R
-    z[mask] = md2
-    out['zF1F2'] = z
-    return out
-
-# 1) compute zF1F2 per interval (like dplyr::group_by %>% do)
-subset_time = (
-    subset_time
-    .groupby('interval', group_keys=False)
-    .apply(vmahalanobis_py)
+# Sort for readability
+interval_participants = (
+    interval_participants
+    .sort_values(['interval', 'phrase', 'Segment'])
     .reset_index(drop=True)
 )
 
-# 2) tag outliers/non-outliers BEFORE plotting
-subset_time['formant_outlier'] = np.nan  # start as NA to mirror R
-is_finite  = np.isfinite(subset_time['zF1F2'])
-is_outlier = is_finite & (subset_time['zF1F2'] >  distance_cutoff)
-is_ok      = is_finite & (subset_time['zF1F2'] <= distance_cutoff)
-subset_time.loc[is_outlier, 'formant_outlier'] = "outlier"
-subset_time.loc[is_ok,      'formant_outlier'] = "OK"
+# Define output path
+output_csv = os.path.join(report_dir, 'phonetic_intervals_by_phrase_segment_participant.csv')
 
-# 3) plotting helper
-def plot_formants_color_by_flag(df, title, cutoff):
-    intervals = df['interval'].dropna().unique().tolist()
-    if not intervals:
-        print("No intervals to plot.")
-        return
+# Save to CSV
+interval_participants.to_csv(output_csv, index=False)
 
-    ncols = 4
-    nrows = math.ceil(len(intervals) / ncols)
-    fig, axes = plt.subplots(nrows, ncols, figsize=(4*ncols, 3.5*nrows), squeeze=False)
-    fig.suptitle(title, y=1.02)
-
-    for idx, interval in enumerate(intervals):
-        r, c = divmod(idx, ncols)
-        ax = axes[r][c]
-        sub = df[df['interval'] == interval]
-
-        ok_pts  = sub[(sub['formant_outlier'] == "OK")      & np.isfinite(sub['sF1']) & np.isfinite(sub['sF2'])]
-        bad_pts = sub[(sub['formant_outlier'] == "outlier") & np.isfinite(sub['sF1']) & np.isfinite(sub['sF2'])]
-
-        if not ok_pts.empty:
-            ax.scatter(ok_pts['sF2'], ok_pts['sF1'], s=8, alpha=0.8, label='OK', color='#1b9e77')
-        if not bad_pts.empty:
-            ax.scatter(bad_pts['sF2'], bad_pts['sF1'], s=8, alpha=0.8, label='Outlier', color='#d95f02')
-
-        ax.set_xlim(3500, 0)
-        ax.set_ylim(2000, 0)
-        ax.xaxis.tick_top()
-        ax.yaxis.tick_right()
-        ax.set_title(interval)
-        ax.set_xlabel('sF2 (Hz)')
-        ax.set_ylabel('sF1 (Hz)')
-
-        if idx == 0:
-            ax.legend(loc='best', fontsize=8)
-
-    # hide empty panels
-    for j in range(len(intervals), nrows*ncols):
-        r, c = divmod(j, ncols)
-        axes[r][c].axis('off')
-
-    plt.tight_layout()
-    plt.show()
-
-# 4) Plot with flagged values (now colored correctly)
-plot_formants_color_by_flag(
-    subset_time,
-    title='Formants with Mahalanobis Flag (zF1F2, squared distance)',
-    cutoff=distance_cutoff
-)
-
-# 5) Plot after exclusion (OK only)
-plot_formants_color_by_flag(
-    subset_time[subset_time['formant_outlier'] == "OK"],
-    title='Formants after Excluding Mahalanobis Outliers (OK only)',
-    cutoff=distance_cutoff
-)
-
-
-# ---------------------------------------------------------------------
-# 5) Delta-F normalization (Johnson 2020)
-#    DF = mean( sF1/0.5, sF2/1.5, sF3/2.5 ); then F1n = sF1/DF, etc.
-# ---------------------------------------------------------------------
-def safe_mean(vals):
-    vals = np.array(vals, dtype=float)
-    return np.nanmean(vals) if vals.size else np.nan
-
-DF = np.nanmean(
-    np.vstack([
-        subset_time['sF1']/0.5,
-        subset_time['sF2']/1.5,
-        subset_time['sF3']/2.5
-    ]).T,
-    axis=1
-)
-subset_time['DF']  = DF
-subset_time['F1n'] = subset_time['sF1'] / subset_time['DF']
-subset_time['F2n'] = subset_time['sF2'] / subset_time['DF']
-subset_time['F3n'] = subset_time['sF3'] / subset_time['DF']
-
-# ---------------------------------------------------------------------
-# 6) Quick diagnostics (mirrors the R c(...) vector)
-# ---------------------------------------------------------------------
-diag = {
-    "H1c_nonfinite":    int((~np.isfinite(subset_time['H1c'])).sum()),
-    "Energy_NA":        int(subset_time['Energy'].isna().sum()),
-    "Energy_nonfinite": int((~np.isfinite(subset_time['Energy'])).sum()),
-    "Energy_le0":       int((subset_time['Energy'] <= 0).sum(skipna=True))
-}
-print(diag)
-
-# ---------------------------------------------------------------------
-# 7) Prepare model frame for H1c ~ logEnergy + strF0z + (logEnergy | participant)
-#    (R uses (logEnergy || participant). statsmodels' MixedLM uses re_formula="~logEnergy".
-#    That includes intercept+slope with correlated REs (closest common practice).
-# ---------------------------------------------------------------------
-subset_time['logEnergy'] = np.where(
-    (subset_time['Energy'] > 0) & np.isfinite(subset_time['Energy']),
-    np.log(subset_time['Energy']),
-    np.nan
-)
-
-H1c_mod_dat = subset_time.loc[
-    np.isfinite(subset_time['H1c']) &
-    np.isfinite(subset_time['logEnergy']) &
-    subset_time['strF0z_outlier'].notna() &
-    subset_time['H1cz_outlier'].notna() &
-    (subset_time['Energy'] >= 0)
-].copy()
-
-# Ensure categorical group
-H1c_mod_dat['participant'] = H1c_mod_dat['participant'].astype('category')
-
-# Fit mixed model
-# NOTE: You can change re_formula="~logEnergy" to "~0+logEnergy" to drop random intercept, etc.
-md = MixedLM.from_formula(
-    formula="H1c ~ logEnergy + strF0z",
-    groups="participant",
-    re_formula="~logEnergy",
-    data=H1c_mod_dat
-)
-mfit = md.fit(method='lbfgs', maxiter=200)
-print(mfit.summary())
-
-# Extract the fixed effect for logEnergy
-H1res_estimate = float(mfit.params.get('logEnergy', np.nan))
-print("logEnergy coefficient (fixed effect):", H1res_estimate)
-
-# ---------------------------------------------------------------------
-# 8) Compute H1res in place on subset_time, then z + outlier flag
-# ---------------------------------------------------------------------
-subset_time['H1res'] = np.where(
-    np.isfinite(subset_time['H1c']) & np.isfinite(subset_time['logEnergy']),
-    subset_time['H1c'] - H1res_estimate * subset_time['logEnergy'],
-    np.nan
-)
-print("Non-finite H1res count:", int((~np.isfinite(subset_time['H1res'])).sum()))
-
-# z by participant for H1res
-def z1(x):
-    mu = np.nanmean(x)
-    sd = np.nanstd(x, ddof=1)
-    return (x - mu)/sd if (np.isfinite(sd) and sd > 0) else np.full_like(x, np.nan, dtype=float)
-
-subset_time['H1resz'] = (
-    subset_time.groupby('participant', group_keys=False)['H1res']
-    .apply(lambda s: pd.Series(z1(s.values), index=s.index))
-)
-subset_time['H1resz_outlier'] = np.where(subset_time['H1resz'].abs() > 3, "outlier", "OK")
-
-# ---------------------------------------------------------------------
-# 9) Per-(participant, phrase, interval) means
-#    (mirrors the chained mutate calls; using groupby.transform)
-# ---------------------------------------------------------------------
-grp = subset_time.groupby(['participant', 'phrase', 'interval'])
-subset_mean_time = subset_time.copy()
-
-for col in [
-    'strF0','strF0z','H1H2c','CPP','soe','sF1','sF2','sF3',
-    'F1n','F2n','F3n','HNR05','H1c','H1res'
-]:
-    subset_mean_time[f'{col}_mean'] = grp[col].transform('mean')
-
-# ---------------------------------------------------------------------
-# 10) Histograms (Energy, log(Energy))
-# ---------------------------------------------------------------------
-plt.figure()
-subset_mean_time['Energy'].plot.hist(bins=60, density=True, edgecolor='black')
-subset_mean_time['Energy'].plot(kind='kde', alpha=0.2)
-plt.title("Histogram of Energy")
-plt.xlabel("Energy")
-plt.ylabel("Density")
-plt.show()
-
-plt.figure()
-# guard for positive energies
-logE = np.log(subset_mean_time.loc[subset_mean_time['Energy'] > 0, 'Energy'])
-logE.plot.hist(bins=60, density=True, edgecolor='black')
-logE.plot(kind='kde', alpha=0.2)
-plt.title("Histogram of log-transformed Energy")
-plt.xlabel("Log(Energy)")
-plt.ylabel("Density")
-plt.show()
-
-# ---------------------------------------------------------------------
-# 11) Write CSV (unfiltered subset_mean_time)
-# ---------------------------------------------------------------------
-out_csv = "/Volumes/circe/alldata/dissertation/vs/output_preproc/pharylary_subset_mean_time.csv"
-os.makedirs(os.path.dirname(out_csv), exist_ok=True)
-subset_mean_time.to_csv(out_csv, index=False)
-print(f"wrote: {out_csv}")
-
-
-
-# --- deps (if needed) ---
-# pip install seaborn statsmodels
-
-import numpy as np
-import pandas as pd
-import matplotlib.pyplot as plt
-import seaborn as sns
-from statsmodels.nonparametric.smoothers_lowess import lowess
-
-# --- color map (matches your R ms_colors) ---
-ms_colors = {
-    "ħ-V":   "#1b9e77",
-    "h-V":   "#d95f02",
-    "ʔ-V":   "#7570b3",
-    "ʕ-V":   "#e7298a",
-    "V-ħ-V": "#1b9e77",
-    "V-h-V": "#d95f02",
-    "V-ʔ-V": "#7570b3",
-    "V-ʕ-V": "#e7298a",
-    "V-ħ":   "#1b9e77",
-    "V-h":   "#d95f02",
-    "V-ʔ":   "#7570b3",
-    "V-ʕ":   "#e7298a",
-    "V-son": "#000000",
-    "V-son-V": "#000000",
-    "son-V": "#000000",
-}
-
-# --- intervals to keep ---
-intervals_of_interest = [
-    "ħ-V","h-V","ʔ-V","ʕ-V",
-    "V-ħ-V","V-h-V","V-ʔ-V","V-ʕ-V",
-    "V-ħ","V-h","V-ʔ","V-ʕ"
-]
-
-# Filter like your R code
-subset_mean_time_filtered = subset_mean_time[
-    subset_mean_time["interval"].isin(intervals_of_interest)
-].copy()
-
-# Keep only non-outliers for CPPz
-df_plot = subset_mean_time_filtered[
-    subset_mean_time_filtered["CPPz_outlier"].eq("OK")
-].copy()
-
-# Desired facet order (matches your facet_wrap order)
-facet_order = [
-    "h-V","ʔ-V","ħ-V","ʕ-V",
-    "V-h-V","V-ʔ-V","V-ħ-V","V-ʕ-V",
-    "V-h","V-ʔ","V-ħ","V-ʕ"
-]
-
-# A small helper to draw a LOWESS line per facet
-def draw_lowess_line(data, color=None, frac=0.2, **kwargs):
-    # sort + drop NA
-    d = data[["t_prop", "CPPz"]].dropna().sort_values("t_prop")
-    if len(d) < 3:
-        return
-    sm = lowess(d["CPPz"], d["t_prop"], frac=frac, it=1, return_sorted=True)
-    plt.plot(sm[:, 0], sm[:, 1], linewidth=2, color=color)
-
-# Theme similar to theme_bw(base_size = 18)
-sns.set_theme(style="whitegrid", rc={"axes.labelsize": 18, "xtick.labelsize": 12, "ytick.labelsize": 12})
-
-# Build a FacetGrid that mirrors facet_wrap(~interval, scales="free_x")
-g = sns.FacetGrid(
-    df_plot,
-    col="interval",
-    col_wrap=4,                 # wrap like ggplot; tweak to taste
-    col_order=facet_order,
-    hue="interval",
-    hue_order=facet_order,
-    sharex=False, sharey=False, # "free_x" in ggplot; also freeing y for clarity
-    palette=ms_colors,
-    height=3.4, aspect=1.1
-)
-
-# Map the LOWESS line (no legend to match theme(legend.position="none"))
-g.map_dataframe(draw_lowess_line)
-
-# Axes labels + x limits [0, 1]
-g.set_axis_labels("Proportion of sequence duration", "CPP (dB, z-scored)")
-for ax in g.axes.flatten():
-    ax.set_xlim(0, 1)
-
-# Remove legend (ggplot had legend.position = "none")
-if g._legend is not None:
-    g._legend.remove()
-
-plt.tight_layout()
-plt.show()
+print(f"Saved phonetic interval labels by phrase, segment, and participant to: {output_csv}")
 
 
 
@@ -1154,30 +791,7 @@ plt.show()
 ##### data for the intervals as extracted from overlap with tier 3 because there's no unique labels in tier 1.
 ##### this makes it so the data is just the target phonemes, not all of them
 
-
 ### new method
-
-# t0 = time.time()
-
-# # Ensure comparable dtypes
-# all_data = all_data.copy()
-# all_data['phrase'] = all_data['phrase'].astype(str)
-# all_data['t_ms']   = pd.to_numeric(all_data['t_ms'], errors='coerce')
-
-# # Split once
-# intervals = all_data.loc[all_data['tier'].eq('phonetic')].set_index(['phrase','t_ms'])
-# vseq_idx  = (
-#     all_data
-#     .loc[all_data['tier'].eq('V-sequence'), ['phrase','t_ms']]
-#     .drop_duplicates()
-#     .set_index(['phrase','t_ms'])
-#     .index
-# )
-
-# # Keep only intervals whose (phrase, t_ms) are present in V-sequence
-# matching_data2 = intervals.loc[intervals.index.isin(vseq_idx)].reset_index()
-
-# print(f"Done in {(time.time()-t0):.2f}s — rows: {len(matching_data2):,}")
 
 t0 = time.time()
 
@@ -1204,7 +818,10 @@ all_data.loc[mask_phonetic, 'target_match'] = match_mask.astype(int)
 
 print(f"Done in {(time.time()-t0):.2f}s — matches: {all_data['target_match'].sum():,}")
 
-
+print('Saving matches for means as .csv in %s.'%(output_dir))
+# all_data.to_csv('/Volumes/circe/vs/output_preproc/preproc_matchesformeans.csv', index=False)
+all_data.to_csv(os.path.join(output_dir, "preproc_matchesformeans.csv"), index=False)
+# matching_data = pd.read_csv('/Volumes/circe/vs/output_preproc/preproc_matchesformeans.csv', encoding='utf8')
 
 ## slicing the data below takes about 5 minutes to run because iterrows() is slow ####
 #Initialize an empty DataFrame to store matching rows
@@ -1276,7 +893,7 @@ print(f"Done in {(time.time()-t0):.2f}s — matches: {all_data['target_match'].s
 # seconds_end = time.time()
 # print("Time elapsed (minutes): ", (seconds_end-seconds_start)/60)
 
-print('Saving matches for means as .csv in %s.'%(output_dir))
-# all_data.to_csv('/Volumes/circe/vs/output_preproc/preproc_matchesformeans.csv', index=False)
-all_data.to_csv(os.path.join(output_dir, "preproc_matchesformeans.csv"), index=False)
-# matching_data = pd.read_csv('/Volumes/circe/vs/output_preproc/preproc_matchesformeans.csv', encoding='utf8')
+# print('Saving matches for means as .csv in %s.'%(output_dir))
+# # all_data.to_csv('/Volumes/circe/vs/output_preproc/preproc_matchesformeans.csv', index=False)
+# all_data.to_csv(os.path.join(output_dir, "preproc_matchesformeans.csv"), index=False)
+# # matching_data = pd.read_csv('/Volumes/circe/vs/output_preproc/preproc_matchesformeans.csv', encoding='utf8')
