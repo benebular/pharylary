@@ -22,7 +22,7 @@
 #################
 ### CHANGE ME ###
 #################
-mydir <- '/Volumes/cassandra/alldata/dissertation/vs/output_preproc/fricatives/s/' # main directory with sub-folders of sound extracts
+mydir <- '/Volumes/cassandra/alldata/dissertation/vs/output_preproc/fricatives/ðˤ/' # main directory with sub-folders of sound extracts
 outdir <- '/Volumes/cassandra/alldata/dissertation/vs/output_preproc/fricatives/' # output directory for text file
 SAMPLE_RATE <- 44100 # sampling rate of extracts
 
@@ -34,7 +34,7 @@ extract_what <- "duration" # can be "duration" or "proportion"
 extract_duration <- 0.02
 extract_proportion <- 0.5 # number from 0 to 1 indicating the proportional width of the analysed interval (0.5 = 50% of the fricative duration)
 
-outfile <- 's.csv' # extension to add to the output file (if you change csv, you'll need to change code below)
+outfile <- 'ðˤ.csv' # extension to add to the output file (if you change csv, you'll need to change code below)
 ################
 ### LET'S GO ###
 ################

@@ -16,18 +16,18 @@ from textgrid import TextGrid, IntervalTier, Interval
 import math
 from scipy import linalg
 import matplotlib.pyplot as plt
-from statsmodels.regression.mixed_linear_model import MixedLM
 
-output_dir = '/Volumes/circe/alldata/dissertation/vs/output_preproc'
+# output_dir = '/Volumes/circe/alldata/dissertation/vs/output_preproc'
+# report_dir = output_dir + '/reports'
+# textgrid_folder = '/Volumes/circe/alldata/dissertation/vs/input_preproc'
+# vs_output_dir = '/Volumes/circe/alldata/dissertation/vs/vs_output'
+# fricative_output_dir = '/Volumes/circe/alldata/dissertation/vs/fricative_output'
+
+output_dir = '/Volumes/cassandra/alldata/dissertation/vs/output_preproc'
 report_dir = output_dir + '/reports'
-textgrid_folder = '/Volumes/circe/alldata/dissertation/vs/input_preproc'
-vs_output_dir = '/Volumes/circe/alldata/dissertation/vs/vs_output'
-fricative_output_dir = '/Volumes/circe/alldata/dissertation/vs/fricative_output'
-
-# output_dir = '/Volumes/cassandra/alldata/dissertation/vs/output_preproc'
-# textgrid_folder = '/Volumes/cassandra/alldata/dissertation/vs/input_preproc'
-# vs_output_dir = '/Volumes/cassandra/alldata/dissertation/vs/vs_output'
-# fricative_output_dir = '/Volumes/cassandra/alldata/dissertation/vs/fricative_output'
+textgrid_folder = '/Volumes/cassandra/alldata/dissertation/vs/input_preproc'
+vs_output_dir = '/Volumes/cassandra/alldata/dissertation/vs/vs_output'
+fricative_output_dir = '/Volumes/cassandra/alldata/dissertation/vs/fricative_output'
 
 os.chdir(output_dir)
 
@@ -101,7 +101,7 @@ for filename in os.listdir(textgrid_folder):
             continue
 
         # Subset the VoiceSauce output for the current phrasenum
-        # print("Subsetting...")
+        # print("Subsetting %s for %s...")
         voicesauce_grid_data = voicesauce_data[voicesauce_data['Filename'].str.contains(tg_basename, na=False)]
 
         # Initialize an empty DataFrame to store all relevant data
@@ -114,7 +114,7 @@ for filename in os.listdir(textgrid_folder):
                 phrasenum_value = phrasenum_interval.mark
 
                 # Subset the VoiceSauce output for the current phrasenum
-                # print("Subsetting...")
+                print("Subsetting %s..."%phrasenum_value)
                 subset_voicesauce = voicesauce_grid_data[voicesauce_grid_data['Label'] == int(phrasenum_value)]
 
                 # Process each tier
@@ -122,6 +122,7 @@ for filename in os.listdir(textgrid_folder):
                 for tier_name, tier in tiers.items():
                     for interval in tier:
                         if interval.mark != '':
+                            print("Subsetting %s for %s..."%(interval,tier))
                             start_time = interval.minTime *1000 # these originally have a multiplier for 1000, unsure why, but check later pipeline
                             end_time = interval.maxTime *1000
 
@@ -144,6 +145,8 @@ for filename in os.listdir(textgrid_folder):
                             cols.insert(3, cols.pop(cols.index('tier')))
                             cols.insert(4, cols.pop(cols.index('comments')))
                             relevant_data = relevant_data[cols]
+
+                            print(relevant_data)
 
                             # # Save this TextGrid's relevant_data to CSV
                             # relevant_data.to_csv(output_csv, index=False)
