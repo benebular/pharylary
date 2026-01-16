@@ -169,10 +169,10 @@ const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxblhxJ34A7WfooWQBdK
  */
 const CONFIG = {
   audioBase: "../data/audio",          // from /experiment/ to /data/audio/
-  audioSuffix: ".mp3",
+  audioSuffix: ".wav",
   attnBase: "./audio_check",           // inside /experiment/audio_check/
   nAttentionFiles: 21,                // 1..21 mp3s
-  volumeCheckFile: "./audio_check/audio_check.mp3", // put this file in experiment/audio_check/
+  volumeCheckFile: "./audio_check/audio_check.wav", // put this file in experiment/audio_check/
   attentionEveryNTrials: 4,            // show an attention check every N trials
   completionCode: "CJUVEL1D",
   prolificReturnUrl: "https://app.prolific.com/submissions/complete?cc=CJUVEL1D",
@@ -182,9 +182,9 @@ const CONFIG = {
  *  audio should be filename only (without base) OR full relative url if you prefer.
  */
 const TRIALS = [
-  { trial_id: 1, audio_file: "example_001.mp3", left_word: "bat", right_word: "pat" },
-  { trial_id: 2, audio_file: "example_002.mp3", left_word: "cap", right_word: "cab" },
-  { trial_id: 3, audio_file: "example_003.mp3", left_word: "heed", right_word: "hid" },
+  { trial_id: 1, audio_file: "example_001.wav", left_word: "bat", right_word: "pat" },
+  { trial_id: 2, audio_file: "example_002.wav", left_word: "cap", right_word: "cab" },
+  { trial_id: 3, audio_file: "example_003.wav", left_word: "heed", right_word: "hid" },
 ];
 
 /* ===========================
@@ -298,7 +298,7 @@ volumeNextBtn.onclick = () => {
 function prepareAttentionQueue(){
   const urls=[];
   for(let i=1;i<=CONFIG.nAttentionFiles;i++){
-    urls.push(`${CONFIG.attnBase}/${i}.mp3`);
+    urls.push(`${CONFIG.attnBase}/${i}.wav`);
   }
   State.attnQueue = shuffle(urls);
 }
