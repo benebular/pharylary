@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Word Identification Study</title>
+<style>
+  body { font-family: sans-serif; background:#f5f5f5; margin:0; padding:20px; }
+  .card { background:white; border-radius:8px; padding:20px; max-width:900px; margin:0 auto; box-shadow:0 2px 6px rgba(0,0,0,0.1); }
+  h1 { font-size:24px; margin-top:0; }
+  .btn { padding:10px 16px; border:none; border-radius:6px; cursor:pointer; margin-right:8px; }
+  .btn-primary { background:#007acc; color:white; }
+  .btn-primary:disabled { background:#a0aec0; color:#e2e8f0; cursor:not-allowed; }
+  .btn-secondary { background:#ccc; color:black; }
+  .hidden { display:none; }
+  .progress { height:8px; background:#eee; border-radius:4px; margin:10px 0; overflow:hidden; }
+  .progress > div { height:100%; background:#007acc; width:0; transition:width .2s ease; }
+  textarea { width:100%; height:100px; margin-top:8px; padding:6px; border-radius:4px; border:1px solid #ccc; font-family:sans-serif; }
+  .question-block { margin:20px 0; padding:12px; background:#f9f9f9; border-radius:6px; border:1px solid #ddd; }
+  .question-block p { margin:0 0 8px 0; font-weight:bold; }
+  input[type="text"] { width:100%; padding:8px; font-size:14px; border:1px solid #ccc; border-radius:6px; }
+
+  /* Two-choice layout */
+  .choices { display:flex; gap:14px; margin-top:14px; }
+  .choice-btn {
+    flex:1;
+    padding:18px 14px;
+    font-size:22px;
+    font-weight:700;
+    border-radius:10px;
+    border:1px solid #ddd;
+    background:#fafafa;
+    cursor:pointer;
+  }
+  .choice-btn:disabled { opacity:0.6; cursor:not-allowed; }
+  .meta { margin-top:10px; color:#555; font-size:13px; }
+  .kbd { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; border:1px solid #ddd; background:#f7f7f7; padding:2px 6px; border-radius:6px; }
+</style>
+</head>
+<body>
+
+<!-- Consent -->
+<div class="card" id="screen-consent">
+  <h1>Intro and Consent</h1>
+  <p>Thank you for participating! You will listen to short audio clips and choose which word you heard.</p>
+  <p><strong>Important:</strong> Please wear <strong>headphones</strong> for the entire experiment.</p>
+  <p>
+    Before starting, please read the
+    <!-- Repo structure: /pharylary/experiment/ -> ../consent/ -->
+    <a href="../consent/consent_form.pdf" target="_blank" rel="noopener noreferrer">
+      Informed Consent Form
+    </a>
+    then check the box below once done.
+  </p>
+
+  <label><input type="checkbox" id="consentCheck"> I consent to participate</label>
+  <br><br>
+
+  <label for="prolificId"><strong>Please enter your Prolific ID:</strong></label><br>
+  <input type="text" id="prolificId" placeholder="e.g., 60a1b2c3d4e5f6g7h8i9" style="width:100%; padding:8px; font-size:14px; margin-top:6px;">
+  <br><br>
+
+  <button class="btn btn-primary" id="consentBtn" disabled>Continue</button>
+</div>
+
+<!-- Headphone Info -->
+<div class="card hidden" id="screen-headphones">
+  <h1>Headphone Information</h1>
+  <p><strong>Before continuing:</strong> Please ensure you are wearing headphones.</p>
+  <p>For our records, please tell us what type of headphones you are using (e.g., AirPods, wired earbuds, over-ear headphones).</p>
+
+  <div>
+    <label><strong>Please type the name or description of your headphones below:</strong></label>
+    <input type="text" id="headphoneInput" placeholder="e.g., Apple AirPods Pro, Wired Sony Over-Ear">
+  </div>
+
+  <div style="margin-top:12px;">
+    <label><input type="checkbox" id="confirmHeadphones"> I confirm that I am wearing headphones</label>
+  </div>
+  <br>
+  <button class="btn btn-primary" id="headphoneNextBtn" disabled>Continue</button>
+</div>
+
+<!-- Volume Check -->
+<div class="card hidden" id="screen-volume">
+  <h1>Audio Volume Check</h1>
+  <p>Set your device volume to a <strong>comfortable</strong> level.</p>
+  <p>Press play to hear a short test sound. You may replay as many times as you wish.</p>
+
+  <button class="btn btn-primary" id="playVolumeCheckBtn">Play Test Audio</button>
+  <audio id="volumeCheckAudio" preload="auto"></audio>
+
+  <p style="margin-top:16px; color:#555; font-size:14px;">
+    When you can clearly hear the audio, click <strong>Continue</strong>.
+  </p>
+
+  <button class="btn btn-primary" id="volumeNextBtn" disabled>Continue</button>
+</div>
+
+<!-- Audio Attention Check -->
+<div class="card hidden" id="screen-audiocheck">
+  <h1>Audio Check</h1>
+  <button class="btn btn-primary" id="playAudioCheckBtn">Play Audio</button>
+  <audio id="audioCheckPlayer"></audio>
+
+  <div class="question-block">
+    <p>Play the audio and type the answer you heard:</p>
+    <input type="text" id="audioCheckResponse" style="width:300px; padding:6px;">
+  </div>
+
+  <button class="btn btn-primary" id="audioCheckNextBtn" disabled>Continue</button>
+</div>
+
+<!-- Trials -->
+<div class="card hidden" id="screen-trials">
+  <div class="progress"><div id="progressBar"></div></div>
+  <h1 id="trialTitle">Trial</h1>
+  <p>
+    Click <strong>Play</strong>. After the audio ends, choose the word you heard.
+    (Keyboard: <span class="kbd">F</span> = left, <span class="kbd">J</span> = right)
+  </p>
+
+  <button class="btn btn-primary" id="playBtn">Play Audio</button>
+  <audio id="player" preload="auto"></audio>
+
+  <div class="choices" style="margin-top:14px;">
+    <button class="choice-btn" id="leftBtn" disabled></button>
+    <button class="choice-btn" id="rightBtn" disabled></button>
+  </div>
+
+  <div class="meta" id="trialStatus">Waiting to start…</div>
+</div>
+
+<!-- Feedback -->
+<div class="card hidden" id="screen-feedback">
+  <h1>Final Feedback (optional)</h1>
+  <textarea id="feedbackText" placeholder="Any comments about the task?"></textarea>
+  <button class="btn btn-primary" id="feedbackNextBtn">Submit</button>
+</div>
+
+<!-- Finish -->
+<div class="card hidden" id="screen-finish">
+  <h1>All Done!</h1>
+  <p>Thank you for participating in this study.</p>
+  <p><strong>Your participation code:</strong> <code id="completionCode">CJUVEL1D</code></p>
+  <p>
+    Please click the link below to complete your submission on Prolific:
+  </p>
+  <p>
+    <a id="prolificReturnLink" href="https://app.prolific.com/submissions/complete?cc=CJUVEL1D" target="_blank" style="font-size:16px; color:#007acc; text-decoration:underline;">
+      ➤ Click here to return to Prolific and submit your study
+    </a>
+  </p>
+</div>
+
+<script>
+/* ===========================
+   CONFIG
+=========================== */
+
+/** Google Apps Script endpoint (same as your template) */
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxXRmnC8XnDryTN2S2UBXkqG93Y0YoV2-V56ZVxAe92GIIzHI112C4BnfSGDAPrItssiQ/exec";
+
+/** Repo structure:
+ *  - This file is /pharylary/experiment/index.html
+ *  - Audio is /pharylary/data/audio/
+ *  - Attention check audio is /pharylary/experiment/audio_check/
+ *  - Volume check audio can also live in /pharylary/experiment/audio_check/
+ */
+const CONFIG = {
+  audioBase: "../data/audio",          // from /experiment/ to /data/audio/
+  audioSuffix: ".mp3",
+  attnBase: "./audio_check",           // inside /experiment/audio_check/
+  nAttentionFiles: 21,                // 1..21 mp3s
+  volumeCheckFile: "./audio_check/audio_check.mp3", // put this file in experiment/audio_check/
+  attentionEveryNTrials: 4,            // show an attention check every N trials
+  completionCode: "CJUVEL1D",
+  prolificReturnUrl: "https://app.prolific.com/submissions/complete?cc=CJUVEL1D",
+};
+
+/** Trials: replace with your real list.
+ *  audio should be filename only (without base) OR full relative url if you prefer.
+ */
+const TRIALS = [
+  { trial_id: 1, audio_file: "example_001.mp3", left_word: "bat", right_word: "pat" },
+  { trial_id: 2, audio_file: "example_002.mp3", left_word: "cap", right_word: "cab" },
+  { trial_id: 3, audio_file: "example_003.mp3", left_word: "heed", right_word: "hid" },
+];
+
+/* ===========================
+   STATE
+=========================== */
+const State = {
+  participantId: null,      // Prolific ID
+  headphoneType: "",
+  trialIndex: 0,
+  audioOffsetTs: null,      // performance.now() at audio offset
+  awaitingChoice: false,
+  attnQueue: [],
+  attnAnswers: [],
+  rowsLocal: [],            // optional local copy
+};
+
+/* ===========================
+   HELPERS
+=========================== */
+function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+function nowMs(){ return performance.now(); }
+
+function sendToGoogleSheet(obj){
+  const fd = new FormData();
+  for (const k in obj) fd.append(k, obj[k] ?? "");
+  fetch(SCRIPT_URL, { method:"POST", body:fd }).catch(err=>console.error("Sheet POST error:", err));
+}
+
+function show(id){ document.getElementById(id).classList.remove("hidden"); }
+function hide(id){ document.getElementById(id).classList.add("hidden"); }
+
+function currentTrial(){ return TRIALS[State.trialIndex]; }
+function resolveAudioUrl(trial){
+  // allow either audio_file or audio_url; prefer audio_url if provided
+  if(trial.audio_url) return trial.audio_url;
+  return `${CONFIG.audioBase}/${trial.audio_file}`;
+}
+
+/* ===========================
+   CONSENT + HEADPHONES
+=========================== */
+const consentCheck = document.getElementById('consentCheck');
+const prolificInput = document.getElementById('prolificId');
+const consentBtn = document.getElementById('consentBtn');
+
+function updateConsentContinue(){
+  consentBtn.disabled = !(consentCheck.checked && prolificInput.value.trim().length > 0);
+}
+consentCheck.onchange = updateConsentContinue;
+prolificInput.oninput  = updateConsentContinue;
+
+consentBtn.onclick = () => {
+  const idVal = prolificInput.value.trim();
+  if(!idVal){ alert("Please enter your Prolific ID before continuing."); return; }
+  State.participantId = idVal;
+  hide("screen-consent");
+  show("screen-headphones");
+};
+
+const headphoneInput = document.getElementById('headphoneInput');
+const confirmHeadphones = document.getElementById('confirmHeadphones');
+const headphoneNextBtn = document.getElementById('headphoneNextBtn');
+
+function updateHeadphoneContinue(){
+  headphoneNextBtn.disabled = !(headphoneInput.value.trim() && confirmHeadphones.checked);
+}
+headphoneInput.oninput = updateHeadphoneContinue;
+confirmHeadphones.onchange = updateHeadphoneContinue;
+
+headphoneNextBtn.onclick = () => {
+  State.headphoneType = headphoneInput.value.trim();
+  hide("screen-headphones");
+  show("screen-volume");
+};
+
+/* ===========================
+   VOLUME CHECK
+=========================== */
+const volumeAudio = document.getElementById('volumeCheckAudio');
+const playVolumeBtn = document.getElementById('playVolumeCheckBtn');
+const volumeNextBtn = document.getElementById('volumeNextBtn');
+
+volumeAudio.src = CONFIG.volumeCheckFile;
+
+playVolumeBtn.onclick = async () => {
+  try {
+    await volumeAudio.play();
+    volumeNextBtn.disabled = false;
+    playVolumeBtn.textContent = "Playing...";
+    playVolumeBtn.disabled = true;
+  } catch (err) {
+    alert("Unable to start audio playback. Please check browser permissions and try again.");
+    playVolumeBtn.disabled = false;
+    playVolumeBtn.textContent = "Play Test Audio";
+  }
+};
+volumeAudio.onended = () => {
+  playVolumeBtn.textContent = "Replay Audio";
+  playVolumeBtn.disabled = false;
+};
+volumeNextBtn.onclick = () => {
+  volumeAudio.pause();
+  hide("screen-volume");
+  prepareAttentionQueue();
+  showAudioAttentionCheck(() => startTrials());
+};
+
+/* ===========================
+   ATTENTION CHECKS
+=========================== */
+function prepareAttentionQueue(){
+  const urls=[];
+  for(let i=1;i<=CONFIG.nAttentionFiles;i++){
+    urls.push(`${CONFIG.attnBase}/${i}.mp3`);
+  }
+  State.attnQueue = shuffle(urls);
+}
+function nextAttentionAudio(){
+  if(State.attnQueue.length===0) prepareAttentionQueue();
+  return State.attnQueue.shift();
+}
+
+function showAudioAttentionCheck(onContinue){
+  const card = document.getElementById('screen-audiocheck');
+  const playBtn = document.getElementById('playAudioCheckBtn');
+  const audio   = document.getElementById('audioCheckPlayer');
+  const input   = document.getElementById('audioCheckResponse');
+  const nextBtn = document.getElementById('audioCheckNextBtn');
+
+  input.value = "";
+  nextBtn.disabled = true;
+
+  playBtn.disabled = false;
+  playBtn.textContent = "Play Audio";
+
+  audio.src = nextAttentionAudio();
+  audio.currentTime = 0;
+
+  playBtn.onclick = async () => {
+    try {
+      playBtn.disabled = true;
+      playBtn.textContent = "Playing...";
+      await audio.play();
+    } catch {
+      alert("Please check your browser audio permissions.");
+      playBtn.disabled = false;
+      playBtn.textContent = "Play Audio";
+    }
+  };
+
+  audio.onended = () => {
+    playBtn.textContent = "Audio finished";
+    playBtn.disabled = true;
+  };
+
+  input.oninput = () => { nextBtn.disabled = !input.value.trim(); };
+
+  nextBtn.onclick = () => {
+    const ans = input.value.trim();
+    if(!ans){ alert("Please type your answer before continuing."); return; }
+    State.attnAnswers.push(ans);
+
+    // optionally send attention check row immediately
+    sendToGoogleSheet({
+      participant_id: State.participantId,
+      prolific_id: State.participantId,
+      block: "AttentionCheck",
+      attention_index: State.attnAnswers.length,
+      attention_audio: audio.src,
+      attention_response: ans,
+      headphone_type: State.headphoneType,
+      timestamp_iso: new Date().toISOString(),
+    });
+
+    card.classList.add('hidden');
+    onContinue && onContinue();
+  };
+
+  card.classList.remove('hidden');
+}
+
+/* ===========================
+   TRIALS: WORD ID + RT FROM AUDIO OFFSET
+=========================== */
+const screenTrials = document.getElementById("screen-trials");
+const progressBar = document.getElementById("progressBar");
+const trialTitle  = document.getElementById("trialTitle");
+const player      = document.getElementById("player");
+const playBtn     = document.getElementById("playBtn");
+const leftBtn     = document.getElementById("leftBtn");
+const rightBtn    = document.getElementById("rightBtn");
+const trialStatus = document.getElementById("trialStatus");
+
+function startTrials(){
+  // optional: shuffle TRIALS once per participant
+  shuffle(TRIALS);
+
+  show("screen-trials");
+  State.trialIndex = 0;
+  loadTrial();
+}
+
+function setChoiceEnabled(enabled){
+  leftBtn.disabled = !enabled;
+  rightBtn.disabled = !enabled;
+}
+
+function updateProgress(){
+  const total = TRIALS.length;
+  const done = State.trialIndex;
+  progressBar.style.width = `${Math.round((done/total)*100)}%`;
+  trialTitle.textContent = `Trial ${Math.min(done+1,total)} of ${total}`;
+}
+
+function loadTrial(){
+  const t = currentTrial();
+  if(!t){ finishStudy(); return; }
+
+  updateProgress();
+  State.audioOffsetTs = null;
+  State.awaitingChoice = false;
+
+  player.src = resolveAudioUrl(t);
+  player.currentTime = 0;
+
+  leftBtn.textContent  = t.left_word;
+  rightBtn.textContent = t.right_word;
+
+  setChoiceEnabled(false);
+  playBtn.disabled = false;
+  playBtn.textContent = "Play Audio";
+  trialStatus.textContent = "Click Play to listen.";
+}
+
+playBtn.onclick = async () => {
+  playBtn.disabled = true;
+  playBtn.textContent = "Playing...";
+  trialStatus.textContent = "Listening…";
+
+  State.audioOffsetTs = null;
+  State.awaitingChoice = false;
+  setChoiceEnabled(false);
+
+  try {
+    await player.play();
+  } catch (e) {
+    console.error(e);
+    alert("Unable to start audio playback. Please check your browser permissions.");
+    playBtn.disabled = false;
+    playBtn.textContent = "Play Audio";
+    trialStatus.textContent = "Click Play to listen.";
+  }
+};
+
+player.onended = () => {
+  State.audioOffsetTs = nowMs();      // RT starts HERE (audio offset)
+  State.awaitingChoice = true;
+  setChoiceEnabled(true);
+  trialStatus.textContent = "Choose the word you heard (F = left, J = right).";
+};
+
+function recordChoice(choiceSide){
+  if(!State.awaitingChoice) return;
+
+  const t = currentTrial();
+  const clickTs = nowMs();
+  const rt_ms = Math.round(clickTs - (State.audioOffsetTs ?? clickTs));
+
+  const choice_word = (choiceSide === "left") ? t.left_word : t.right_word;
+
+  const row = {
+    participant_id: State.participantId,
+    prolific_id: State.participantId,
+    block: "Trials",
+    trial_index: State.trialIndex + 1,
+    trial_id: t.trial_id ?? "",
+    audio_url: player.src,
+    audio_file: t.audio_file ?? "",
+    left_word: t.left_word,
+    right_word: t.right_word,
+    choice: choiceSide,
+    choice_word: choice_word,
+    rt_ms: rt_ms,
+    headphone_type: State.headphoneType,
+    timestamp_iso: new Date().toISOString(),
+  };
+
+  // Keep a local copy too (optional)
+  State.rowsLocal.push(row);
+
+  // Send to Google Sheet immediately (recommended)
+  sendToGoogleSheet(row);
+
+  // Lock choices
+  State.awaitingChoice = false;
+  setChoiceEnabled(false);
+
+  trialStatus.textContent = `Recorded: ${choice_word} (RT ${rt_ms} ms).`;
+
+  // Attention check every N trials (optional)
+  const nextIndex = State.trialIndex + 1;
+  const needsCheck = (CONFIG.attentionEveryNTrials > 0) && (nextIndex % CONFIG.attentionEveryNTrials === 0) && (nextIndex < TRIALS.length);
+
+  State.trialIndex += 1;
+
+  if(needsCheck){
+    hide("screen-trials");
+    showAudioAttentionCheck(() => {
+      show("screen-trials");
+      loadTrial();
+    });
+  } else {
+    setTimeout(loadTrial, 250);
+  }
+}
+
+leftBtn.onclick  = () => recordChoice("left");
+rightBtn.onclick = () => recordChoice("right");
+
+// Keyboard shortcuts (F/J)
+document.addEventListener("keydown", (e) => {
+  if(screenTrials.classList.contains("hidden")) return;
+  if(!State.awaitingChoice) return;
+  const k = e.key.toLowerCase();
+  if(k === "f") recordChoice("left");
+  if(k === "j") recordChoice("right");
+});
+
+/* ===========================
+   FEEDBACK + FINAL SUBMISSION
+=========================== */
+document.getElementById('feedbackNextBtn').onclick = () => {
+  const feedback = document.getElementById('feedbackText').value || "";
+
+  // Send a final "end" row that includes feedback + all attention checks bundled
+  const out = {
+    participant_id: State.participantId,
+    prolific_id: State.participantId,
+    block: "Final",
+    headphone_type: State.headphoneType || "",
+    final_feedback: feedback || "",
+    completion_code: CONFIG.completionCode,
+    timestamp_iso: new Date().toISOString(),
+  };
+  for(let i=1;i<=CONFIG.nAttentionFiles;i++){
+    out[`attention_check_${i}`] = State.attnAnswers[i-1] || "";
+  }
+  sendToGoogleSheet(out);
+
+  hide("screen-feedback");
+  show("screen-finish");
+};
+
+function finishStudy(){
+  hide("screen-trials");
+  show("screen-feedback");
+}
+
+/* ===========================
+   FINISH SCREEN LINKS
+=========================== */
+document.getElementById("completionCode").textContent = CONFIG.completionCode;
+document.getElementById("prolificReturnLink").href = CONFIG.prolificReturnUrl;
+</script>
+
+</body>
+</html>
