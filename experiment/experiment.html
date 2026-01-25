@@ -12,6 +12,9 @@
   .btn-primary { background:#007acc; color:white; }
   .btn-primary:disabled { background:#a0aec0; color:#e2e8f0; cursor:not-allowed; }
   .btn-secondary { background:#ccc; color:black; }
+  
+  /* Play button styling for trials */
+  #playBtn { display:block; margin:0 auto 20px; padding:14px 32px; font-size:18px; font-weight:600; }
   .hidden { display:none; }
   .progress { height:8px; background:#eee; border-radius:4px; margin:10px 0; overflow:hidden; }
   .progress > div { height:100%; background:#007acc; width:0; transition:width .2s ease; }
@@ -33,7 +36,12 @@
     cursor:pointer;
   }
   .choice-btn:disabled { opacity:0.6; cursor:not-allowed; }
-  .meta { margin-top:10px; color:#555; font-size:13px; }
+  .choice-btn { display:none; }
+  .image-container img { cursor:pointer; transition:transform 0.1s, box-shadow 0.1s; }
+  .image-container img:hover { transform:scale(1.05); box-shadow:0 4px 12px rgba(0,0,0,0.2); }
+  .image-container img:active { transform:scale(0.98); }
+  .meta { margin-top:20px; color:#555; font-size:13px; text-align:center; }
+  #trialStatus { font-size:18px; font-weight:600; color:#333; margin-top:24px; }
   .kbd { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; border:1px solid #ddd; background:#f7f7f7; padding:2px 6px; border-radius:6px; }
 
   /* Image pair display */
@@ -122,8 +130,7 @@
   <div class="progress"><div id="progressBar"></div></div>
   <h1 id="trialTitle">Trial</h1>
   <p>
-    Click <strong>Play</strong>. After the audio ends, choose the word you heard.
-    (Keyboard: <span class="kbd">F</span> = left, <span class="kbd">J</span> = right)
+    Press <strong>spacebar</strong> to play the audio. After it ends, click an image or press <strong>F</strong> (left) / <strong>J</strong> (right) to choose.
   </p>
 
   <button class="btn btn-primary" id="playBtn">Play Audio</button>
@@ -184,7 +191,9 @@ const CONFIG = {
   audioBase: "../data/audio",          // from /experiment/ to /data/audio/
   audioSuffix: ".wav",
   imageBase: "../data/images",         // from /experiment/ to /data/images/
-  trialsUrl: "../data/trials.csv",     // CSV with trial data
+  // Use relative path for local testing with Live Server
+  // Use GitHub raw URL when deployed to GitHub Pages
+  trialsUrl: "../data/trials.csv",     // Change to GitHub raw URL when deploying
   attnBase: "./audio_check",           // inside /experiment/audio_check/
   nAttentionFiles: 21,                // 1..21 wav files
   volumeCheckFile: "./audio_check/gone_b.wav", // put this file in experiment/audio_check/
@@ -252,7 +261,7 @@ function parseCSV(text){
   const headerLine = lines[0];
   const headers = headerLine.split(',').map(h => h.trim());
   
-  // Find column indices
+  // Find column indices for required fields
   const targetAudioIdx = headers.indexOf('TargetWordAudioFile');
   const targetImageIdx = headers.indexOf('TargetWordImageFile');
   const distractorImageIdx = headers.indexOf('DistractorWordImageFile');
@@ -278,6 +287,14 @@ function parseCSV(text){
     // Randomly assign target/distractor to left/right
     const targetLeft = randomBoolean();
     
+    // Capture all other columns as custom data
+    const customData = {};
+    for(let j = 0; j < headers.length; j++){
+      if(j !== targetAudioIdx && j !== targetImageIdx && j !== distractorImageIdx){
+        customData[headers[j]] = cells[j] || '';
+      }
+    }
+    
     const trial = {
       trial_id: i,
       audio_file: audioFile,
@@ -286,6 +303,7 @@ function parseCSV(text){
       target_side: targetLeft ? "left" : "right",
       left_image: targetLeft ? targetImage : distractorImage,
       right_image: targetLeft ? distractorImage : targetImage,
+      ...customData  // Spread custom columns into trial object
     };
     
     trials.push(trial);
@@ -529,6 +547,8 @@ function loadTrial(){
     const leftImg = document.createElement('img');
     leftImg.src = resolveImageUrl(t.left_image);
     leftImg.alt = "Choice image (left)";
+    leftImg.style.cursor = 'pointer';
+    leftImg.onclick = () => recordChoice('left');
     leftImageContainer.appendChild(leftImg);
   }
   
@@ -536,6 +556,8 @@ function loadTrial(){
     const rightImg = document.createElement('img');
     rightImg.src = resolveImageUrl(t.right_image);
     rightImg.alt = "Choice image (right)";
+    rightImg.style.cursor = 'pointer';
+    rightImg.onclick = () => recordChoice('right');
     rightImageContainer.appendChild(rightImg);
   }
 
@@ -588,8 +610,8 @@ function recordChoice(choiceSide){
     block: "Trials",
     trial_index: State.trialIndex + 1,
     trial_id: t.trial_id ?? "",
-    audio_url: player.src,
     audio_file: t.audio_file ?? "",
+    audio_url: player.src,
     target_image: t.target_image ?? "",
     distractor_image: t.distractor_image ?? "",
     target_side: t.target_side ?? "",
@@ -597,11 +619,18 @@ function recordChoice(choiceSide){
     right_image: t.right_image ?? "",
     choice: choiceSide,
     choice_image: choice_image ?? "",
-    is_target: is_target ? "yes" : "no",
-    rt_ms: rt_ms,
+    is_correct: is_target ? "yes" : "no",
+    reaction_time_ms: rt_ms,
     headphone_type: State.headphoneType,
     timestamp_iso: new Date().toISOString(),
   };
+  
+  // Add any custom CSV columns
+  for(const [key, value] of Object.entries(t)){
+    if(!row.hasOwnProperty(key)){
+      row[key] = value ?? "";
+    }
+  }
 
   // Keep a local copy too (optional)
   State.rowsLocal.push(row);
@@ -636,8 +665,18 @@ function recordChoice(choiceSide){
 leftBtn.onclick  = () => recordChoice("left");
 rightBtn.onclick = () => recordChoice("right");
 
-// Keyboard shortcuts (F/J)
+// Keyboard shortcuts (F/J for choices, Spacebar for play)
 document.addEventListener("keydown", (e) => {
+  // Spacebar to play audio
+  if(e.code === "Space" && !screenTrials.classList.contains("hidden")){
+    e.preventDefault();
+    if(!playBtn.disabled){
+      playBtn.click();
+    }
+    return;
+  }
+  
+  // F/J for choices
   if(screenTrials.classList.contains("hidden")) return;
   if(!State.awaitingChoice) return;
   const k = e.key.toLowerCase();
