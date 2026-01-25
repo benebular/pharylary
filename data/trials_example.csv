@@ -1,0 +1,11 @@
+TargetWordAudioFile,TargetWordImageFile,DistractorWordImageFile
+pharyngeal_001.wav,pharyngeal.jpg,uvular.jpg
+pharyngeal_002.wav,pharyngeal.jpg,uvular.jpg
+uvular_001.wav,uvular.jpg,pharyngeal.jpg
+uvular_002.wav,uvular.jpg,pharyngeal.jpg
+pharyngeal_003.wav,pharyngeal.jpg,uvular.jpg
+uvular_003.wav,uvular.jpg,pharyngeal.jpg
+pharyngeal_004.wav,pharyngeal.jpg,uvular.jpg
+uvular_004.wav,uvular.jpg,pharyngeal.jpg
+pharyngeal_005.wav,pharyngeal.jpg,uvular.jpg
+uvular_005.wav,uvular.jpg,pharyngeal.jpg

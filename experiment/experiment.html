@@ -175,6 +175,8 @@ const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxblhxJ34A7WfooWQBdK
 /** Repo structure:
  *  - This file is /pharylary/experiment/index.html
  *  - Audio is /pharylary/data/audio/
+ *  - Images are /pharylary/data/images/
+ *  - Trials CSV is /pharylary/data/trials.csv
  *  - Attention check audio is /pharylary/experiment/audio_check/
  *  - Volume check audio can also live in /pharylary/experiment/audio_check/
  */
@@ -182,6 +184,7 @@ const CONFIG = {
   audioBase: "../data/audio",          // from /experiment/ to /data/audio/
   audioSuffix: ".wav",
   imageBase: "../data/images",         // from /experiment/ to /data/images/
+  trialsUrl: "../data/trials.csv",     // CSV with trial data
   attnBase: "./audio_check",           // inside /experiment/audio_check/
   nAttentionFiles: 21,                // 1..21 wav files
   volumeCheckFile: "./audio_check/gone_b.wav", // put this file in experiment/audio_check/
@@ -190,19 +193,12 @@ const CONFIG = {
   prolificReturnUrl: "https://app.prolific.com/submissions/complete?cc=CJUVEL1D",
 };
 
-/** Trials: replace with your real list.
- *  audio should be filename only (without base) OR full relative url if you prefer.
- *  
- *  Image fields:
- *  - left_image: filename of the image associated with left_word
- *  - right_image: filename of the image associated with right_word
- *  - target_side: "left" or "right" - which image is the target (matches the audio)
+/** Trials: Loaded from CSV
+ *  CSV should have columns: TargetWordAudioFile, TargetWordImageFile, DistractorWordImageFile
+ *  Each row becomes one trial.
+ *  Target and distractor images are randomly assigned to left/right for each trial.
  */
-const TRIALS = [
-  { trial_id: 1, audio_file: "example_001.wav", left_word: "bat", right_word: "pat", left_image: "bat.jpg", right_image: "pat.jpg", target_side: "left" },
-  { trial_id: 2, audio_file: "example_002.wav", left_word: "cap", right_word: "cab", left_image: "cap.jpg", right_image: "cab.jpg", target_side: "left" },
-  { trial_id: 3, audio_file: "example_003.wav", left_word: "heed", right_word: "hid", left_image: "heed.jpg", right_image: "hid.jpg", target_side: "right" },
-];
+let TRIALS = [];
 
 /* ===========================
    STATE
@@ -223,6 +219,7 @@ const State = {
 =========================== */
 function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
 function nowMs(){ return performance.now(); }
+function randomBoolean(){ return Math.random() > 0.5; }
 
 function sendToGoogleSheet(obj){
   const fd = new FormData();
@@ -236,12 +233,87 @@ function hide(id){ document.getElementById(id).classList.add("hidden"); }
 function currentTrial(){ return TRIALS[State.trialIndex]; }
 function resolveAudioUrl(trial){
   // allow either audio_file or audio_url; prefer audio_url if provided
-  if(trial.audio_url) return trial.audio_url;
-  return `${CONFIG.audioBase}/${trial.audio_file}`;
+  if(trial.audio_file) return `${CONFIG.audioBase}/${trial.audio_file}`;
+  return trial.audio_url || "";
 }
 function resolveImageUrl(filename){
   // resolve image filename to full path
   return `${CONFIG.imageBase}/${filename}`;
+}
+
+/* ===========================
+   CSV PARSING & TRIAL SETUP
+=========================== */
+function parseCSV(text){
+  const lines = text.trim().split('\n');
+  if(lines.length < 2) return [];
+  
+  // Parse header row
+  const headerLine = lines[0];
+  const headers = headerLine.split(',').map(h => h.trim());
+  
+  // Find column indices
+  const targetAudioIdx = headers.indexOf('TargetWordAudioFile');
+  const targetImageIdx = headers.indexOf('TargetWordImageFile');
+  const distractorImageIdx = headers.indexOf('DistractorWordImageFile');
+  
+  if(targetAudioIdx === -1 || targetImageIdx === -1 || distractorImageIdx === -1){
+    console.error('CSV missing required columns');
+    return [];
+  }
+  
+  // Parse data rows
+  const trials = [];
+  for(let i = 1; i < lines.length; i++){
+    const line = lines[i].trim();
+    if(!line) continue; // skip empty lines
+    
+    const cells = line.split(',').map(c => c.trim());
+    const audioFile = cells[targetAudioIdx] || '';
+    const targetImage = cells[targetImageIdx] || '';
+    const distractorImage = cells[distractorImageIdx] || '';
+    
+    if(!audioFile || !targetImage || !distractorImage) continue;
+    
+    // Randomly assign target/distractor to left/right
+    const targetLeft = randomBoolean();
+    
+    const trial = {
+      trial_id: i,
+      audio_file: audioFile,
+      target_image: targetImage,
+      distractor_image: distractorImage,
+      target_side: targetLeft ? "left" : "right",
+      left_image: targetLeft ? targetImage : distractorImage,
+      right_image: targetLeft ? distractorImage : targetImage,
+    };
+    
+    trials.push(trial);
+  }
+  
+  return trials;
+}
+
+async function loadTrialsFromCSV(){
+  try {
+    const response = await fetch(CONFIG.trialsUrl);
+    if(!response.ok) throw new Error(`Failed to load CSV: ${response.statusText}`);
+    
+    const csvText = await response.text();
+    TRIALS = parseCSV(csvText);
+    
+    if(TRIALS.length === 0){
+      alert("No valid trials found in CSV file. Check the file format and column names.");
+      return false;
+    }
+    
+    console.log(`Loaded ${TRIALS.length} trials from CSV`);
+    return true;
+  } catch (err) {
+    console.error('CSV load error:', err);
+    alert("Failed to load trials from CSV file. Check the browser console for details.");
+    return false;
+  }
 }
 
 /* ===========================
@@ -261,8 +333,19 @@ consentBtn.onclick = () => {
   const idVal = prolificInput.value.trim();
   if(!idVal){ alert("Please enter your Prolific ID before continuing."); return; }
   State.participantId = idVal;
-  hide("screen-consent");
-  show("screen-headphones");
+  
+  // Load trials from CSV before proceeding
+  consentBtn.disabled = true;
+  consentBtn.textContent = "Loading trials...";
+  
+  loadTrialsFromCSV().then(success => {
+    if(success){
+      hide("screen-consent");
+      show("screen-headphones");
+    }
+    consentBtn.disabled = false;
+    consentBtn.textContent = "Continue";
+  });
 };
 
 const headphoneInput = document.getElementById('headphoneInput');
@@ -431,8 +514,9 @@ function loadTrial(){
   player.src = resolveAudioUrl(t);
   player.currentTime = 0;
 
-  leftBtn.textContent  = t.left_word;
-  rightBtn.textContent = t.right_word;
+  // Buttons show image choices (no text labels on buttons)
+  leftBtn.textContent  = "";
+  rightBtn.textContent = "";
 
   // Load and display images
   const leftImageContainer = document.getElementById('leftImageContainer');
@@ -444,23 +528,15 @@ function loadTrial(){
   if(t.left_image){
     const leftImg = document.createElement('img');
     leftImg.src = resolveImageUrl(t.left_image);
-    leftImg.alt = t.left_word;
+    leftImg.alt = "Choice image (left)";
     leftImageContainer.appendChild(leftImg);
-    const leftLabel = document.createElement('div');
-    leftLabel.className = 'image-label';
-    leftLabel.textContent = t.left_word;
-    leftImageContainer.appendChild(leftLabel);
   }
   
   if(t.right_image){
     const rightImg = document.createElement('img');
     rightImg.src = resolveImageUrl(t.right_image);
-    rightImg.alt = t.right_word;
+    rightImg.alt = "Choice image (right)";
     rightImageContainer.appendChild(rightImg);
-    const rightLabel = document.createElement('div');
-    rightLabel.className = 'image-label';
-    rightLabel.textContent = t.right_word;
-    rightImageContainer.appendChild(rightLabel);
   }
 
   setChoiceEnabled(false);
@@ -503,7 +579,6 @@ function recordChoice(choiceSide){
   const clickTs = nowMs();
   const rt_ms = Math.round(clickTs - (State.audioOffsetTs ?? clickTs));
 
-  const choice_word = (choiceSide === "left") ? t.left_word : t.right_word;
   const choice_image = (choiceSide === "left") ? t.left_image : t.right_image;
   const is_target = (choiceSide === t.target_side);
 
@@ -515,13 +590,12 @@ function recordChoice(choiceSide){
     trial_id: t.trial_id ?? "",
     audio_url: player.src,
     audio_file: t.audio_file ?? "",
-    left_word: t.left_word,
-    right_word: t.right_word,
+    target_image: t.target_image ?? "",
+    distractor_image: t.distractor_image ?? "",
+    target_side: t.target_side ?? "",
     left_image: t.left_image ?? "",
     right_image: t.right_image ?? "",
-    target_side: t.target_side ?? "",
     choice: choiceSide,
-    choice_word: choice_word,
     choice_image: choice_image ?? "",
     is_target: is_target ? "yes" : "no",
     rt_ms: rt_ms,
@@ -539,7 +613,8 @@ function recordChoice(choiceSide){
   State.awaitingChoice = false;
   setChoiceEnabled(false);
 
-  trialStatus.textContent = `Recorded: ${choice_word} (RT ${rt_ms} ms).`;
+  const targetIndicator = is_target ? "✓ correct" : "✗ incorrect";
+  trialStatus.textContent = `Recorded: ${targetIndicator} (RT ${rt_ms} ms).`;
 
   // Attention check every N trials (optional)
   const nextIndex = State.trialIndex + 1;
