@@ -35,6 +35,12 @@
   .choice-btn:disabled { opacity:0.6; cursor:not-allowed; }
   .meta { margin-top:10px; color:#555; font-size:13px; }
   .kbd { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; border:1px solid #ddd; background:#f7f7f7; padding:2px 6px; border-radius:6px; }
+
+  /* Image pair display */
+  .image-pair { display:flex; gap:20px; margin:20px 0; justify-content:center; align-items:flex-start; }
+  .image-container { text-align:center; }
+  .image-container img { max-width:200px; max-height:200px; border-radius:8px; border:2px solid #ddd; }
+  .image-label { margin-top:8px; font-weight:bold; color:#333; }
 </style>
 </head>
 <body>
@@ -123,6 +129,11 @@
   <button class="btn btn-primary" id="playBtn">Play Audio</button>
   <audio id="player" preload="auto"></audio>
 
+  <div class="image-pair" id="imagePair">
+    <div class="image-container" id="leftImageContainer"></div>
+    <div class="image-container" id="rightImageContainer"></div>
+  </div>
+
   <div class="choices" style="margin-top:14px;">
     <button class="choice-btn" id="leftBtn" disabled></button>
     <button class="choice-btn" id="rightBtn" disabled></button>
@@ -170,6 +181,7 @@ const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxblhxJ34A7WfooWQBdK
 const CONFIG = {
   audioBase: "../data/audio",          // from /experiment/ to /data/audio/
   audioSuffix: ".wav",
+  imageBase: "../data/images",         // from /experiment/ to /data/images/
   attnBase: "./audio_check",           // inside /experiment/audio_check/
   nAttentionFiles: 21,                // 1..21 wav files
   volumeCheckFile: "./audio_check/gone_b.wav", // put this file in experiment/audio_check/
@@ -180,11 +192,16 @@ const CONFIG = {
 
 /** Trials: replace with your real list.
  *  audio should be filename only (without base) OR full relative url if you prefer.
+ *  
+ *  Image fields:
+ *  - left_image: filename of the image associated with left_word
+ *  - right_image: filename of the image associated with right_word
+ *  - target_side: "left" or "right" - which image is the target (matches the audio)
  */
 const TRIALS = [
-  { trial_id: 1, audio_file: "example_001.wav", left_word: "bat", right_word: "pat" },
-  { trial_id: 2, audio_file: "example_002.wav", left_word: "cap", right_word: "cab" },
-  { trial_id: 3, audio_file: "example_003.wav", left_word: "heed", right_word: "hid" },
+  { trial_id: 1, audio_file: "example_001.wav", left_word: "bat", right_word: "pat", left_image: "bat.jpg", right_image: "pat.jpg", target_side: "left" },
+  { trial_id: 2, audio_file: "example_002.wav", left_word: "cap", right_word: "cab", left_image: "cap.jpg", right_image: "cab.jpg", target_side: "left" },
+  { trial_id: 3, audio_file: "example_003.wav", left_word: "heed", right_word: "hid", left_image: "heed.jpg", right_image: "hid.jpg", target_side: "right" },
 ];
 
 /* ===========================
@@ -221,6 +238,10 @@ function resolveAudioUrl(trial){
   // allow either audio_file or audio_url; prefer audio_url if provided
   if(trial.audio_url) return trial.audio_url;
   return `${CONFIG.audioBase}/${trial.audio_file}`;
+}
+function resolveImageUrl(filename){
+  // resolve image filename to full path
+  return `${CONFIG.imageBase}/${filename}`;
 }
 
 /* ===========================
@@ -413,6 +434,35 @@ function loadTrial(){
   leftBtn.textContent  = t.left_word;
   rightBtn.textContent = t.right_word;
 
+  // Load and display images
+  const leftImageContainer = document.getElementById('leftImageContainer');
+  const rightImageContainer = document.getElementById('rightImageContainer');
+  
+  leftImageContainer.innerHTML = '';
+  rightImageContainer.innerHTML = '';
+  
+  if(t.left_image){
+    const leftImg = document.createElement('img');
+    leftImg.src = resolveImageUrl(t.left_image);
+    leftImg.alt = t.left_word;
+    leftImageContainer.appendChild(leftImg);
+    const leftLabel = document.createElement('div');
+    leftLabel.className = 'image-label';
+    leftLabel.textContent = t.left_word;
+    leftImageContainer.appendChild(leftLabel);
+  }
+  
+  if(t.right_image){
+    const rightImg = document.createElement('img');
+    rightImg.src = resolveImageUrl(t.right_image);
+    rightImg.alt = t.right_word;
+    rightImageContainer.appendChild(rightImg);
+    const rightLabel = document.createElement('div');
+    rightLabel.className = 'image-label';
+    rightLabel.textContent = t.right_word;
+    rightImageContainer.appendChild(rightLabel);
+  }
+
   setChoiceEnabled(false);
   playBtn.disabled = false;
   playBtn.textContent = "Play Audio";
@@ -454,6 +504,8 @@ function recordChoice(choiceSide){
   const rt_ms = Math.round(clickTs - (State.audioOffsetTs ?? clickTs));
 
   const choice_word = (choiceSide === "left") ? t.left_word : t.right_word;
+  const choice_image = (choiceSide === "left") ? t.left_image : t.right_image;
+  const is_target = (choiceSide === t.target_side);
 
   const row = {
     participant_id: State.participantId,
@@ -465,8 +517,13 @@ function recordChoice(choiceSide){
     audio_file: t.audio_file ?? "",
     left_word: t.left_word,
     right_word: t.right_word,
+    left_image: t.left_image ?? "",
+    right_image: t.right_image ?? "",
+    target_side: t.target_side ?? "",
     choice: choiceSide,
     choice_word: choice_word,
+    choice_image: choice_image ?? "",
+    is_target: is_target ? "yes" : "no",
     rt_ms: rt_ms,
     headphone_type: State.headphoneType,
     timestamp_iso: new Date().toISOString(),
