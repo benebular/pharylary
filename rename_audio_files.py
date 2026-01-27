@@ -14,14 +14,14 @@ CSV_PATH = "data/trials.csv"
 AUDIO_DIR = "data/audio"
 OUTPUT_CSV = "data/trials_renamed.csv"
 
-def generate_clean_filename(trial, carrier_type, index):
+def generate_clean_filename(trial, carrier_type):
     """Generate a clean filename from Trial and CarrierType."""
     # Remove special characters and spaces, convert to lowercase
     trial_clean = str(trial).replace(" ", "_").replace("/", "-")
     carrier_clean = str(carrier_type).replace(" ", "_").replace("/", "-")
     
-    # Create filename: trial_carriertype_001.wav
-    filename = f"{trial_clean}_{carrier_clean}_{index:03d}.wav"
+    # Create filename: trial_carriertype.wav
+    filename = f"{trial_clean}_{carrier_clean}.wav"
     return filename
 
 def main():
@@ -55,14 +55,13 @@ def main():
     print("=" * 60)
     
     mapping = []
-    index = 1
     
     for row in rows:
         trial = row.get('Trial', '')
         carrier_type = row.get('CarrierType', '')
         old_filename = row.get('TargetWordAudioFile', '')
         
-        new_filename = generate_clean_filename(trial, carrier_type, index)
+        new_filename = generate_clean_filename(trial, carrier_type)
         
         mapping.append({
             'old': old_filename,
@@ -71,10 +70,8 @@ def main():
         })
         
         exists_str = "✓" if mapping[-1]['exists'] else "✗ (FILE NOT FOUND)"
-        print(f"{index:3d}. {old_filename:50s} → {new_filename}")
+        print(f"{len(mapping):3d}. {old_filename:50s} → {new_filename}")
         print(f"     {exists_str}")
-        
-        index += 1
     
     print("\n" + "=" * 60)
     print("NEXT STEPS:")
@@ -84,9 +81,8 @@ def main():
     print("   OPTION A - Manual rename:")
     print("   - Copy the 'new' names and rename files in data/audio/")
     print("   - Then run this script again with --update flag\n")
-    print("   OPTION B - Automatic rename (uncomment code below):")
-    print("   - Uncomment the rename_files() call at the end of this script")
-    print("   - Run: python3 rename_audio_files.py\n")
+    print("   OPTION B - Automatic rename:")
+    print("   - Uncomment the rename_files() call below in main()\n")
     
     # Check if --update flag is provided (for manual renames)
     import sys
@@ -95,6 +91,10 @@ def main():
         update_csv(rows, mapping)
         print(f"✓ Updated CSV saved to {OUTPUT_CSV}")
         print("Replace data/trials.csv with the new file if satisfied")
+        return
+    
+    # UNCOMMENT THE NEXT LINE TO ACTUALLY RENAME FILES:
+    rename_files(mapping)
 
 def update_csv(rows, mapping):
     """Update CSV with new filenames."""
@@ -127,10 +127,23 @@ def rename_files(mapping):
             print(f"✗ {item['old']} - ERROR: {e}")
     
     print("\nUpdating CSV...")
-    update_csv_with_mapping(mapping)
+    rows = []
+    with open(CSV_PATH, 'r', encoding='utf-8') as f:
+        reader = csv.DictReader(f)
+        rows = list(reader)
+    
+    for i, row in enumerate(rows):
+        row['TargetWordAudioFile'] = mapping[i]['new']
+    
+    if rows:
+        fieldnames = list(rows[0].keys())
+        with open(OUTPUT_CSV, 'w', newline='', encoding='utf-8') as f:
+            writer = csv.DictWriter(f, fieldnames=fieldnames)
+            writer.writeheader()
+            writer.writerows(rows)
+    
+    print(f"✓ Updated CSV saved to {OUTPUT_CSV}")
 
-# UNCOMMENT THIS LINE TO ACTUALLY RENAME FILES:
-# rename_files(mapping)
 
 if __name__ == "__main__":
     main()
