@@ -200,12 +200,14 @@
   <div class="progress"><div id="surveyProgressBar"></div></div>
   <h1 id="surveyTitle">Survey</h1>
   
-  <div style="margin:20px 0;">
+  <p style="margin:16px 0; font-size:15px; line-height:1.5;">Please listen to the audio for the presented word and then answer the questions below. You can click the Play Audio button or press the spacebar to play the audio. You may listen to the audio as many times as you need. For question 2, if you did not understand the word, mark "Do Not Understand."</p>
+  
+  <div class="image-container" id="surveyImageContainer" style="margin:20px 0; text-align:center;"></div>
+  
+  <div style="margin:20px 0; text-align:center;">
     <button class="btn btn-primary" id="surveySoundBtn">Play Audio</button>
     <audio id="surveyPlayer" preload="auto"></audio>
   </div>
-
-  <div class="image-container" id="surveyImageContainer" style="margin:20px 0; text-align:center;"></div>
 
   <div id="surveyQuestionsContainer"></div>
 
@@ -239,6 +241,7 @@
 </div>
 
 <!-- Feedback -->
+<div class="card hidden" id="screen-feedback">
   <h1>Final Feedback (optional)</h1>
   <textarea id="feedbackText" placeholder="Any comments about the task?"></textarea>
   <button class="btn btn-primary" id="feedbackNextBtn">Submit</button>
@@ -281,7 +284,8 @@ const CONFIG = {
   imageBase: "../data/images",         // from /experiment/ to /data/images/
   // Use relative path for local testing with Live Server
   // Use GitHub raw URL when deployed to GitHub Pages
-  trialsUrl: "../data/trials.csv",     // Change to GitHub raw URL when deploying
+  // trialsUrl: "../data/trials.csv",     // Change to GitHub raw URL when deploying
+  trialsUrl: "https://raw.githubusercontent.com/benebular/pharylary/main/data/trials.csv",
   attnBase: "./audio_check",           // inside /experiment/audio_check/
   nAttentionFiles: 21,                // 1..21 wav files
   volumeCheckFile: "./audio_check/gone_b.wav", // put this file in experiment/audio_check/
@@ -439,6 +443,29 @@ consentBtn.onclick = () => {
   const idVal = prolificInput.value.trim();
   if(!idVal){ alert("Please enter your Prolific ID before continuing."); return; }
   State.participantId = idVal;
+  
+  // Testing shortcuts
+  if(idVal === "bubbleboy"){
+    // Skip to survey task
+    loadTrialsFromCSV().then(success => {
+      if(success){
+        hide("screen-consent");
+        startSurvey();
+      }
+    });
+    return;
+  }
+  
+  if(idVal === "bubbleboy2"){
+    // Skip to demographics
+    loadTrialsFromCSV().then(success => {
+      if(success){
+        hide("screen-consent");
+        showDemographics();
+      }
+    });
+    return;
+  }
   
   // Load trials from CSV before proceeding
   consentBtn.disabled = true;
@@ -822,6 +849,12 @@ function finishStudy(){
 let surveyIndex = 0;
 
 function startSurvey(){
+  // Shuffle the trials using Fisher-Yates algorithm
+  for(let i = TRIALS.length - 1; i > 0; i--){
+    const j = Math.floor(Math.random() * (i + 1));
+    [TRIALS[i], TRIALS[j]] = [TRIALS[j], TRIALS[i]];
+  }
+  
   surveyIndex = 0;
   loadSurveyQuestion();
 }
@@ -846,6 +879,40 @@ function loadSurveyQuestion(){
   surveyPlayer.src = resolveAudioUrl(t);
   surveyPlayer.currentTime = 0;
 
+  // Set up audio button click handler
+  const surveySoundBtn = document.getElementById("surveySoundBtn");
+  surveySoundBtn.onclick = async () => {
+    try {
+      surveySoundBtn.disabled = true;
+      surveySoundBtn.textContent = "Playing...";
+      await surveyPlayer.play();
+    } catch (err) {
+      console.error("Audio playback error:", err);
+      alert("Unable to play audio. Please check your browser permissions.");
+      surveySoundBtn.disabled = false;
+      surveySoundBtn.textContent = "Play Audio";
+    }
+  };
+  surveySoundBtn.disabled = false;
+  surveySoundBtn.textContent = "Play Audio";
+  
+  surveyPlayer.onended = () => {
+    surveySoundBtn.disabled = false;
+    surveySoundBtn.textContent = "Play Audio";
+  };
+
+  // Add spacebar listener for audio playback
+  const playAudioOnSpacebar = async (e) => {
+    if(e.code === "Space"){
+      e.preventDefault();
+      surveySoundBtn.click();
+    }
+  };
+  document.addEventListener("keydown", playAudioOnSpacebar);
+  
+  // Store listener reference so we can remove it later
+  window.currentSurveyKeyListener = playAudioOnSpacebar;
+
   // Load image
   const surveyImageContainer = document.getElementById("surveyImageContainer");
   surveyImageContainer.innerHTML = '';
@@ -858,6 +925,16 @@ function loadSurveyQuestion(){
     img.style.borderRadius = "8px";
     img.style.border = "2px solid #ddd";
     surveyImageContainer.appendChild(img);
+  }
+
+  // Add English definition if available
+  if(t.TargetDefinition){
+    const defDiv = document.createElement('div');
+    defDiv.style.margin = "16px 0";
+    defDiv.style.fontSize = "18px";
+    defDiv.style.lineHeight = "1.4";
+    defDiv.innerHTML = `<strong>English definition:</strong> ${t.TargetDefinition}`;
+    surveyImageContainer.appendChild(defDiv);
   }
 
   // Build questions container
@@ -874,17 +951,17 @@ function loadSurveyQuestion(){
   );
   questionsContainer.appendChild(q1);
 
-  // Question 2: How well do you understand this word? (Likert 1-7)
+  // Question 2: How well do you understand this word? (Likert 1-7 + N/A)
   const q2 = createQuestion(
     "How well do you understand this word?",
-    createLikertScale(responses, "understand", "Not Well", "Well")
+    createLikertScaleWithNA(responses, "understand", "Not Well", "Well")
   );
   questionsContainer.appendChild(q2);
 
-  // Question 3: Does this English meaning match? (Likert 1-7 + N/A)
+  // Question 3: Does this English meaning match? (Likert 1-7)
   const q3 = createQuestion(
-    "Does this English meaning match the Arabic meaning?",
-    createLikertScaleWithNA(responses, "meaning_match", "No Match", "Match")
+    "Does the English meaning below the word match the Arabic meaning?",
+    createLikertScale(responses, "meaning_match", "No Match", "Match")
   );
   questionsContainer.appendChild(q3);
 
@@ -917,6 +994,10 @@ function loadSurveyQuestion(){
 
     // Move to next survey item
     surveyIndex += 1;
+    
+    // Scroll to top of page
+    window.scrollTo(0, 0);
+    
     loadSurveyQuestion();
   };
 
@@ -1234,9 +1315,11 @@ function showDemographics(){
 
     // Go to language demographics
     hide("screen-demographics");
+    hide("screen-feedback");
     showLanguageDemographics();
   };
 
+  hide("screen-feedback");
   show("screen-demographics");
 }
 
@@ -1423,11 +1506,12 @@ function showLanguageDemographics(){
     };
     sendToGoogleSheet(row);
 
-    // Go to feedback
+    // Go to feedback (final screen before completion)
     hide("screen-demographics-language");
     show("screen-feedback");
   };
 
+  hide("screen-feedback");
   show("screen-demographics-language");
 }
 
