@@ -944,10 +944,10 @@ function loadSurveyQuestion(){
   // Store responses for this item
   const responses = {};
 
-  // Question 1: Do you recognize this word? (Yes/No)
+  // Question 1: How familiar are you with this word? (Likert 1-7)
   const q1 = createQuestion(
-    "Do you recognize this word?",
-    createYesNoButtons(responses, "recognize")
+    "How familiar are you with this word?",
+    createLikertScale(responses, "recognize", "I don't recognize this word", "I hear this word all the time")
   );
   questionsContainer.appendChild(q1);
 
@@ -972,10 +972,10 @@ function loadSurveyQuestion(){
   );
   questionsContainer.appendChild(q4);
 
-  // Question 5: Good/natural production? (Yes/No)
+  // Question 5: Natural production? (Likert 1-7)
   const q5 = createQuestion(
     "Is this a good, normal, and natural production/pronunciation of the word?",
-    createYesNoButtons(responses, "natural")
+    createLikertScale(responses, "natural", "Not natural", "Natural")
   );
   questionsContainer.appendChild(q5);
 
