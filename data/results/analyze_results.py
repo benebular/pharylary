@@ -22,7 +22,11 @@ completed_ids = [
     '68d3fde63f2c4007620e15d0',
     '68cab84ebe4b9f5d7148e3dc',
     '68d43a3c7fb9b4c1a9eee9af',
-    '6960de0ad3223c83f5fbdf92'
+    '6960de0ad3223c83f5fbdf92',
+    '695ff3fde7fd7419df424235',
+    '68c89b71500cd48edf4fefe3',
+    '68c830029bf5aaec07eaa790',
+    '66c0f6b657bd4b8a29485652'
 ]
 
 print("=" * 80)
