@@ -1551,13 +1551,20 @@ function showLanguageDemographics(){
   );
   container.appendChild(q8);
 
+  // Question 9: Country of residence (Text)
+  const q9 = createQuestion(
+    "What is your country of residence?",
+    createTextInput(responses, "country_of_residence")
+  );
+  container.appendChild(q9);
+
   // Next button
   const demographicsLanguageNextBtn = document.getElementById("demographicsLanguageNextBtn");
   demographicsLanguageNextBtn.onclick = () => {
     // Validate all fields
     const allAnswered = responses.other_languages && responses.percent_english !== undefined && 
                         responses.percent_arabic !== undefined && responses.percent_other !== undefined && 
-                        responses.language_switching && responses.family_preference && responses.age && responses.gender;
+                        responses.language_switching && responses.family_preference && responses.age && responses.gender && responses.country_of_residence;
     
     if(!allAnswered){
       alert("Please answer all questions before continuing.");
