@@ -41,7 +41,7 @@
   .image-container img:hover { transform:scale(1.05); box-shadow:0 4px 12px rgba(0,0,0,0.2); }
   .image-container img:active { transform:scale(0.98); }
   .meta { margin-top:20px; color:#555; font-size:13px; text-align:center; }
-  #trialStatus { font-size:18px; font-weight:600; color:#333; margin-top:24px; }
+  #trialStatus { font-size:32px; font-weight:600; color:#333; margin-top:24px; }
   .kbd { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; border:1px solid #ddd; background:#f7f7f7; padding:2px 6px; border-radius:6px; }
 
   /* Image pair display */
@@ -49,6 +49,44 @@
   .image-container { text-align:center; }
   .image-container img { max-width:200px; max-height:200px; border-radius:8px; border:2px solid #ddd; }
   .image-label { margin-top:8px; font-weight:bold; color:#333; }
+
+  /* Survey question styles */
+  .survey-question { margin:24px 0; padding:16px; background:#f9f9f9; border-radius:6px; border-left:4px solid #007acc; }
+  .survey-question-text { font-weight:600; margin-bottom:12px; font-size:15px; }
+  
+  /* Yes/No buttons */
+  .yes-no-group { display:flex; gap:12px; }
+  .yes-no-btn { flex:1; padding:10px 16px; border:2px solid #ddd; border-radius:6px; background:white; cursor:pointer; font-weight:600; transition:all 0.2s; }
+  .yes-no-btn:hover { border-color:#007acc; background:#f0f7ff; }
+  .yes-no-btn.selected { background:#007acc; color:white; border-color:#007acc; }
+  
+  /* Likert scale */
+  .likert-group { display:flex; flex-direction:column; gap:8px; }
+  .likert-scale { display:flex; gap:8px; margin-bottom:8px; }
+  .likert-btn { flex:1; padding:10px 8px; border:2px solid #ddd; border-radius:6px; background:white; cursor:pointer; font-size:13px; transition:all 0.2s; }
+  .likert-btn:hover { border-color:#007acc; background:#f0f7ff; }
+  .likert-btn.selected { background:#007acc; color:white; border-color:#007acc; }
+  .likert-labels { display:flex; justify-content:space-between; font-size:12px; color:#666; margin-top:4px; }
+  .likert-labels span { flex:1; text-align:center; }
+  
+  /* Text input for demographics */
+  .text-input-field { display:flex; flex-direction:column; gap:6px; }
+  .text-input-field input { padding:10px 12px; border:2px solid #ddd; border-radius:6px; font-size:14px; font-family:inherit; }
+  .text-input-field input:focus { outline:none; border-color:#007acc; box-shadow:0 0 0 3px rgba(0, 122, 204, 0.1); }
+  
+  /* Percentage slider */
+  .percentage-slider-group { display:flex; flex-direction:column; gap:8px; }
+  .percentage-slider-input { display:flex; align-items:center; gap:12px; }
+  .percentage-slider-input input[type="range"] { flex:1; }
+  .percentage-slider-input .value-display { min-width:40px; text-align:right; font-weight:600; color:#007acc; }
+  .percentage-total-display { font-weight:600; font-size:14px; padding:8px 12px; border-radius:6px; margin-top:12px; text-align:center; }
+  .percentage-total-display.valid { background:#e6f7e6; color:#2d662d; }
+  .percentage-total-display.invalid { background:#ffe6e6; color:#8b0000; }
+  
+  /* Stacked Likert (two questions) */
+  .stacked-likert { display:flex; flex-direction:column; gap:20px; }
+  .stacked-likert-item { display:flex; flex-direction:column; gap:8px; }
+  .stacked-likert-item-title { font-weight:600; font-size:13px; margin-bottom:4px; }
 </style>
 </head>
 <body>
@@ -118,11 +156,19 @@
   <audio id="audioCheckPlayer"></audio>
 
   <div class="question-block">
-    <p>Play the audio and type the answer you heard:</p>
+    <p>Play the audio and type the English word you heard:</p>
     <input type="text" id="audioCheckResponse" style="width:300px; padding:6px;">
   </div>
 
   <button class="btn btn-primary" id="audioCheckNextBtn" disabled>Continue</button>
+</div>
+
+<!-- Instructions -->
+<div class="card hidden" id="screen-instructions">
+  <h1>Instructions</h1>
+  <p>Welcome to the experiment! In this task you will be identifying words. First, you will play an audio file and listen to a word in Arabic, and then you will choose which word you just heard from the two words written in Arabic presented on the screen. Do your best and respond as quickly as you can once the audio file has stopped playing. Following the task, there will be a survey about the words and questions about your background.</p>
+  <br>
+  <button class="btn btn-primary" id="instructionsNextBtn">Continue</button>
 </div>
 
 <!-- Trials -->
@@ -130,7 +176,7 @@
   <div class="progress"><div id="progressBar"></div></div>
   <h1 id="trialTitle">Trial</h1>
   <p>
-    Press <strong>spacebar</strong> to play the audio. After it ends, click an image or press <strong>F</strong> (left) / <strong>J</strong> (right) to choose.
+    Press <strong>spacebar</strong> to play the audio. After it ends, click an image or press <strong>F</strong> (left) / <strong>J</strong> (right) to choose the correct word.
   </p>
 
   <button class="btn btn-primary" id="playBtn">Play Audio</button>
@@ -147,6 +193,84 @@
   </div>
 
   <div class="meta" id="trialStatus">Waiting to start…</div>
+</div>
+
+<!-- Survey -->
+<!-- Survey Splash Page -->
+<div class="card hidden" id="screen-survey-splash">
+  <h1>About the Survey</h1>
+  
+  <div style="background:#f9f9f9; padding:16px; border-radius:6px; margin-bottom:24px; font-size:14px; line-height:1.6;">
+    <p><strong>Modern Standard Arabic, الفصحى</strong>, is often used to describe both an accent and written form of the Arabic language that is spoken and understood by speakers from different Arabic-speaking communities. It is often a second language of people who speak a dialect of Arabic as their first language. You can find Modern Standard Arabic in formal writing, news casts, journals, articles, religious texts, public or government documents and signs, or in classrooms.</p>
+    
+    <p><strong>Arabic dialect, العامية</strong>, is often used to describe both an accent and written form of Arabic that is specific to certain communities of people. It is usually spoken as a first language across these communities. In many cases, there is a lot less that is shared between dialects of Arabic in terms of accent and written form. Examples of dialectal Arabic include Palestinian, Egyptian, Gulf, Najdi, Sudanese, Tunisian, and Yemeni Arabic.</p>
+    
+    <p style="margin-top:16px;">The following questions will ask you about a word's status in Modern Standard Arabic and Arabic dialect.</p>
+  </div>
+
+  <button class="btn btn-primary" id="surveySplashNextBtn" style="margin-top:20px;">Continue to Survey</button>
+</div>
+
+<!-- Survey Splash Page -->
+<div class="card hidden" id="screen-survey-splash">
+  <h1>About the Survey</h1>
+  
+  <div style="background:#f9f9f9; padding:16px; border-radius:6px; margin-bottom:24px; font-size:14px; line-height:1.6;">
+    <p><strong>Modern Standard Arabic, الفصحى</strong>, is often used to describe both an accent and written form of the Arabic language that is spoken and understood by speakers from different Arabic-speaking communities. It is often a second language of people who speak a dialect of Arabic as their first language. You can find Modern Standard Arabic in formal writing, news casts, journals, articles, religious texts, public or government documents and signs, or in classrooms.</p>
+    
+    <p><strong>Arabic dialect, العامية</strong>, is often used to describe both an accent and written form of Arabic that is specific to certain communities of people. It is usually spoken as a first language across these communities. In many cases, there is a lot less that is shared between dialects of Arabic in terms of accent and written form. Examples of dialectal Arabic include Palestinian, Egyptian, Gulf, Najdi, Sudanese, Tunisian, and Yemeni Arabic.</p>
+    
+    <p style="margin-top:16px;">The following questions will ask you about a word's status in Modern Standard Arabic and Arabic dialect.</p>
+  </div>
+
+  <button class="btn btn-primary" id="surveySplashNextBtn" style="margin-top:20px;">Continue to Survey</button>
+</div>
+
+<div class="card hidden" id="screen-survey">
+  <div class="progress"><div id="surveyProgressBar"></div></div>
+  <h1 id="surveyTitle">Survey</h1>
+  
+  <p style="margin:16px 0; font-size:15px; line-height:1.5;">Please listen to the audio for the presented word and then answer the questions below. You can click the Play Audio button or press the spacebar to play the audio. You may listen to the audio as many times as you need. For question 2, if you did not understand the word, mark "Do Not Understand."</p>
+  
+  <div class="image-container" id="surveyImageContainer" style="margin:20px 0; text-align:center;"></div>
+  
+  <div style="margin:20px 0; text-align:center;">
+    <button class="btn btn-primary" id="surveySoundBtn">Play Audio</button>
+    <audio id="surveyPlayer" preload="auto"></audio>
+  </div>
+
+  <div id="surveyQuestionsContainer"></div>
+
+  <button class="btn btn-primary" id="surveyNextBtn" style="margin-top:20px;">Next</button>
+</div>
+
+<!-- Demographics -->
+<div class="card hidden" id="screen-demographics">
+  <h1>Background Information</h1>
+  
+  <div style="background:#f9f9f9; padding:16px; border-radius:6px; margin-bottom:24px; font-size:14px; line-height:1.6;">
+    <p><strong>Modern Standard Arabic, الفصحى</strong>, is often used to describe both an accent and written form of the Arabic language that is spoken and understood by speakers from different Arabic-speaking communities. It is often a second language of people who speak a dialect of Arabic as their first language. You can find Modern Standard Arabic in formal writing, news casts, journals, articles, religious texts, public or government documents and signs, or in classrooms.</p>
+    
+    <p><strong>Arabic dialect, العامية</strong>, is often used to describe both an accent and written form of Arabic that is specific to certain communities of people. It is usually spoken as a first language across these communities. In many cases, there is a lot less that is shared between dialects of Arabic in terms of accent and written form. Examples of dialectal Arabic include Palestinian, Egyptian, Gulf, Najdi, Sudanese, Tunisian, and Yemeni Arabic.</p>
+    
+    <p>The following questions will ask you about your knowledge and usage of these two broad types of Arabic, and any other languages you know.</p>
+  </div>
+
+  <div id="demographicsQuestionsContainer"></div>
+
+  <button class="btn btn-primary" id="demographicsNextBtn" style="margin-top:20px;">Continue</button>
+</div>
+
+<!-- Demographics - Language Use -->
+<div class="card hidden" id="screen-demographics-language">
+  <h1>Language Use and Background</h1>
+
+  <div id="demographicsLanguageQuestionsContainer"></div>
+
+  <div style="margin-top:20px; display:flex; gap:12px;">
+    <button class="btn btn-secondary" id="demographicsLanguageBackBtn">Back</button>
+    <button class="btn btn-primary" id="demographicsLanguageNextBtn">Continue</button>
+  </div>
 </div>
 
 <!-- Feedback -->
@@ -193,13 +317,20 @@ const CONFIG = {
   imageBase: "../data/images",         // from /experiment/ to /data/images/
   // Use relative path for local testing with Live Server
   // Use GitHub raw URL when deployed to GitHub Pages
-  trialsUrl: "../data/trials.csv",     // Change to GitHub raw URL when deploying
+  // trialsUrl: "../data/trials.csv",     // Change to GitHub raw URL when deploying
+  trialsUrl: "https://raw.githubusercontent.com/benebular/pharylary/main/data/trials.csv",
   attnBase: "./audio_check",           // inside /experiment/audio_check/
-  nAttentionFiles: 21,                // 1..21 wav files
+  attnFileNames: [
+    "alice_b.wav", "bean_b.wav", "beaten_t_b.wav", "bun_b.wav",
+    "curly_b.wav", "dane_b.wav", "den_b.wav", "dent_t_b.wav",
+    "faint_t_b.wav", "feign_b.wav", "gone_b.wav", "greatness_gs_b.wav",
+    "jaunt_t_b.wav", "keen_b.wav", "motley_t_b.wav", "ron_b.wav",
+    "sane_b.wav", "seller_b.wav", "tin_b.wav", "tint_t_b.wav", "whinny_b.wav"
+  ],
   volumeCheckFile: "./audio_check/gone_b.wav", // put this file in experiment/audio_check/
-  attentionEveryNTrials: 4,            // show an attention check every N trials
-  completionCode: "CJUVEL1D",
-  prolificReturnUrl: "https://app.prolific.com/submissions/complete?cc=CJUVEL1D",
+  attentionEveryNTrials: 28,          // ~10% of trials (282 trials / 28 ≈ 28 checks)
+  completionCode: "CJY9T9NA",
+  prolificReturnUrl: "https://app.prolific.com/submissions/complete?cc=CJY9T9NA",
 };
 
 /** Trials: Loaded from CSV
@@ -348,14 +479,52 @@ consentCheck.onchange = updateConsentContinue;
 prolificInput.oninput  = updateConsentContinue;
 
 consentBtn.onclick = () => {
-  const idVal = prolificInput.value.trim();
+  const rawId = prolificInput.value || "";
+  const idVal = rawId.trim();
   if(!idVal){ alert("Please enter your Prolific ID before continuing."); return; }
   State.participantId = idVal;
-  
+
+  // normalize for testing shortcuts (case-insensitive)
+  const idNorm = idVal.toLowerCase();
+
+  // Testing shortcuts
+  if(idNorm === "bubbleboy"){
+    // Skip to survey task
+    loadTrialsFromCSV().then(success => {
+      if(success){
+        hide("screen-consent");
+        startSurvey();
+      }
+    });
+    return;
+  }
+
+  if(idNorm === "bubbleboy2"){
+    // Skip to survey splash page
+    loadTrialsFromCSV().then(success => {
+      if(success){
+        hide("screen-consent");
+        showSurveySplash();
+      }
+    });
+    return;
+  }
+
+  if(idNorm === "bubbleboy3"){
+    // Skip to demographics
+    loadTrialsFromCSV().then(success => {
+      if(success){
+        hide("screen-consent");
+        showDemographics();
+      }
+    });
+    return;
+  }
+
   // Load trials from CSV before proceeding
   consentBtn.disabled = true;
   consentBtn.textContent = "Loading trials...";
-  
+
   loadTrialsFromCSV().then(success => {
     if(success){
       hide("screen-consent");
@@ -411,17 +580,14 @@ volumeNextBtn.onclick = () => {
   volumeAudio.pause();
   hide("screen-volume");
   prepareAttentionQueue();
-  showAudioAttentionCheck(() => startTrials());
+  showAudioAttentionCheck(() => showInstructions());
 };
 
 /* ===========================
    ATTENTION CHECKS
 =========================== */
 function prepareAttentionQueue(){
-  const urls=[];
-  for(let i=1;i<=CONFIG.nAttentionFiles;i++){
-    urls.push(`${CONFIG.attnBase}/${i}.wav`);
-  }
+  const urls = CONFIG.attnFileNames.map(filename => `${CONFIG.attnBase}/${filename}`);
   State.attnQueue = shuffle(urls);
 }
 function nextAttentionAudio(){
@@ -486,6 +652,20 @@ function showAudioAttentionCheck(onContinue){
   };
 
   card.classList.remove('hidden');
+}
+
+/* ===========================
+   INSTRUCTIONS SCREEN
+=========================== */
+function showInstructions(){
+  const instructionsNextBtn = document.getElementById('instructionsNextBtn');
+  
+  instructionsNextBtn.onclick = () => {
+    hide("screen-instructions");
+    startTrials();
+  };
+  
+  show("screen-instructions");
 }
 
 /* ===========================
@@ -642,8 +822,8 @@ function recordChoice(choiceSide){
   State.awaitingChoice = false;
   setChoiceEnabled(false);
 
-  const targetIndicator = is_target ? "✓ correct" : "✗ incorrect";
-  trialStatus.textContent = `Recorded: ${targetIndicator} (RT ${rt_ms} ms).`;
+  const targetIndicator = is_target ? "✓ Correct" : "✗ Incorrect";
+  trialStatus.textContent = targetIndicator;
 
   // Attention check every N trials (optional)
   const nextIndex = State.trialIndex + 1;
@@ -652,13 +832,15 @@ function recordChoice(choiceSide){
   State.trialIndex += 1;
 
   if(needsCheck){
-    hide("screen-trials");
-    showAudioAttentionCheck(() => {
-      show("screen-trials");
-      loadTrial();
-    });
+    setTimeout(() => {
+      hide("screen-trials");
+      showAudioAttentionCheck(() => {
+        show("screen-trials");
+        loadTrial();
+      });
+    }, 1000);
   } else {
-    setTimeout(loadTrial, 250);
+    setTimeout(loadTrial, 1000);
   }
 }
 
@@ -700,8 +882,8 @@ document.getElementById('feedbackNextBtn').onclick = () => {
     completion_code: CONFIG.completionCode,
     timestamp_iso: new Date().toISOString(),
   };
-  for(let i=1;i<=CONFIG.nAttentionFiles;i++){
-    out[`attention_check_${i}`] = State.attnAnswers[i-1] || "";
+  for(let i=0;i<State.attnAnswers.length;i++){
+    out[`attention_check_${i+1}`] = State.attnAnswers[i] || "";
   }
   sendToGoogleSheet(out);
 
@@ -711,7 +893,879 @@ document.getElementById('feedbackNextBtn').onclick = () => {
 
 function finishStudy(){
   hide("screen-trials");
-  show("screen-feedback");
+  showSurveySplash();
+}
+
+function showSurveySplash(){
+  const splashBtn = document.getElementById('surveySplashNextBtn');
+  splashBtn.onclick = () => {
+    hide('screen-survey-splash');
+    startSurvey();
+  };
+  show('screen-survey-splash');
+}
+
+/* ===========================
+   SURVEY TASK
+=========================== */
+let surveyIndex = 0;
+
+function startSurvey(){
+  // Shuffle the trials using Fisher-Yates algorithm
+  for(let i = TRIALS.length - 1; i > 0; i--){
+    const j = Math.floor(Math.random() * (i + 1));
+    [TRIALS[i], TRIALS[j]] = [TRIALS[j], TRIALS[i]];
+  }
+  
+  surveyIndex = 0;
+  loadSurveyQuestion();
+}
+
+function loadSurveyQuestion(){
+  const t = TRIALS[surveyIndex];
+  if(!t){ 
+    hide("screen-survey");
+    showDemographics();
+    return; 
+  }
+
+  // Update progress
+  const surveyProgressBar = document.getElementById("surveyProgressBar");
+  const surveyTitle = document.getElementById("surveyTitle");
+  const total = TRIALS.length;
+  surveyProgressBar.style.width = `${Math.round(((surveyIndex + 1)/total)*100)}%`;
+  surveyTitle.textContent = `Survey - Item ${surveyIndex + 1} of ${total}`;
+
+  // Load audio
+  const surveyPlayer = document.getElementById("surveyPlayer");
+  surveyPlayer.src = resolveAudioUrl(t);
+  surveyPlayer.currentTime = 0;
+
+  // Set up audio button click handler
+  const surveySoundBtn = document.getElementById("surveySoundBtn");
+  surveySoundBtn.onclick = async () => {
+    try {
+      surveySoundBtn.disabled = true;
+      surveySoundBtn.textContent = "Playing...";
+      await surveyPlayer.play();
+    } catch (err) {
+      console.error("Audio playback error:", err);
+      alert("Unable to play audio. Please check your browser permissions.");
+      surveySoundBtn.disabled = false;
+      surveySoundBtn.textContent = "Play Audio";
+    }
+  };
+  surveySoundBtn.disabled = false;
+  surveySoundBtn.textContent = "Play Audio";
+  
+  surveyPlayer.onended = () => {
+    surveySoundBtn.disabled = false;
+    surveySoundBtn.textContent = "Play Audio";
+  };
+
+  // Add spacebar listener for audio playback
+  const playAudioOnSpacebar = async (e) => {
+    if(e.code === "Space"){
+      e.preventDefault();
+      surveySoundBtn.click();
+    }
+  };
+  document.addEventListener("keydown", playAudioOnSpacebar);
+  
+  // Store listener reference so we can remove it later
+  window.currentSurveyKeyListener = playAudioOnSpacebar;
+
+  // Load image
+  const surveyImageContainer = document.getElementById("surveyImageContainer");
+  surveyImageContainer.innerHTML = '';
+  if(t.target_image){
+    const img = document.createElement('img');
+    img.src = resolveImageUrl(t.target_image);
+    img.alt = "Target word image";
+    img.style.maxWidth = "200px";
+    img.style.maxHeight = "200px";
+    img.style.borderRadius = "8px";
+    img.style.border = "2px solid #ddd";
+    surveyImageContainer.appendChild(img);
+  }
+
+  // Add English definition if available
+  if(t.TargetDefinition){
+    const defDiv = document.createElement('div');
+    defDiv.style.margin = "16px 0";
+    defDiv.style.fontSize = "18px";
+    defDiv.style.lineHeight = "1.4";
+    defDiv.innerHTML = `<strong>English definition:</strong> ${t.TargetDefinition}`;
+    surveyImageContainer.appendChild(defDiv);
+  }
+
+  // Build questions container
+  const questionsContainer = document.getElementById("surveyQuestionsContainer");
+  questionsContainer.innerHTML = '';
+
+  // Store responses for this item
+  const responses = {};
+
+  // Question 1: How familiar are you with this word? (Likert 1-7)
+  const q1 = createQuestion(
+    "How familiar are you with this word?",
+    createLikertScale(responses, "recognize", "I don't recognize this word", "I hear this word all the time")
+  );
+  questionsContainer.appendChild(q1);
+
+  // Question 2: How well do you understand this word? (Likert 1-7 + N/A)
+  const q2 = createQuestion(
+    "How well do you understand this word?",
+    createLikertScaleWithNA(responses, "understand", "Not Well", "Well")
+  );
+  questionsContainer.appendChild(q2);
+
+  // Question 3: Does this English meaning match? (Likert 1-7)
+  const q3 = createQuestion(
+    "Does the English meaning below the word match the Arabic meaning?",
+    createLikertScale(responses, "meaning_match", "No Match", "Match")
+  );
+  questionsContainer.appendChild(q3);
+
+  // Question 4: MSA or Dialect? (Multiple choice: MSA, Dialect, Both)
+  const q4 = createQuestion(
+    "Does this pronunciation sound like Modern Standard Arabic (الفصحى)or a dialect (العامية)? ",
+    createMSADialectChoice(responses, "msa_dialect")
+  );
+  questionsContainer.appendChild(q4);
+
+  // Question 5: Natural production? (Likert 1-7)
+  const q5 = createQuestion(
+    "Is this a good, normal, and natural production/pronunciation of the word?",
+    createLikertScale(responses, "natural", "Not natural", "Natural")
+  );
+  questionsContainer.appendChild(q5);
+
+  // Disable response controls until audio is played at least once
+  const surveyNextBtn = document.getElementById("surveyNextBtn");
+  function setSurveyInputsEnabled(enabled){
+    const inputs = questionsContainer.querySelectorAll('button');
+    inputs.forEach(b => { try{ b.disabled = !enabled; }catch(e){} });
+    surveyNextBtn.disabled = !enabled;
+  }
+  // Start disabled
+  setSurveyInputsEnabled(false);
+
+  // Enable when audio actually starts playing
+  surveyPlayer.onplay = () => { setSurveyInputsEnabled(true); };
+
+  // Also enable after a successful click/play attempt
+  const origSurveySoundOnclick = surveySoundBtn.onclick;
+  surveySoundBtn.onclick = async () => {
+    try {
+      // call original handler which attempts to play
+      await origSurveySoundOnclick();
+    } catch (e) {
+      // ignore
+    }
+    // If playback started, onplay will enable controls; otherwise enable defensively
+    setTimeout(() => { setSurveyInputsEnabled(true); }, 500);
+  };
+
+  surveyNextBtn.onclick = () => {
+    // Check if all questions answered
+    const allAnswered = responses.recognize && responses.understand && responses.meaning_match && responses.msa_dialect && responses.natural;
+    if(!allAnswered){
+      alert("Please answer all questions before continuing.");
+      return;
+    }
+
+    // Send responses to Google Sheet
+    sendSurveyResponse(t, responses);
+
+    // Move to next survey item
+    surveyIndex += 1;
+    
+    // Scroll to top of page
+    window.scrollTo(0, 0);
+    
+    loadSurveyQuestion();
+  };
+
+  show("screen-survey");
+}
+
+function createQuestion(questionText, responseElement){
+  const div = document.createElement('div');
+  div.className = 'survey-question';
+  
+  const label = document.createElement('div');
+  label.className = 'survey-question-text';
+  label.textContent = questionText;
+  div.appendChild(label);
+  
+  div.appendChild(responseElement);
+  return div;
+}
+
+function createYesNoButtons(responses, key){
+  const div = document.createElement('div');
+  div.className = 'yes-no-group';
+  
+  const yesBtn = document.createElement('button');
+  yesBtn.className = 'yes-no-btn';
+  yesBtn.textContent = 'Yes';
+  yesBtn.onclick = () => {
+    responses[key] = 'yes';
+    yesBtn.classList.add('selected');
+    noBtn.classList.remove('selected');
+  };
+  
+  const noBtn = document.createElement('button');
+  noBtn.className = 'yes-no-btn';
+  noBtn.textContent = 'No';
+  noBtn.onclick = () => {
+    responses[key] = 'no';
+    noBtn.classList.add('selected');
+    yesBtn.classList.remove('selected');
+  };
+  
+  div.appendChild(yesBtn);
+  div.appendChild(noBtn);
+  return div;
+}
+
+function createLikertScale(responses, key, leftLabel, rightLabel){
+  const div = document.createElement('div');
+  div.className = 'likert-group';
+  
+  const scaleDiv = document.createElement('div');
+  scaleDiv.className = 'likert-scale';
+  
+  const buttons = [];
+  for(let i = 1; i <= 7; i++){
+    const btn = document.createElement('button');
+    btn.className = 'likert-btn';
+    btn.textContent = i;
+    btn.onclick = () => {
+      responses[key] = i;
+      buttons.forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
+    };
+    buttons.push(btn);
+    scaleDiv.appendChild(btn);
+  }
+  
+  const labelsDiv = document.createElement('div');
+  labelsDiv.className = 'likert-labels';
+  const leftSpan = document.createElement('span');
+  leftSpan.textContent = leftLabel;
+  const rightSpan = document.createElement('span');
+  rightSpan.textContent = rightLabel;
+  labelsDiv.appendChild(leftSpan);
+  labelsDiv.appendChild(rightSpan);
+  
+  div.appendChild(scaleDiv);
+  div.appendChild(labelsDiv);
+  return div;
+}
+
+function createLikertScaleWithNA(responses, key, leftLabel, rightLabel){
+  const div = document.createElement('div');
+  div.className = 'likert-group';
+  
+  const scaleDiv = document.createElement('div');
+  scaleDiv.className = 'likert-scale';
+  
+  const buttons = [];
+  for(let i = 1; i <= 7; i++){
+    const btn = document.createElement('button');
+    btn.className = 'likert-btn';
+    btn.textContent = i;
+    btn.onclick = () => {
+      responses[key] = i;
+      buttons.forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
+      naBtn.classList.remove('selected');
+    };
+    buttons.push(btn);
+    scaleDiv.appendChild(btn);
+  }
+  
+  const naBtn = document.createElement('button');
+  naBtn.className = 'likert-btn';
+  naBtn.textContent = 'Do not understand';
+  naBtn.style.marginTop = '8px';
+  naBtn.onclick = () => {
+    responses[key] = 'NA';
+    buttons.forEach(b => b.classList.remove('selected'));
+    naBtn.classList.add('selected');
+  };
+  scaleDiv.appendChild(naBtn);
+  
+  const labelsDiv = document.createElement('div');
+  labelsDiv.className = 'likert-labels';
+  const leftSpan = document.createElement('span');
+  leftSpan.textContent = leftLabel;
+  const rightSpan = document.createElement('span');
+  rightSpan.textContent = rightLabel;
+  labelsDiv.appendChild(leftSpan);
+  labelsDiv.appendChild(rightSpan);
+  
+  div.appendChild(scaleDiv);
+  div.appendChild(labelsDiv);
+  return div;
+}
+
+function createMSADialectChoice(responses, key){
+  const div = document.createElement('div');
+  div.className = 'yes-no-group';
+  
+  const dialectBtn = document.createElement('button');
+  dialectBtn.className = 'yes-no-btn';
+  dialectBtn.textContent = 'Dialect';
+  dialectBtn.onclick = () => {
+    responses[key] = 'dialect';
+    dialectBtn.classList.add('selected');
+    msaBtn.classList.remove('selected');
+    bothBtn.classList.remove('selected');
+  };
+  
+  const msaBtn = document.createElement('button');
+  msaBtn.className = 'yes-no-btn';
+  msaBtn.textContent = 'MSA';
+  msaBtn.onclick = () => {
+    responses[key] = 'msa';
+    msaBtn.classList.add('selected');
+    dialectBtn.classList.remove('selected');
+    bothBtn.classList.remove('selected');
+  };
+  
+  const bothBtn = document.createElement('button');
+  bothBtn.className = 'yes-no-btn';
+  bothBtn.textContent = 'Both';
+  bothBtn.onclick = () => {
+    responses[key] = 'both';
+    bothBtn.classList.add('selected');
+    dialectBtn.classList.remove('selected');
+    msaBtn.classList.remove('selected');
+  };
+  
+  div.appendChild(dialectBtn);
+  div.appendChild(msaBtn);
+  div.appendChild(bothBtn);
+  return div;
+}
+
+function createLikertScaleWithBoth(responses, key, leftLabel, rightLabel){
+  const div = document.createElement('div');
+  div.className = 'likert-group';
+  
+  const scaleDiv = document.createElement('div');
+  scaleDiv.className = 'likert-scale';
+  
+  const buttons = [];
+  for(let i = 1; i <= 7; i++){
+    const btn = document.createElement('button');
+    btn.className = 'likert-btn';
+    btn.textContent = i;
+    btn.onclick = () => {
+      responses[key] = i;
+      buttons.forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
+      bothBtn.classList.remove('selected');
+    };
+    buttons.push(btn);
+    scaleDiv.appendChild(btn);
+  }
+  
+  const bothBtn = document.createElement('button');
+  bothBtn.className = 'likert-btn';
+  bothBtn.textContent = 'Both';
+  bothBtn.style.marginTop = '8px';
+  bothBtn.onclick = () => {
+    responses[key] = 'both';
+    buttons.forEach(b => b.classList.remove('selected'));
+    bothBtn.classList.add('selected');
+  };
+  scaleDiv.appendChild(bothBtn);
+  
+  const labelsDiv = document.createElement('div');
+  labelsDiv.className = 'likert-labels';
+  const leftSpan = document.createElement('span');
+  leftSpan.textContent = leftLabel;
+  const rightSpan = document.createElement('span');
+  rightSpan.textContent = rightLabel;
+  labelsDiv.appendChild(leftSpan);
+  labelsDiv.appendChild(rightSpan);
+  
+  div.appendChild(scaleDiv);
+  div.appendChild(labelsDiv);
+  return div;
+}
+
+function sendSurveyResponse(trial, responses){
+  const row = {
+    participant_id: State.participantId,
+    prolific_id: State.participantId,
+    block: "Survey",
+    survey_index: surveyIndex + 1,
+    trial_id: trial.trial_id ?? "",
+    audio_file: trial.audio_file ?? "",
+    target_image: trial.target_image ?? "",
+    recognize: responses.recognize ?? "",
+    understand: responses.understand ?? "",
+    meaning_match: responses.meaning_match ?? "",
+    msa_dialect: responses.msa_dialect ?? "",
+    natural: responses.natural ?? "",
+    headphone_type: State.headphoneType,
+    timestamp_iso: new Date().toISOString(),
+  };
+  
+  sendToGoogleSheet(row);
+}
+
+/* ===========================
+   DEMOGRAPHICS
+=========================== */
+function showDemographics(){
+  const demographicsContainer = document.getElementById("demographicsQuestionsContainer");
+  demographicsContainer.innerHTML = '';
+
+  const responses = {};
+
+  // Question 1: Best Arabic dialect (Text)
+  const q1 = createQuestion(
+    "What Arabic dialect do you speak the best?",
+    createTextInput(responses, "dialect_best")
+  );
+  demographicsContainer.appendChild(q1);
+
+  // Question 2: Second best dialect (Text)
+  const q2 = createQuestion(
+    "What Arabic dialect do you speak the second best? (Can be 'none' if you only know one dialect)",
+    createTextInput(responses, "dialect_second")
+  );
+  demographicsContainer.appendChild(q2);
+
+  // Question 3: Ease of understanding other communities (Likert 1-7)
+  const q3 = createQuestion(
+    "When you speak in Arabic with someone from another community or country where Arabic is spoken, how easy are they to understand?",
+    createLikertScale(responses, "understand_other", "Hard to understand", "Easy to understand")
+  );
+  demographicsContainer.appendChild(q3);
+
+  // Question 4: MSA instruction (Yes/No)
+  const q4 = createQuestion(
+    "In your formal education, did you receive instruction on how to pronounce Modern Standard Arabic?",
+    createYesNoButtons(responses, "msa_instruction")
+  );
+  demographicsContainer.appendChild(q4);
+
+  // Question 5: Comfort reading MSA with vowels (Likert 1-7)
+  const q5 = createQuestion(
+    "On the following scale below, please indicate how comfortable you are with reading Modern Standard Arabic using vowels (harakat حَرَكَات).",
+    createLikertScale(responses, "msa_vowels", "Not comfortable", "Very comfortable")
+  );
+  demographicsContainer.appendChild(q5);
+
+  // Question 6: Radio/News difficulty (Stacked Likert 1-7)
+  const q6 = createQuestion(
+    "If you listen to the radio or read a news broadcast in Modern Standard Arabic, how difficult is it for you to understand?",
+    createStackedLikert(responses, "msa_reading", "msa_listening")
+  );
+  demographicsContainer.appendChild(q6);
+
+  // Next button
+  const demographicsNextBtn = document.getElementById("demographicsNextBtn");
+  demographicsNextBtn.onclick = () => {
+    // Validate all fields - check for non-empty trimmed values
+    const allAnswered = 
+      (typeof responses.dialect_best === 'string' && responses.dialect_best.trim()) &&
+      (typeof responses.dialect_second === 'string' && responses.dialect_second.trim()) &&
+      responses.understand_other && 
+      responses.msa_instruction && 
+      responses.msa_vowels && 
+      responses.msa_reading && 
+      responses.msa_listening;
+    if(!allAnswered){
+      alert("Please answer all questions before continuing.");
+      return;
+    }
+
+    // Send to Google Sheet
+    const row = {
+      participant_id: State.participantId,
+      prolific_id: State.participantId,
+      block: "Demographics",
+      dialect_best: responses.dialect_best ?? "",
+      dialect_second: responses.dialect_second ?? "",
+      understand_other: responses.understand_other ?? "",
+      msa_instruction: responses.msa_instruction ?? "",
+      msa_vowels: responses.msa_vowels ?? "",
+      msa_reading: responses.msa_reading ?? "",
+      msa_listening: responses.msa_listening ?? "",
+      headphone_type: State.headphoneType,
+      timestamp_iso: new Date().toISOString(),
+    };
+    sendToGoogleSheet(row);
+
+    // Go to language demographics
+    hide("screen-demographics");
+    hide("screen-feedback");
+    showLanguageDemographics();
+  };
+
+  hide("screen-feedback");
+  show("screen-demographics");
+}
+
+function createTextInput(responses, key){
+  const div = document.createElement('div');
+  div.className = 'text-input-field';
+  
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.placeholder = 'Enter your answer...';
+  input.oninput = () => {
+    responses[key] = input.value;
+  };
+  
+  div.appendChild(input);
+  return div;
+}
+
+function createStackedLikert(responses, readingKey, listeningKey){
+  const div = document.createElement('div');
+  div.className = 'stacked-likert';
+  
+  // Reading
+  const readingDiv = document.createElement('div');
+  readingDiv.className = 'stacked-likert-item';
+  
+  const readingTitle = document.createElement('div');
+  readingTitle.className = 'stacked-likert-item-title';
+  readingTitle.textContent = 'Reading';
+  readingDiv.appendChild(readingTitle);
+  
+  const readingButtons = [];
+  const readingScale = document.createElement('div');
+  readingScale.className = 'likert-scale';
+  for(let i = 1; i <= 7; i++){
+    const btn = document.createElement('button');
+    btn.className = 'likert-btn';
+    btn.textContent = i;
+    btn.onclick = () => {
+      responses[readingKey] = i;
+      readingButtons.forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
+    };
+    readingButtons.push(btn);
+    readingScale.appendChild(btn);
+  }
+  readingDiv.appendChild(readingScale);
+  
+  const readingLabels = document.createElement('div');
+  readingLabels.className = 'likert-labels';
+  const readingLeft = document.createElement('span');
+  readingLeft.textContent = 'Difficult';
+  const readingRight = document.createElement('span');
+  readingRight.textContent = 'Easy';
+  readingLabels.appendChild(readingLeft);
+  readingLabels.appendChild(readingRight);
+  readingDiv.appendChild(readingLabels);
+  
+  div.appendChild(readingDiv);
+  
+  // Listening
+  const listeningDiv = document.createElement('div');
+  listeningDiv.className = 'stacked-likert-item';
+  
+  const listeningTitle = document.createElement('div');
+  listeningTitle.className = 'stacked-likert-item-title';
+  listeningTitle.textContent = 'Listening';
+  listeningDiv.appendChild(listeningTitle);
+  
+  const listeningButtons = [];
+  const listeningScale = document.createElement('div');
+  listeningScale.className = 'likert-scale';
+  for(let i = 1; i <= 7; i++){
+    const btn = document.createElement('button');
+    btn.className = 'likert-btn';
+    btn.textContent = i;
+    btn.onclick = () => {
+      responses[listeningKey] = i;
+      listeningButtons.forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
+    };
+    listeningButtons.push(btn);
+    listeningScale.appendChild(btn);
+  }
+  listeningDiv.appendChild(listeningScale);
+  
+  const listeningLabels = document.createElement('div');
+  listeningLabels.className = 'likert-labels';
+  const listeningLeft = document.createElement('span');
+  listeningLeft.textContent = 'Difficult';
+  const listeningRight = document.createElement('span');
+  listeningRight.textContent = 'Easy';
+  listeningLabels.appendChild(listeningLeft);
+  listeningLabels.appendChild(listeningRight);
+  listeningDiv.appendChild(listeningLabels);
+  
+  div.appendChild(listeningDiv);
+  return div;
+}
+
+/* ===========================
+   LANGUAGE DEMOGRAPHICS
+=========================== */
+function showLanguageDemographics(){
+  const container = document.getElementById("demographicsLanguageQuestionsContainer");
+  container.innerHTML = '';
+
+  const responses = {};
+
+  // Question 1: Other languages (Text)
+  const q1 = createQuestion(
+    "What other languages do you speak other than English and Arabic?",
+    createTextInput(responses, "other_languages")
+  );
+  container.appendChild(q1);
+
+  // Questions 2-4: Percentage sliders (must sum to 100)
+  const percentageDiv = createPercentageQuestion(responses);
+  container.appendChild(percentageDiv);
+
+  // Question 5: Language switching (Likert 1-7)
+  const q5 = createQuestion(
+    "When you are with people who know the same languages as you, do you often switch back and forth between the languages?",
+    createLikertScale(responses, "language_switching", "Stay in one language", "Switch often")
+  );
+  container.appendChild(q5);
+
+  // Question 6: Family preference (Likert 1-7)
+  const q6 = createQuestion(
+    "In your family and friend circle, are you encouraged to speak all of your languages or do people tend to prefer a particular language?",
+    createLikertScale(responses, "family_preference", "Speak any language", "Prefer one language")
+  );
+  container.appendChild(q6);
+
+  // Question 7: Age (Text)
+  const q7 = createQuestion(
+    "What is your age?",
+    createTextInput(responses, "age")
+  );
+  container.appendChild(q7);
+
+  // Question 8: Gender (Text)
+  const q8 = createQuestion(
+    "What is your gender?",
+    createTextInput(responses, "gender")
+  );
+  container.appendChild(q8);
+
+  // Question 9: Country of residence (Text)
+  const q9 = createQuestion(
+    "What is your country of residence?",
+    createTextInput(responses, "country_of_residence")
+  );
+  container.appendChild(q9);
+
+  // Back button
+  const demographicsLanguageBackBtn = document.getElementById("demographicsLanguageBackBtn");
+  demographicsLanguageBackBtn.onclick = () => {
+    hide("screen-demographics-language");
+    show("screen-demographics");
+  };
+
+  // Next button
+  const demographicsLanguageNextBtn = document.getElementById("demographicsLanguageNextBtn");
+  demographicsLanguageNextBtn.onclick = () => {
+    // Validate all fields - check for non-empty trimmed values
+    const allAnswered = 
+      (typeof responses.other_languages === 'string' && responses.other_languages.trim()) &&
+      responses.percent_english !== undefined && 
+      responses.percent_arabic !== undefined && 
+      responses.percent_other !== undefined && 
+      responses.language_switching && 
+      responses.family_preference && 
+      (typeof responses.age === 'string' && responses.age.trim()) &&
+      (typeof responses.gender === 'string' && responses.gender.trim()) &&
+      (typeof responses.country_of_residence === 'string' && responses.country_of_residence.trim());
+    
+    if(!allAnswered){
+      alert("Please answer all questions before continuing.");
+      return;
+    }
+
+    // Validate percentages sum to 100
+    const total = parseInt(responses.percent_english || 0) + parseInt(responses.percent_arabic || 0) + parseInt(responses.percent_other || 0);
+    if(total !== 100){
+      alert("The three percentage questions must add up to 100%. Current total: " + total);
+      return;
+    }
+
+    // Send to Google Sheet
+    const row = {
+      participant_id: State.participantId,
+      prolific_id: State.participantId,
+      block: "Demographics-Language",
+      other_languages: responses.other_languages ?? "",
+      percent_english: responses.percent_english ?? "",
+      percent_arabic: responses.percent_arabic ?? "",
+      percent_other: responses.percent_other ?? "",
+      language_switching: responses.language_switching ?? "",
+      family_preference: responses.family_preference ?? "",
+      age: responses.age ?? "",
+      gender: responses.gender ?? "",
+      country_of_residence: responses.country_of_residence ?? "",
+      headphone_type: State.headphoneType,
+      timestamp_iso: new Date().toISOString(),
+    };
+    sendToGoogleSheet(row);
+
+    // Go to feedback (final screen before completion)
+    hide("screen-demographics-language");
+    show("screen-feedback");
+  };
+
+  hide("screen-feedback");
+  show("screen-demographics-language");
+}
+
+function createPercentageQuestion(responses){
+  const div = document.createElement('div');
+  div.className = 'survey-question';
+  
+  const label = document.createElement('div');
+  label.className = 'survey-question-text';
+  label.textContent = 'What percentage of your week is spent using each language?';
+  div.appendChild(label);
+
+  const sliderGroup = document.createElement('div');
+  sliderGroup.style.display = 'flex';
+  sliderGroup.style.flexDirection = 'column';
+  sliderGroup.style.gap = '16px';
+
+  // English slider
+  const englishDiv = document.createElement('div');
+  const englishLabel = document.createElement('div');
+  englishLabel.style.fontWeight = '600';
+  englishLabel.style.fontSize = '14px';
+  englishLabel.textContent = 'English';
+  englishDiv.appendChild(englishLabel);
+  
+  const englishSlider = document.createElement('input');
+  englishSlider.type = 'range';
+  englishSlider.min = '0';
+  englishSlider.max = '100';
+  englishSlider.value = '33';
+  englishSlider.style.width = '100%';
+  
+  const englishValue = document.createElement('div');
+  englishValue.textContent = '33%';
+  englishValue.style.marginTop = '4px';
+  englishValue.style.fontWeight = '600';
+  englishValue.style.color = '#007acc';
+  
+  englishSlider.oninput = () => {
+    responses.percent_english = parseInt(englishSlider.value);
+    englishValue.textContent = englishSlider.value + '%';
+    updatePercentageTotal(responses, totalDisplay);
+  };
+  
+  englishDiv.appendChild(englishSlider);
+  englishDiv.appendChild(englishValue);
+  sliderGroup.appendChild(englishDiv);
+
+  // Arabic slider
+  const arabicDiv = document.createElement('div');
+  const arabicLabel = document.createElement('div');
+  arabicLabel.style.fontWeight = '600';
+  arabicLabel.style.fontSize = '14px';
+  arabicLabel.textContent = 'Arabic';
+  arabicDiv.appendChild(arabicLabel);
+  
+  const arabicSlider = document.createElement('input');
+  arabicSlider.type = 'range';
+  arabicSlider.min = '0';
+  arabicSlider.max = '100';
+  arabicSlider.value = '33';
+  arabicSlider.style.width = '100%';
+  
+  const arabicValue = document.createElement('div');
+  arabicValue.textContent = '33%';
+  arabicValue.style.marginTop = '4px';
+  arabicValue.style.fontWeight = '600';
+  arabicValue.style.color = '#007acc';
+  
+  arabicSlider.oninput = () => {
+    responses.percent_arabic = parseInt(arabicSlider.value);
+    arabicValue.textContent = arabicSlider.value + '%';
+    updatePercentageTotal(responses, totalDisplay);
+  };
+  
+  arabicDiv.appendChild(arabicSlider);
+  arabicDiv.appendChild(arabicValue);
+  sliderGroup.appendChild(arabicDiv);
+
+  // Other languages slider
+  const otherDiv = document.createElement('div');
+  const otherLabel = document.createElement('div');
+  otherLabel.style.fontWeight = '600';
+  otherLabel.style.fontSize = '14px';
+  otherLabel.textContent = 'Other Languages';
+  otherDiv.appendChild(otherLabel);
+  
+  const otherSlider = document.createElement('input');
+  otherSlider.type = 'range';
+  otherSlider.min = '0';
+  otherSlider.max = '100';
+  otherSlider.value = '34';
+  otherSlider.style.width = '100%';
+  
+  const otherValue = document.createElement('div');
+  otherValue.textContent = '34%';
+  otherValue.style.marginTop = '4px';
+  otherValue.style.fontWeight = '600';
+  otherValue.style.color = '#007acc';
+  
+  otherSlider.oninput = () => {
+    responses.percent_other = parseInt(otherSlider.value);
+    otherValue.textContent = otherSlider.value + '%';
+    updatePercentageTotal(responses, totalDisplay);
+  };
+  
+  otherDiv.appendChild(otherSlider);
+  otherDiv.appendChild(otherValue);
+  sliderGroup.appendChild(otherDiv);
+
+  // Total display
+  const totalDisplay = document.createElement('div');
+  totalDisplay.style.fontWeight = '600';
+  totalDisplay.style.fontSize = '14px';
+  totalDisplay.style.padding = '8px 12px';
+  totalDisplay.style.borderRadius = '6px';
+  totalDisplay.style.marginTop = '12px';
+  totalDisplay.style.textAlign = 'center';
+  updatePercentageTotal(responses, totalDisplay);
+  sliderGroup.appendChild(totalDisplay);
+
+  div.appendChild(sliderGroup);
+  
+  // Initialize responses
+  responses.percent_english = 33;
+  responses.percent_arabic = 33;
+  responses.percent_other = 34;
+
+  return div;
+}
+
+function updatePercentageTotal(responses, display){
+  const total = parseInt(responses.percent_english || 0) + parseInt(responses.percent_arabic || 0) + parseInt(responses.percent_other || 0);
+  display.textContent = 'Total: ' + total + '%';
+  
+  if(total === 100){
+    display.className = 'percentage-total-display valid';
+  } else {
+    display.className = 'percentage-total-display invalid';
+  }
 }
 
 /* ===========================
