@@ -6,7 +6,7 @@ Trial,TargetWordAudioFile,TargetWordOriginalFile,TargetWordImageFile,DistractorW
 5,5_non-creaky.wav,jʊʔarːɪb-b.wav,4.png,99.png,allophone,non-creaky,يُقَرِّب,يُتَرِّب,to approach,to cover with dust,يُقَرِّب,يُتَرِّب,,,
 6,6_non-creaky.wav,jʊqasˤːɪl-b.wav,6.png,101.png,phoneme,non-creaky,يُقَصِّل,يُتَصِّل,to feed hay to livestock,to connect,يُقَصِّل,يُتَصِّل,,,
 7,7_non-creaky.wav,jʊʔasˤːɪl-b.wav,7.png,101.png,phoneme,non-creaky,يُأَصِّل,يُتَصِّل,to found or originate,to connect,يُأَصِّل,يُتَصِّل,,,target repeats
-8,8_non-creaky.wav,jʊʔasˤːɪl-b.wav,6.png,101.png,allophone,non-creaky,يُقَصِّل,يُتَصِّل,to feed hay to livestock,to connect,يُقَصِّل,يُتَصِّل,,,
+8,8_non-creaky.wav,jʊʔasˤːɪl-b.wav,6.png,101.png,allophone,non-creaky,يُقَصِّل,يُتَصِّل,to feed hay to livestock,to connect,يُقَصِّل,يُتَصِّل,,,duplicated 7.wav
 9,9_non-creaky.wav,jaqsɪr-b.wav,9.png,104.png,phoneme,non-creaky,يَقسِر,يَكسِر,to force or coerce,to break,يَقسِر,يَكسِر,2,1056,
 10,10_non-creaky.wav,jaʔsɪr2-b.wav,10.png,104.png,phoneme,non-creaky,يَأسِر,يَكسِر,to bind,to break,يَأسِر,يَكسِر,,,
 11,11_non-creaky.wav,jaʔsɪr-b.wav,9.png,104.png,allophone,non-creaky,يَقسِر,يَكسِر,to force or coerce,to break,يَقسِر,يَكسِر,2,1056,
@@ -90,9 +90,9 @@ Trial,TargetWordAudioFile,TargetWordOriginalFile,TargetWordImageFile,DistractorW
 89,89_non-creaky.wav,jʊtaʒɪr-b.wav,98.png,3.png,control,non-creaky,يُتَجِر,يُؤَجِر,to trade,to rent out,يُتَجِر,يُؤَجِر,,,
 90,90_non-creaky.wav,jʊtarːɪb-b.wav,99.png,4.png,control,non-creaky,يُتَرِّب,يُقَرِّب,to cover with dust,to approach,يُتَرِّب,يُقَرِّب,,,
 91,91_non-creaky.wav,jʊtasˤːɪl-b.wav,101.png,6.png,control,non-creaky,يُتَصِّل,يُقَصِّل,to connect,to feed hay to livestock,يُتَصِّل,يُقَصِّل,,,target repeats
-92,92_non-creaky.wav,jʊtasˤːɪl-b.wav,101.png,4.png,control,non-creaky,يُتَصِّل,يُأَصِّل,to connect,to found or originate,يُتَصِّل,يُأَصِّل,,,
+92,92_non-creaky.wav,jʊtasˤːɪl-b.wav,101.png,4.png,control,non-creaky,يُتَصِّل,يُأَصِّل,to connect,to found or originate,يُتَصِّل,يُأَصِّل,,,duplicate 92
 93,93_non-creaky.wav,jaksɪr-b.wav,104.png,9.png,control,non-creaky,يَكسِر,يَقسِر,to break,to force or coerce,يَكسِر,يَقسِر,1056,2,
-94,94_non-creaky.wav,jaksɪr-b.wav,104.png,10.png,control,non-creaky,يَكسِر,يَأسِر,to break,to bind,يَكسِر,يَأسِر,,,
+94,94_non-creaky.wav,jaksɪr-b.wav,104.png,10.png,control,non-creaky,يَكسِر,يَأسِر,to break,to bind,يَكسِر,يَأسِر,,,duplicated 94
 95,95_non-creaky.wav,jakʃɪf-b.wav,107.png,12.png,control,non-creaky,يَكشِف,يَقشِف,"to expose, uncover",to live in squalor or misery,يَكشِف,يَقشِف,,,
 96,96_non-creaky.wav,jakfɪl-b.wav,109.png,14.png,control,non-creaky,يَكفِل,يَقفِل,to guarantee,to lock,يَكفِل,يَقفِل,,,
 97,97_non-creaky.wav,jʊtarːɪf-b.wav,112.png,16.png,control,non-creaky,يُترّّف,يُقرِّف,to spoil in luxury,to arouse digust,يُترّّف,يُقرِّف,,,
@@ -150,7 +150,7 @@ Trial,TargetWordAudioFile,TargetWordOriginalFile,TargetWordImageFile,DistractorW
 149,149_creaky.wav,jʊʔarːɪb-c.wav,4.png,99.png,allophone,creaky,يُقَرِّب,يُتَرِّب,to approach,to cover with dust,يُقَرِّب,يُتَرِّب,,,
 150,150_creaky.wav,jʊqasˤːɪl-c.wav,6.png,101.png,phoneme,creaky,يُقَصِّل,يُتَصِّل,to feed hay to livestock,to connect,يُقَصِّل,يُتَصِّل,,,
 151,151_creaky.wav,jʊʔasˤːɪl-c.wav,7.png,101.png,phoneme,creaky,يُأَصِّل,يُتَصِّل,to found or originate,to connect,يُأَصِّل,يُتَصِّل,,,target repeats
-152,152_creaky.wav,jʊʔasˤːɪl-c.wav,6.png,101.png,allophone,creaky,يُقَصِّل,يُتَصِّل,to feed hay to livestock,to connect,يُقَصِّل,يُتَصِّل,,,
+152,152_creaky.wav,jʊʔasˤːɪl-c.wav,6.png,101.png,allophone,creaky,يُقَصِّل,يُتَصِّل,to feed hay to livestock,to connect,يُقَصِّل,يُتَصِّل,,,duplicated 151.wav
 153,153_creaky.wav,jaqsɪr-c.wav,9.png,104.png,phoneme,creaky,يَقسِر,يَكسِر,to force or coerce,to break,يَقسِر,يَكسِر,2,1056,
 154,154_creaky.wav,jaʔsɪr2-c.wav,10.png,104.png,phoneme,creaky,يَأسِر,يَكسِر,to bind,to break,يَأسِر,يَكسِر,,,
 155,155_creaky.wav,jaʔsɪr-c.wav,9.png,104.png,allophone,creaky,يَقسِر,يَكسِر,to force or coerce,to break,يَقسِر,يَكسِر,2,1056,
@@ -234,9 +234,9 @@ Trial,TargetWordAudioFile,TargetWordOriginalFile,TargetWordImageFile,DistractorW
 233,233_creaky.wav,jʊtaʒɪr-c.wav,98.png,3.png,control,creaky,يُتَجِر,يُؤَجِر,to trade,to rent out,يُتَجِر,يُؤَجِر,,,
 234,234_creaky.wav,jʊtarːɪb-c.wav,99.png,4.png,control,creaky,يُتَرِّب,يُقَرِّب,to cover with dust,to approach,يُتَرِّب,يُقَرِّب,,,
 235,235_creaky.wav,jʊtasˤːɪl-c.wav,101.png,6.png,control,creaky,يُتَصِّل,يُقَصِّل,to connect,to feed hay to livestock,يُتَصِّل,يُقَصِّل,,,target repeats
-236,236_creaky.wav,jʊtasˤːɪl-c.wav,101.png,4.png,control,creaky,يُتَصِّل,يُأَصِّل,to connect,to found or originate,يُتَصِّل,يُأَصِّل,,,
+236,236_creaky.wav,jʊtasˤːɪl-c.wav,101.png,4.png,control,creaky,يُتَصِّل,يُأَصِّل,to connect,to found or originate,يُتَصِّل,يُأَصِّل,,,duplicated 235
 237,237_creaky.wav,jaksɪr-c.wav,104.png,9.png,control,creaky,يَكسِر,يَقسِر,to break,to force or coerce,يَكسِر,يَقسِر,1056,2,
-238,238_creaky.wav,jaksɪr-c.wav,104.png,10.png,control,creaky,يَكسِر,يَأسِر,to break,to bind,يَكسِر,يَأسِر,,,
+238,238_creaky.wav,jaksɪr-c.wav,104.png,10.png,control,creaky,يَكسِر,يَأسِر,to break,to bind,يَكسِر,يَأسِر,,,duplicated 238
 239,239_creaky.wav,jakʃɪf-c.wav,107.png,12.png,control,creaky,يَكشِف,يَقشِف,"to expose, uncover",to live in squalor or misery,يَكشِف,يَقشِف,,,
 240,240_creaky.wav,jakfɪl-c.wav,109.png,14.png,control,creaky,يَكفِل,يَقفِل,to guarantee,to lock,يَكفِل,يَقفِل,,,
 241,241_creaky.wav,jʊtarːɪf-c.wav,112.png,16.png,control,creaky,يُترّّف,يُقرِّف,to spoil in luxury,to arouse digust,يُترّّف,يُقرِّف,,,
