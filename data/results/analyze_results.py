@@ -5,6 +5,45 @@ import numpy as np
 results = pd.read_csv('pharylary_survey_results.csv')
 trials_meta = pd.read_csv('../trials.csv')
 
+# Filter to only completed participants (from Prolific)
+completed_ids = [
+    '68d4239be163cb15b16606a6',
+    '68c03814183fb278ae8ac1c9',
+    '5c1d19c810677f0001d9d56c',
+    '68d40473576087257c6dcaf3',
+    '611b00c6f6cc82766cd07c16',
+    '68d4670874bf80ef3de3834d',
+    '691290f8a9d2ff4090233076',
+    '65f04e28869d1e36bcfe9bc2',
+    '68d6aebcb40c4b93989642c1',
+    '694ef288fcfc4439fcc94ef9',
+    '68e3cfc22688ddaae48dc6c3',
+    '68c831e4060bd0ef510259ca',
+    '68d3fde63f2c4007620e15d0',
+    '68cab84ebe4b9f5d7148e3dc',
+    '68d43a3c7fb9b4c1a9eee9af',
+    '6960de0ad3223c83f5fbdf92'
+]
+
+print("=" * 80)
+print("FILTERING TO COMPLETED PARTICIPANTS")
+print("=" * 80)
+print(f"\nTotal rows before filtering: {len(results)}")
+print(f"Unique participants before filtering: {len(results['participant_id'].unique())}")
+
+results = results[results['participant_id'].isin(completed_ids)].copy()
+
+print(f"Total rows after filtering: {len(results)}")
+print(f"Unique participants after filtering: {len(results['participant_id'].unique())}")
+print(f"Expected completed participants: {len(completed_ids)}")
+
+# Check if any completed IDs are missing from data
+missing_ids = set(completed_ids) - set(results['participant_id'].unique())
+if missing_ids:
+    print(f"\n⚠ Warning: {len(missing_ids)} completed IDs not found in data:")
+    for mid in missing_ids:
+        print(f"  - {mid}")
+
 # 1. Check completion status for each participant
 print("=" * 80)
 print("COMPLETION STATUS")
@@ -64,6 +103,58 @@ print(f"\nOverall Accuracy: {participant_stats['accuracy'].mean():.3f} (SD = {pa
 print(f"Overall Mean RT: {participant_stats['mean_rt_ms'].mean():.1f} ms (SD = {participant_stats['mean_rt_ms'].std():.1f})")
 print(f"Overall Mean Log RT: {participant_stats['mean_log_rt'].mean():.3f} (SD = {participant_stats['mean_log_rt'].std():.3f})")
 
+# 2b. Check for duplicated and missing trials per participant
+print("\n" + "=" * 80)
+print("TRIAL COMPLETION CHECK (Expected: 282 unique trials per participant)")
+print("=" * 80)
+
+trial_check = []
+expected_trials = set(range(1, 283))  # 1 to 282
+
+for pid in completed_ids:
+    participant_trials = trials_data[trials_data['participant_id'] == pid]
+    
+    # Get all trial_ids (including duplicates)
+    all_trial_ids = participant_trials['trial_id'].tolist()
+    unique_trial_ids = set(all_trial_ids)
+    
+    # Count occurrences of each trial
+    trial_counts = participant_trials['trial_id'].value_counts()
+    duplicated_trials = trial_counts[trial_counts > 1].index.tolist()
+    
+    # Find missing trials
+    missing_trials = sorted(list(expected_trials - unique_trial_ids))
+    
+    trial_check.append({
+        'participant_id': pid,
+        'total_trial_rows': len(participant_trials),
+        'unique_trials': len(unique_trial_ids),
+        'expected_trials': 282,
+        'duplicated_count': len(duplicated_trials),
+        'missing_count': len(missing_trials),
+        'duplicated_trials': str(duplicated_trials) if duplicated_trials else 'None',
+        'missing_trials': str(missing_trials[:10]) if missing_trials else 'None'  # Show first 10
+    })
+
+trial_check_df = pd.DataFrame(trial_check)
+
+print("\nTrial Completion Summary:")
+print(trial_check_df.to_string(index=False))
+
+# Check if any participants have issues
+issues = trial_check_df[(trial_check_df['unique_trials'] != 282) | (trial_check_df['duplicated_count'] > 0)]
+if len(issues) > 0:
+    print(f"\n⚠ {len(issues)} participant(s) have trial issues:")
+    for _, row in issues.iterrows():
+        print(f"\n  {row['participant_id']}:")
+        print(f"    - Unique trials: {row['unique_trials']}/282")
+        if row['duplicated_count'] > 0:
+            print(f"    - Duplicated trials ({row['duplicated_count']}): {row['duplicated_trials']}")
+        if row['missing_count'] > 0:
+            print(f"    - Missing trials ({row['missing_count']}): {row['missing_trials']}")
+else:
+    print("\n✓ All participants completed exactly 282 unique trials!")
+
 # 3. Merge results with trials metadata
 print("\n" + "=" * 80)
 print("MERGING DATA WITH TRIAL METADATA")
@@ -75,16 +166,19 @@ print(f"Columns in results: {list(results.columns)}")
 
 # The trials.csv has a 'Trials' column that matches 'trial_id' in results
 # Rename for clarity
-if 'Trials' in trials_meta.columns:
-    trials_meta = trials_meta.rename(columns={'Trials': 'trial_id'})
-    print("\n✓ Renamed 'Trials' column to 'trial_id' for merging")
+if 'Trial' in trials_meta.columns:
+    trials_meta = trials_meta.rename(columns={'Trial': 'trial_id'}, inplace=False)
+    trials_meta_copy = trials_meta.copy()
+    print("\n✓ Renamed 'Trial' column to 'trial_id' for merging")
+else:
+    trials_meta_copy = trials_meta.copy()
 
 # Merge trials data with metadata
 trials_with_meta = trials_data.merge(
-    trials_meta, 
+    trials_meta_copy, 
     on='trial_id', 
-    how='left',
-    suffixes=('', '_meta')
+    how='left'
+    # suffixes=('', '_meta')
 )
 
 print(f"\nOriginal trials data shape: {trials_data.shape}")
@@ -124,8 +218,9 @@ print("\n" + "=" * 80)
 print("READY FOR ANALYSIS!")
 print("=" * 80)
 print("\nAvailable DataFrames:")
-print("  - results: Full raw data")
+print("  - results: Full raw data (filtered to completed participants)")
 print("  - participant_stats: Summary statistics per participant")
+print("  - trial_check_df: Trial completion check (duplicates/missing)")
 print("  - trials_df: All trial responses (with log_rt column)")
 print("  - trials_with_meta: Trial responses merged with trial metadata")
 print("  - survey_df: Survey responses")
