@@ -166,7 +166,7 @@
 <!-- Instructions -->
 <div class="card hidden" id="screen-instructions">
   <h1>Instructions</h1>
-  <p>Welcome to the experiment! In this task you will be identifying words. First, you will play an audio file and listen to a word in Arabic, and then you will choose which word you just heard from the two words written in Arabic presented on the screen. Do your best and respond as quickly as you can once the audio file has stopped playing. Following the task, there will be a brief survey about the words and some demographic information about yourself.</p>
+  <p>Welcome to the experiment! In this task you will be identifying words. First, you will play an audio file and listen to a word in Arabic, and then you will choose which word you just heard from the two words written in Arabic presented on the screen. Do your best and respond as quickly as you can once the audio file has stopped playing. Following the task, there will be a survey about the words and questions about your background.</p>
   <br>
   <button class="btn btn-primary" id="instructionsNextBtn">Continue</button>
 </div>
@@ -196,6 +196,36 @@
 </div>
 
 <!-- Survey -->
+<!-- Survey Splash Page -->
+<div class="card hidden" id="screen-survey-splash">
+  <h1>About the Survey</h1>
+  
+  <div style="background:#f9f9f9; padding:16px; border-radius:6px; margin-bottom:24px; font-size:14px; line-height:1.6;">
+    <p><strong>Modern Standard Arabic, الفصحى</strong>, is often used to describe both an accent and written form of the Arabic language that is spoken and understood by speakers from different Arabic-speaking communities. It is often a second language of people who speak a dialect of Arabic as their first language. You can find Modern Standard Arabic in formal writing, news casts, journals, articles, religious texts, public or government documents and signs, or in classrooms.</p>
+    
+    <p><strong>Arabic dialect, العامية</strong>, is often used to describe both an accent and written form of Arabic that is specific to certain communities of people. It is usually spoken as a first language across these communities. In many cases, there is a lot less that is shared between dialects of Arabic in terms of accent and written form. Examples of dialectal Arabic include Palestinian, Egyptian, Gulf, Najdi, Sudanese, Tunisian, and Yemeni Arabic.</p>
+    
+    <p style="margin-top:16px;">The following questions will ask you about a word's status in Modern Standard Arabic and Arabic dialect.</p>
+  </div>
+
+  <button class="btn btn-primary" id="surveySplashNextBtn" style="margin-top:20px;">Continue to Survey</button>
+</div>
+
+<!-- Survey Splash Page -->
+<div class="card hidden" id="screen-survey-splash">
+  <h1>About the Survey</h1>
+  
+  <div style="background:#f9f9f9; padding:16px; border-radius:6px; margin-bottom:24px; font-size:14px; line-height:1.6;">
+    <p><strong>Modern Standard Arabic, الفصحى</strong>, is often used to describe both an accent and written form of the Arabic language that is spoken and understood by speakers from different Arabic-speaking communities. It is often a second language of people who speak a dialect of Arabic as their first language. You can find Modern Standard Arabic in formal writing, news casts, journals, articles, religious texts, public or government documents and signs, or in classrooms.</p>
+    
+    <p><strong>Arabic dialect, العامية</strong>, is often used to describe both an accent and written form of Arabic that is specific to certain communities of people. It is usually spoken as a first language across these communities. In many cases, there is a lot less that is shared between dialects of Arabic in terms of accent and written form. Examples of dialectal Arabic include Palestinian, Egyptian, Gulf, Najdi, Sudanese, Tunisian, and Yemeni Arabic.</p>
+    
+    <p style="margin-top:16px;">The following questions will ask you about a word's status in Modern Standard Arabic and Arabic dialect.</p>
+  </div>
+
+  <button class="btn btn-primary" id="surveySplashNextBtn" style="margin-top:20px;">Continue to Survey</button>
+</div>
+
 <div class="card hidden" id="screen-survey">
   <div class="progress"><div id="surveyProgressBar"></div></div>
   <h1 id="surveyTitle">Survey</h1>
@@ -845,7 +875,16 @@ document.getElementById('feedbackNextBtn').onclick = () => {
 
 function finishStudy(){
   hide("screen-trials");
-  startSurvey();
+  showSurveySplash();
+}
+
+function showSurveySplash(){
+  const splashBtn = document.getElementById('surveySplashNextBtn');
+  splashBtn.onclick = () => {
+    hide('screen-survey-splash');
+    startSurvey();
+  };
+  show('screen-survey-splash');
 }
 
 /* ===========================
