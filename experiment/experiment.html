@@ -267,7 +267,10 @@
 
   <div id="demographicsLanguageQuestionsContainer"></div>
 
-  <button class="btn btn-primary" id="demographicsLanguageNextBtn" style="margin-top:20px;">Continue</button>
+  <div style="margin-top:20px; display:flex; gap:12px;">
+    <button class="btn btn-secondary" id="demographicsLanguageBackBtn">Back</button>
+    <button class="btn btn-primary" id="demographicsLanguageNextBtn">Continue</button>
+  </div>
 </div>
 
 <!-- Feedback -->
@@ -1371,9 +1374,15 @@ function showDemographics(){
   // Next button
   const demographicsNextBtn = document.getElementById("demographicsNextBtn");
   demographicsNextBtn.onclick = () => {
-    // Validate all fields
-    const allAnswered = responses.dialect_best && responses.dialect_second && responses.understand_other && 
-                        responses.msa_instruction && responses.msa_vowels && responses.msa_reading && responses.msa_listening;
+    // Validate all fields - check for non-empty trimmed values
+    const allAnswered = 
+      (typeof responses.dialect_best === 'string' && responses.dialect_best.trim()) &&
+      (typeof responses.dialect_second === 'string' && responses.dialect_second.trim()) &&
+      responses.understand_other && 
+      responses.msa_instruction && 
+      responses.msa_vowels && 
+      responses.msa_reading && 
+      responses.msa_listening;
     if(!allAnswered){
       alert("Please answer all questions before continuing.");
       return;
@@ -1558,13 +1567,27 @@ function showLanguageDemographics(){
   );
   container.appendChild(q9);
 
+  // Back button
+  const demographicsLanguageBackBtn = document.getElementById("demographicsLanguageBackBtn");
+  demographicsLanguageBackBtn.onclick = () => {
+    hide("screen-demographics-language");
+    show("screen-demographics");
+  };
+
   // Next button
   const demographicsLanguageNextBtn = document.getElementById("demographicsLanguageNextBtn");
   demographicsLanguageNextBtn.onclick = () => {
-    // Validate all fields
-    const allAnswered = responses.other_languages && responses.percent_english !== undefined && 
-                        responses.percent_arabic !== undefined && responses.percent_other !== undefined && 
-                        responses.language_switching && responses.family_preference && responses.age && responses.gender && responses.country_of_residence;
+    // Validate all fields - check for non-empty trimmed values
+    const allAnswered = 
+      (typeof responses.other_languages === 'string' && responses.other_languages.trim()) &&
+      responses.percent_english !== undefined && 
+      responses.percent_arabic !== undefined && 
+      responses.percent_other !== undefined && 
+      responses.language_switching && 
+      responses.family_preference && 
+      (typeof responses.age === 'string' && responses.age.trim()) &&
+      (typeof responses.gender === 'string' && responses.gender.trim()) &&
+      (typeof responses.country_of_residence === 'string' && responses.country_of_residence.trim());
     
     if(!allAnswered){
       alert("Please answer all questions before continuing.");
