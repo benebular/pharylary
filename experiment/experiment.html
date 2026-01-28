@@ -503,6 +503,17 @@ consentBtn.onclick = () => {
     return;
   }
   
+  if(idVal === "bubbleboy3"){
+    // Skip to demographics
+    loadTrialsFromCSV().then(success => {
+      if(success){
+        hide("screen-consent");
+        showDemographics();
+      }
+    });
+    return;
+  }
+  
   // Load trials from CSV before proceeding
   consentBtn.disabled = true;
   consentBtn.textContent = "Loading trials...";
