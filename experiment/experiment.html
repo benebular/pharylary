@@ -476,12 +476,16 @@ consentCheck.onchange = updateConsentContinue;
 prolificInput.oninput  = updateConsentContinue;
 
 consentBtn.onclick = () => {
-  const idVal = prolificInput.value.trim();
+  const rawId = prolificInput.value || "";
+  const idVal = rawId.trim();
   if(!idVal){ alert("Please enter your Prolific ID before continuing."); return; }
   State.participantId = idVal;
-  
+
+  // normalize for testing shortcuts (case-insensitive)
+  const idNorm = idVal.toLowerCase();
+
   // Testing shortcuts
-  if(idVal === "bubbleboy"){
+  if(idNorm === "bubbleboy"){
     // Skip to survey task
     loadTrialsFromCSV().then(success => {
       if(success){
@@ -491,8 +495,8 @@ consentBtn.onclick = () => {
     });
     return;
   }
-  
-  if(idVal === "bubbleboy2"){
+
+  if(idNorm === "bubbleboy2"){
     // Skip to survey splash page
     loadTrialsFromCSV().then(success => {
       if(success){
@@ -502,8 +506,8 @@ consentBtn.onclick = () => {
     });
     return;
   }
-  
-  if(idVal === "bubbleboy3"){
+
+  if(idNorm === "bubbleboy3"){
     // Skip to demographics
     loadTrialsFromCSV().then(success => {
       if(success){
@@ -513,11 +517,11 @@ consentBtn.onclick = () => {
     });
     return;
   }
-  
+
   // Load trials from CSV before proceeding
   consentBtn.disabled = true;
   consentBtn.textContent = "Loading trials...";
-  
+
   loadTrialsFromCSV().then(success => {
     if(success){
       hide("screen-consent");
@@ -1034,8 +1038,32 @@ function loadSurveyQuestion(){
   );
   questionsContainer.appendChild(q5);
 
-  // Next button handler
+  // Disable response controls until audio is played at least once
   const surveyNextBtn = document.getElementById("surveyNextBtn");
+  function setSurveyInputsEnabled(enabled){
+    const inputs = questionsContainer.querySelectorAll('button');
+    inputs.forEach(b => { try{ b.disabled = !enabled; }catch(e){} });
+    surveyNextBtn.disabled = !enabled;
+  }
+  // Start disabled
+  setSurveyInputsEnabled(false);
+
+  // Enable when audio actually starts playing
+  surveyPlayer.onplay = () => { setSurveyInputsEnabled(true); };
+
+  // Also enable after a successful click/play attempt
+  const origSurveySoundOnclick = surveySoundBtn.onclick;
+  surveySoundBtn.onclick = async () => {
+    try {
+      // call original handler which attempts to play
+      await origSurveySoundOnclick();
+    } catch (e) {
+      // ignore
+    }
+    // If playback started, onplay will enable controls; otherwise enable defensively
+    setTimeout(() => { setSurveyInputsEnabled(true); }, 500);
+  };
+
   surveyNextBtn.onclick = () => {
     // Check if all questions answered
     const allAnswered = responses.recognize && responses.understand && responses.meaning_match && responses.msa_dialect && responses.natural;
