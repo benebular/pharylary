@@ -287,7 +287,13 @@ const CONFIG = {
   // trialsUrl: "../data/trials.csv",     // Change to GitHub raw URL when deploying
   trialsUrl: "https://raw.githubusercontent.com/benebular/pharylary/main/data/trials.csv",
   attnBase: "./audio_check",           // inside /experiment/audio_check/
-  nAttentionFiles: 21,                // 1..21 wav files
+  attnFileNames: [
+    "alice_b.wav", "bean_b.wav", "beaten_t_b.wav", "bun_b.wav",
+    "curly_b.wav", "dane_b.wav", "den_b.wav", "dent_t_b.wav",
+    "faint_t_b.wav", "feign_b.wav", "gone_b.wav", "greatness_gs_b.wav",
+    "jaunt_t_b.wav", "keen_b.wav", "motley_t_b.wav", "ron_b.wav",
+    "sane_b.wav", "seller_b.wav", "tin_b.wav", "tint_t_b.wav", "whinny_b.wav"
+  ]
   volumeCheckFile: "./audio_check/gone_b.wav", // put this file in experiment/audio_check/
   attentionEveryNTrials: 28,          // ~10% of trials (282 trials / 28 ≈ 28 checks)
   completionCode: "CJUVEL1D",
@@ -533,10 +539,7 @@ volumeNextBtn.onclick = () => {
    ATTENTION CHECKS
 =========================== */
 function prepareAttentionQueue(){
-  const urls=[];
-  for(let i=1;i<=CONFIG.nAttentionFiles;i++){
-    urls.push(`${CONFIG.attnBase}/${i}.wav`);
-  }
+  const urls = CONFIG.attnFileNames.map(filename => `${CONFIG.attnBase}/${filename}`);
   State.attnQueue = shuffle(urls);
 }
 function nextAttentionAudio(){
@@ -829,8 +832,8 @@ document.getElementById('feedbackNextBtn').onclick = () => {
     completion_code: CONFIG.completionCode,
     timestamp_iso: new Date().toISOString(),
   };
-  for(let i=1;i<=CONFIG.nAttentionFiles;i++){
-    out[`attention_check_${i}`] = State.attnAnswers[i-1] || "";
+  for(let i=0;i<State.attnAnswers.length;i++){
+    out[`attention_check_${i+1}`] = State.attnAnswers[i] || "";
   }
   sendToGoogleSheet(out);
 
