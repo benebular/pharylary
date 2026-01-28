@@ -41,7 +41,7 @@
   .image-container img:hover { transform:scale(1.05); box-shadow:0 4px 12px rgba(0,0,0,0.2); }
   .image-container img:active { transform:scale(0.98); }
   .meta { margin-top:20px; color:#555; font-size:13px; text-align:center; }
-  #trialStatus { font-size:18px; font-weight:600; color:#333; margin-top:24px; }
+  #trialStatus { font-size:32px; font-weight:600; color:#333; margin-top:24px; }
   .kbd { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; border:1px solid #ddd; background:#f7f7f7; padding:2px 6px; border-radius:6px; }
 
   /* Image pair display */
@@ -774,8 +774,8 @@ function recordChoice(choiceSide){
   State.awaitingChoice = false;
   setChoiceEnabled(false);
 
-  const targetIndicator = is_target ? "✓ correct" : "✗ incorrect";
-  trialStatus.textContent = `Recorded: ${targetIndicator} (RT ${rt_ms} ms).`;
+  const targetIndicator = is_target ? "✓ Correct" : "✗ Incorrect";
+  trialStatus.textContent = targetIndicator;
 
   // Attention check every N trials (optional)
   const nextIndex = State.trialIndex + 1;
@@ -784,13 +784,15 @@ function recordChoice(choiceSide){
   State.trialIndex += 1;
 
   if(needsCheck){
-    hide("screen-trials");
-    showAudioAttentionCheck(() => {
-      show("screen-trials");
-      loadTrial();
-    });
+    setTimeout(() => {
+      hide("screen-trials");
+      showAudioAttentionCheck(() => {
+        show("screen-trials");
+        loadTrial();
+      });
+    }, 1000);
   } else {
-    setTimeout(loadTrial, 250);
+    setTimeout(loadTrial, 1000);
   }
 }
 
