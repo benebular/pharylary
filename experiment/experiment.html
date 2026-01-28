@@ -493,11 +493,11 @@ consentBtn.onclick = () => {
   }
   
   if(idVal === "bubbleboy2"){
-    // Skip to demographics
+    // Skip to survey splash page
     loadTrialsFromCSV().then(success => {
       if(success){
         hide("screen-consent");
-        showDemographics();
+        showSurveySplash();
       }
     });
     return;
