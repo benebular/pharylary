@@ -232,3 +232,17 @@ print("  - demographics_df: Demographics responses")
 print("  - attention_df: Attention check responses")
 print("  - final_df: Final/completion records")
 print("  - trials_meta: Trial metadata from trials.csv")
+
+# Save dataframes to CSV for manual inspection
+print("\n" + "=" * 80)
+print("SAVING DATAFRAMES TO CSV")
+print("=" * 80)
+
+demographics_df.to_csv('demographics_df.csv', index=False)
+trials_meta.to_csv('trials_meta.csv', index=False)
+survey_df.to_csv('survey_df.csv', index=False)
+
+print("\n✓ Saved the following files:")
+print("  - demographics_df.csv")
+print("  - trials_meta.csv")
+print("  - survey_df.csv")
