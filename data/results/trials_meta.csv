@@ -1,0 +1,289 @@
+trial_id,Note,TargetWordAudioFile,TargetWordOriginalFile,TargetSegment,DistractorSegment,Pair,UniquePairIndex,Position,TargetWordImageFile,DistractorWordImageFile,TrialType,Condition,CarrierType,Target-Arabic,Distractor-Arabic,TargetDefinition,Distractor-Definition,TargetDisplay,DistractorDisplay,Target-Freq,Distractor-Freq
+1,,1_non-creaky.wav,fæːqa-b.wav,q,t,q-t,1,Medial,1.png,96.png,test,phoneme,non-creaky,فاقَ,فاتَ,to exceed or go beyond,to pass by in time,فاقَ,فاتَ,,
+2,,2_non-creaky.wav,fæːʔa-b.wav,gs,t,gs-t,2,Medial,1.png,96.png,test,allophone,non-creaky,فاقَ,فاتَ,to exceed or go beyond,to pass by in time,فاقَ,فاتَ,,
+3,,3_non-creaky.wav,jʊʔaʒɪr-b.wav,ʔ,t,ʔ-t,3,Medial,3.png,98.png,test,phoneme,non-creaky,يُؤَجِر,يُتَجِر,to rent out,to trade,يُؤَجِر,يُتَجِر,,
+4,,4_non-creaky.wav,jʊqarːɪb-b.wav,q,t,q-t,4,Medial,4.png,99.png,test,phoneme,non-creaky,يُقَرِّب,يُتَرِّب,to approach,to cover with dust,يُقَرِّب,يُتَرِّب,,
+5,,5_non-creaky.wav,jʊʔarːɪb-b.wav,gs,t,gs-t,5,Medial,4.png,99.png,test,allophone,non-creaky,يُقَرِّب,يُتَرِّب,to approach,to cover with dust,يُقَرِّب,يُتَرِّب,,
+6,,6_non-creaky.wav,jʊqasˤːɪl-b.wav,q,t,q-t,6,Medial,6.png,101.png,test,phoneme,non-creaky,يُقَصِّل,يُتَصِّل,to feed hay to livestock,to connect,يُقَصِّل,يُتَصِّل,,
+7,target repeats,7_non-creaky.wav,jʊʔasˤːɪl-b.wav,ʔ,t,ʔ-t,7,Medial,7.png,101.png,test,phoneme,non-creaky,يُأَصِّل,يُتَصِّل,to found or originate,to connect,يُأَصِّل,يُتَصِّل,,
+8,duplicated 7.wav,8_non-creaky.wav,jʊʔasˤːɪl-b.wav,gs,t,gs-t,8,Medial,6.png,101.png,test,allophone,non-creaky,يُقَصِّل,يُتَصِّل,to feed hay to livestock,to connect,يُقَصِّل,يُتَصِّل,,
+9,,9_non-creaky.wav,jaqsɪr-b.wav,q,k,q-k,9,Medial,9.png,104.png,test,phoneme,non-creaky,يَقسِر,يَكسِر,to force or coerce,to break,يَقسِر,يَكسِر,2.0,1056.0
+10,,10_non-creaky.wav,jaʔsɪr2-b.wav,ʔ,k,ʔ-k,10,Medial,10.png,104.png,test,phoneme,non-creaky,يَأسِر,يَكسِر,to bind,to break,يَأسِر,يَكسِر,,
+11,,11_non-creaky.wav,jaʔsɪr-b.wav,gs,k,gs-k,11,Medial,9.png,104.png,test,allophone,non-creaky,يَقسِر,يَكسِر,to force or coerce,to break,يَقسِر,يَكسِر,2.0,1056.0
+12,,12_non-creaky.wav,jaqʃɪf-b.wav,q,k,q-k,12,Medial,12.png,107.png,test,phoneme,non-creaky,يَقشِف,يَكشِف,to live in squalor or misery,"to expose, uncover",يَقشِف,يَكشِف,,
+13,,13_non-creaky.wav,jaʔʃɪf-b.wav,gs,k,gs-k,13,Medial,12.png,107.png,test,allophone,non-creaky,يَقشِف,يَكشِف,to live in squalor or misery,"to expose, uncover",يَقشِف,يَكشِف,,
+14,,14_non-creaky.wav,jaqfɪl-b.wav,q,k,q-k,14,Medial,14.png,109.png,test,phoneme,non-creaky,يَقفِل,يَكفِل,to lock,to guarantee,يَقفِل,يَكفِل,,
+15,,15_non-creaky.wav,jaʔfɪl-b.wav,gs,k,gs-k,15,Medial,14.png,109.png,test,allophone,non-creaky,يَقفِل,يَكفِل,to lock,to guarantee,يَقفِل,يَكفِل,,
+16,,16_non-creaky.wav,jʊqarːɪf-b.wav,q,t,q-t,16,Medial,16.png,112.png,test,phoneme,non-creaky,يُقرِّف,يُترّّف,to arouse digust,to spoil in luxury,يُقرِّف,يُترّّف,,
+17,,17_non-creaky.wav,jʊʔarːɪf-b.wav,gs,t,gs-t,17,Medial,16.png,112.png,test,allophone,non-creaky,يُقرِّف,يُترِّف,to arouse digust,to spoil in luxury,يُقرِّف,يُترِّف,,
+18,,18_non-creaky.wav,jaqʊfː-b.wav,q,k,q-k,18,Medial,18.png,113.png,test,phoneme,non-creaky,يَقُفّ,يَكُفّ,"to ruffle, to shrivel","to cease, to hem, to skirt",يَقُفّ,يَكُفّ,,
+19,,19_non-creaky.wav,jaʔʊfː-b.wav,gs,k,gs-k,19,Medial,18.png,113.png,test,allophone,non-creaky,يَقُفّ,يَكُفّ,"to ruffle, to shrivel","to cease, to hem, to skirt",يَقُفّ,يَكُفّ,,
+20,,20_non-creaky.wav,jaqsɪb-b.wav,q,k,q-k,20,Medial,20.png,115.png,test,phoneme,non-creaky,يَقسِب,يَكسِب,"to flow, to trickle down",to win a struggle or war,يَقسِب,يَكسِب,,
+21,,21_non-creaky.wav,jaʔsɪb-b.wav,gs,k,gs-k,21,Medial,20.png,115.png,test,allophone,non-creaky,يَقسِب,يَكسِب,"to flow, to trickle down",to win a struggle or war,يَقسِب,يَكسِب,,
+22,,22_non-creaky.wav,jʊʔalːɪf-b.wav,ʔ,t,ʔ-t,22,Medial,22.png,117.png,test,phoneme,non-creaky,يُؤَلِّف,يُتَلِّف,to become familiar with,"to perish, to spoil, to destroy",يُؤَلِّف,يُتَلِّف,,
+23,,23_non-creaky.wav,jaʔnɪs-b.wav,ʔ,k,ʔ-k,23,Medial,23.png,118.png,test,phoneme,non-creaky,يَأنِس,يَكنِس,to become used to,to hide or retreat,يَأنِس,يَكنِس,,
+24,,24_non-creaky.wav,jaʔwi-b.wav,ʔ,k,ʔ-k,24,Medial,24.png,119.png,test,phoneme,non-creaky,يَأوي,يَكوي,to take shelter (or receive shelter),"to sear, to cauterize",يَأوي,يَكوي,,
+25,,25_non-creaky.wav,nabaʔ-b.wav,ʔ,t,ʔ-t,25,Final,25.png,120.png,test,phoneme,non-creaky,نَبَأ,نَبَت,"to elevate, to exalt","to germinate, to sprout",نَبَأ,نَبَت,,
+26,,26_non-creaky.wav,jaquːn-b.wav,q,k,q-k,26,Medial,26.png,121.png,test,phoneme,non-creaky,يَقون,يَكون,preserve;safeguard,be,يَقون,يَكون,4.0,254261.0
+27,,27_non-creaky.wav,jaʔuːn-b.wav,gs,k,gs-k,27,Medial,26.png,121.png,test,allophone,non-creaky,يَقون,يَكون,preserve;safeguard,be,يَقون,يَكون,4.0,254261.0
+28,,28_non-creaky.wav,qaːnuːn-b.wav,q,k,q-k,28,Initial,28.png,123.png,test,phoneme,non-creaky,قانون,كانون,law;statutes;regulations,stove,قانون,كانون,92378.0,101878.0
+29,,29_non-creaky.wav,ʔaːnuːn-b.wav,gs,k,gs-k,29,Initial,28.png,123.png,test,allophone,non-creaky,قانون,كانون,law;statutes;regulations,stove,قانون,كانون,92378.0,101878.0
+30,,30_non-creaky.wav,quːba-b.wav,q,k,q-k,30,Initial,30.png,125.png,test,phoneme,non-creaky,قوبا,كوبا,young_bird;chick,Cuba,قوبا,كوبا,10.0,21391.0
+31,,31_non-creaky.wav,ʔuːba-b.wav,gs,k,gs-k,31,Initial,30.png,125.png,test,allophone,non-creaky,قوبا,كوبا,young_bird;chick,Cuba,قوبا,كوبا,10.0,21391.0
+32,,32_non-creaky.wav,taraq-b.wav,q,k,q-k,32,Final,32.png,127.png,test,phoneme,non-creaky,تَرَق,تَرَك,ascend;rise;promote,leave;quit,تَرَق,تَرَك,670.0,19302.0
+33,,33_non-creaky.wav,taraʔ-b.wav,gs,k,gs-k,33,Final,32.png,127.png,test,allophone,non-creaky,تَرَق,تَرَك,ascend;rise;promote,leave;quit,تَرَق,تَرَك,670.0,19302.0
+34,,34_non-creaky.wav,waqarːar-b.wav,q,k,q-k,34,Medial,34.png,129.png,test,phoneme,non-creaky,وَقَرَّر,وَكَرَّر,decide;resolve,repeat;reiterate,وَقَرَّر,وَكَرَّر,13138.0,12919.0
+35,,35_non-creaky.wav,waʔarːar-b.wav,gs,k,gs-k,35,Medial,34.png,129.png,test,allophone,non-creaky,وَقَرَّر,وَكَرَّر,decide;resolve,repeat;reiterate,وَقَرَّر,وَكَرَّر,13138.0,12919.0
+36,,36_non-creaky.wav,waqæːd-b.wav,q,k,q-k,36,Medial,36.png,131.png,test,phoneme,non-creaky,وَقاد,وَكاد,lead;guide,almost;hardly;no_sooner,وَقاد,وَكاد,5898.0,7904.0
+37,,37_non-creaky.wav,waʔæːd-b.wav,gs,k,gs-k,37,Medial,36.png,131.png,test,allophone,non-creaky,وَقاد,وَكاد,lead;guide,almost;hardly;no_sooner,وَقاد,وَكاد,5898.0,7904.0
+38,,38_non-creaky.wav,waqiːl-b.wav,q,k,q-k,38,Medial,40.png,135.png,test,phoneme,non-creaky,وَقيل,وَكيل,be_said,representative;agent,وَقيل,وَكيل,5767.0,3581.0
+39,,39_non-creaky.wav,waʔiːl-b.wav,gs,k,gs-k,39,Medial,40.png,135.png,test,allophone,non-creaky,وَقيل,وَكيل,be_said,representative;agent,وَقيل,وَكيل,5767.0,3581.0
+40,,40_non-creaky.wav,qawaː-b.wav,q,k,q-k,40,Initial,42.png,137.png,test,phoneme,non-creaky,قَوى,كَوى,power;forces,apertures;skylights,قَوى,كَوى,51772.0,3129.0
+41,,41_non-creaky.wav,ʔawaː-b.wav,gs,k,gs-k,41,Initial,42.png,137.png,test,allophone,non-creaky,قَوى,كَوى,power;forces,apertures;skylights,قَوى,كَوى,51772.0,3129.0
+42,,42_non-creaky.wav,qalb-b.wav,q,k,q-k,42,Initial,44.png,139.png,test,phoneme,non-creaky,قَلب,كَلب,heart,dog,قَلب,كَلب,2704.0,21029.0
+43,,43_non-creaky.wav,ʔalb-b.wav,gs,k,gs-k,43,Initial,44.png,139.png,test,allophone,non-creaky,قَلب,كَلب,heart,dog,قَلب,كَلب,2704.0,21029.0
+44,,44_non-creaky.wav,ʔakuːn-b.wav,ʔ,k,ʔ-k,44,Initial,46.png,141.png,test,phoneme,non-creaky,أكون,تَكون,be,be,أكون,تَكون,100374.0,5576.0
+45,,45_non-creaky.wav,ʔʊriːd-b.wav,ʔ,t,ʔ-t,45,Initial,47.png,142.png,test,phoneme,non-creaky,أُريد,تُريد,want;desire;intend,want;desire;intend,أُريد,تُريد,59771.0,17337.0
+46,,46_non-creaky.wav,ʔaʕmal-b.wav,ʔ,t,ʔ-t,46,Initial,48.png,143.png,test,phoneme,non-creaky,أعمَل,تَعمَل,work;function;act,work;function;act,أعمَل,تَعمَل,1553.0,54990.0
+47,,47_non-creaky.wav,ʔarfʊdˤ-b.wav,ʔ,t,ʔ-t,47,Initial,50.png,145.png,test,phoneme,non-creaky,أرفُض,تَرفُض,reject;refuse,reject;refuse,أرفُض,تَرفُض,1387.0,26804.0
+48,,48_non-creaky.wav,ʔatˤlʊb-b.wav,ʔ,t,ʔ-t,48,Initial,51.png,146.png,test,phoneme,non-creaky,أطلُب,تَطلُب,request,request,أطلُب,تَطلُب,3103.0,19843.0
+49,,49_non-creaky.wav,ʔamæːm-b.wav,ʔ,t,ʔ-t,49,Initial,52.png,147.png,test,phoneme,non-creaky,أمام,تَمام,front;forward,exact;complete,أمام,تَمام,431358.0,2310.0
+50,,50_non-creaky.wav,ʔajːɑr-b.wav,ʔ,t,ʔ-t,50,Initial,53.png,148.png,test,phoneme,non-creaky,أيّار,تَيّار,May,current;stream,أيّار,تَيّار,73492.0,6249.0
+51,,51_non-creaky.wav,ʔʊdˤɑf-b.wav,ʔ,t,ʔ-t,51,Initial,54.png,149.png,test,phoneme,non-creaky,أُضاف,تُضاف,add,be_added,أُضاف,تُضاف,31214.0,4876.0
+52,,52_non-creaky.wav,ʔʊqiːm-b.wav,ʔ,t,ʔ-t,52,Initial,55.png,150.png,test,phoneme,non-creaky,أُقيم,تُقيم,take_place;be_installed;be_established,install;establish;erect,أُقيم,تُقيم,18543.0,13107.0
+53,,53_non-creaky.wav,ʔablaʁ-b.wav,ʔ,t,ʔ-t,53,Initial,56.png,151.png,test,phoneme,non-creaky,أبلَغ,تَبلَغ,report;inform;notify,reach;attain,أبلَغ,تَبلَغ,17341.0,47052.0
+54,,54_non-creaky.wav,ʔaquːl-b.wav,ʔ,t,ʔ-t,54,Medial,57.png,152.png,test,phoneme,non-creaky,أقول,تَقول,say,say,أقول,تَقول,14036.0,49261.0
+55,,55_non-creaky.wav,ʔaɾa-b.wav,ʔ,t,ʔ-t,55,Initial,60.png,155.png,test,phoneme,non-creaky,أرى,تَرى,see;think;believe,see;think;believe,أرى,تَرى,7666.0,38891.0
+56,,56_non-creaky.wav,ʔɪntɪhæːʔ-b.wav,ʔ,k,ʔ-k,56,Final,61.png,156.png,test,phoneme,non-creaky,اِنْتِهاء,اِنْتِهاك,finishing;completion;conclusion,exhaustion,اِنْتِهاء,اِنْتِهاك,59925.0,6516.0
+57,,57_non-creaky.wav,ʔam-b.wav,ʔ,k,ʔ-k,57,Initial,62.png,157.png,test,phoneme,non-creaky,أَمْ,كَمْ,or,how,أَمْ,كَمْ,51870.0,34974.0
+58,,58_non-creaky.wav,taʔliːf-b.wav,ʔ,k,ʔ-k,58,Medial,63.png,158.png,test,phoneme,non-creaky,تَأليف,تَكليف,authoring;composing;constituting,charging;commissioning,تَأليف,تَكليف,15041.0,3958.0
+59,,59_non-creaky.wav,ʔasmæːʔ-b.wav,ʔ,k,ʔ-k,59,Final,64.png,159.png,test,phoneme,non-creaky,أَسماء,أَسماك,names,fish,أَسماء,أَسماك,11967.0,5494.0
+60,,60_non-creaky.wav,ʔamiːn-b.wav,ʔ,k,ʔ-k,60,Initial,65.png,160.png,test,phoneme,non-creaky,أمين,كَمين,secretary,hidden;ambush,أمين,كَمين,20044.0,3196.0
+61,,61_non-creaky.wav,ʔærːæːʔɪd-b.wav,ʔ,k,ʔ-k,61,Medial,67.png,162.png,test,phoneme,non-creaky,الرّائِد,الرّاكِد,leader;explorer;pioneer,stagnant;sluggish;tranquil,الرّائِد,الرّاكِد,8609.0,256.0
+62,,62_non-creaky.wav,ræːʔɪʕa-b.wav,ʔ,k,ʔ-k,62,Medial,68.png,163.png,test,phoneme,non-creaky,رائِعة,راكِعة,splendid;marvelous;magnificent,bowing;kneeling;prostrate,رائِعة,راكِعة,6788.0,23.0
+63,,63_non-creaky.wav,ʔælmʊlæːʔɪm-b.wav,ʔ,k,ʔ-k,63,Medial,69.png,164.png,test,phoneme,non-creaky,المُلائِم,المُلاكِم,suitable;appropriate,boxer;pugilist,المُلائِم,المُلاكِم,5061.0,1778.0
+64,,64_non-creaky.wav,qæːl-b.wav,q,t,q-t,64,Initial,70.png,165.png,test,phoneme,non-creaky,قال,تال,said,following;subsequent,قال,تال,430162.0,1418.0
+65,,65_non-creaky.wav,ʔaqwa-b.wav,q,t,q-t,65,Medial,72.png,167.png,test,phoneme,non-creaky,أَقوى,أَتوا,stronger/strongest;more/most_powerful,arrive;come;reach,أَقوى,أَتوا,14518.0,2757.0
+66,,66_non-creaky.wav,faqɾa-b.wav,q,t,q-t,66,Medial,73.png,168.png,test,phoneme,non-creaky,فَقرة,فَترة,paragraph;clause,phase;time_period;interval,فَقرة,فَترة,13023.0,109530.0
+67,,67_non-creaky.wav,ʔælʕɑqiːd-b.wav,q,t,q-t,67,Medial,74.png,169.png,test,phoneme,non-creaky,العَقيد,العَتيد,colonel,prepared,العَقيد,العَتيد,12868.0,2069.0
+68,,68_non-creaky.wav,ʔæːl-b.wav,gs,t,gs-t,68,Initial,75.png,165.png,test,allophone,non-creaky,قال,تال,said,following;subsequent,قال,تال,430162.0,1418.0
+69,,69_non-creaky.wav,ʔaʔwa-b.wav,gs,t,gs-t,69,Medial,72.png,167.png,test,allophone,non-creaky,أَقوى,أَتوا,stronger/strongest;more/most_powerful,arrive;come;reach,أَقوى,أَتوا,14518.0,2757.0
+70,,70_non-creaky.wav,faʔɾa-b.wav,gs,t,gs-t,70,Medial,73.png,168.png,test,allophone,non-creaky,فَقرة,فَترة,paragraph;clause,phase;time_period;interval,فَقرة,فَترة,13023.0,109530.0
+71,,71_non-creaky.wav,ʔælʕɑʔiːd-b.wav,gs,t,gs-t,71,Medial,74.png,169.png,test,allophone,non-creaky,العَقيد,العَتيد,colonel,prepared,العَقيد,العَتيد,12868.0,2069.0
+72,,72_non-creaky.wav,jafuːq-b.wav,q,t,q-t,72,Final,80.png,175.png,test,phoneme,non-creaky,يَفوق,يَفوت,surpass;excel,expire;go_by,يَفوق,يَفوت,10956.0,1365.0
+73,,73_non-creaky.wav,qasˤiːr-b.wav,q,t,q-t,73,Initial,81.png,176.png,test,phoneme,non-creaky,قَصير,تَصير,short;small,become;begin_to,قَصير,تَصير,8833.0,3536.0
+74,,74_non-creaky.wav,nafaq-b.wav,q,t,q-t,74,Final,82.png,177.png,test,phoneme,non-creaky,نَفَق,نَفَت,tunnel;subway_shaft,deny;disavow;reject,نَفَق,نَفَت,6056.0,10423.0
+75,,75_non-creaky.wav,ʔælfæːʔɪqa-b.wav,q,t,q-t,75,Medial,83.png,178.png,test,phoneme,non-creaky,الفائِقة,الفائِتة,boundless;exceeding,past;expired;elapsed;gone_by,الفائِقة,الفائِتة,5743.0,1647.0
+76,,76_non-creaky.wav,ħalːaq-b.wav,q,t,q-t,76,Final,84.png,179.png,test,phoneme,non-creaky,حَلَّق,حَلَّت,encircle;whirl,dissolve;untie;solve_(problem),حَلَّق,حَلَّت,4217.0,11025.0
+77,,77_non-creaky.wav,ʕaqaba-b.wav,q,t,q-t,77,Medial,85.png,180.png,test,phoneme,non-creaky,عَقَبَة,عَتَبَة,obstacle;Aqaba(Jordan),step;stair;threshold,عَقَبَة,عَتَبَة,3346.0,7966.0
+78,,78_non-creaky.wav,ʔasːabq-b.wav,q,t,q-t,78,Final,86.png,181.png,test,phoneme,non-creaky,السَّبْق,السَّبْت,precedence;antecedence,Saturday,السَّبْق,السَّبْت,2697.0,222180.0
+79,,79_non-creaky.wav,qamːat-b.wav,q,t,q-t,79,Initial,87.png,182.png,test,phoneme,non-creaky,قَمَّت,تَمَّت,sweep,conclude;take_place,قَمَّت,تَمَّت,1997.0,38873.0
+80,,80_non-creaky.wav,jafuːʔ-b.wav,gs,t,gs-t,80,Final,80.png,175.png,test,allophone,non-creaky,يَفوق,يَفوت,surpass;excel,expire;go_by,يَفوق,يَفوت,10956.0,1365.0
+81,,81_non-creaky.wav,ʔasˤiːr-b.wav,gs,t,gs-t,81,Initial,81.png,176.png,test,allophone,non-creaky,قَصير,تَصير,short;small,become;begin_to,قَصير,تَصير,8833.0,3536.0
+82,,82_non-creaky.wav,nafaʔ-b.wav,gs,t,gs-t,82,Final,82.png,177.png,test,allophone,non-creaky,نَفَق,نَفَت,tunnel;subway_shaft,deny;disavow;reject,نَفَق,نَفَت,6056.0,10423.0
+83,,83_non-creaky.wav,ʔælfæːʔɪʔa-b.wav,gs,t,gs-t,83,Medial,83.png,178.png,test,allophone,non-creaky,الفائِقة,الفائِتة,boundless;exceeding,past;expired;elapsed;gone_by,الفائِقة,الفائِتة,5743.0,1647.0
+84,,84_non-creaky.wav,ħalːaʔ-b.wav,gs,t,gs-t,84,Final,84.png,179.png,test,allophone,non-creaky,حَلَّق,حَلَّت,encircle;whirl,dissolve;untie;solve_(problem),حَلَّق,حَلَّت,4217.0,11025.0
+85,,85_non-creaky.wav,ʕaʔaba-b.wav,gs,t,gs-t,85,Medial,85.png,180.png,test,allophone,non-creaky,عَقَبَة,عَتَبَة,obstacle;Aqaba(Jordan),step;stair;threshold,عَقَبَة,عَتَبَة,3346.0,7966.0
+86,,86_non-creaky.wav,ʔasːabʔ-b.wav,gs,t,gs-t,86,Final,86.png,181.png,test,allophone,non-creaky,السَّبْق,السَّبْت,precedence;antecedence,Saturday,السَّبْق,السَّبْت,2697.0,222180.0
+87,,87_non-creaky.wav,ʔamːat-b.wav,gs,t,gs-t,87,Initial,87.png,182.png,test,allophone,non-creaky,قَمَّت,تَمَّت,sweep,conclude;take_place,قَمَّت,تَمَّت,1997.0,38873.0
+88,,88_non-creaky.wav,fæːta-b.wav,t,none,t-none,none,Medial,96.png,1.png,test,control,non-creaky,فاتَ,فاقَ,to pass by in time,to exceed or go beyond,فاتَ,فاقَ,,
+89,,89_non-creaky.wav,jʊtaʒɪr-b.wav,t,none,t-none,none,Medial,98.png,3.png,test,control,non-creaky,يُتَجِر,يُؤَجِر,to trade,to rent out,يُتَجِر,يُؤَجِر,,
+90,,90_non-creaky.wav,jʊtarːɪb-b.wav,t,none,t-none,none,Medial,99.png,4.png,test,control,non-creaky,يُتَرِّب,يُقَرِّب,to cover with dust,to approach,يُتَرِّب,يُقَرِّب,,
+91,target repeats,91_non-creaky.wav,jʊtasˤːɪl-b.wav,t,none,t-none,none,Medial,101.png,6.png,test,control,non-creaky,يُتَصِّل,يُقَصِّل,to connect,to feed hay to livestock,يُتَصِّل,يُقَصِّل,,
+92,duplicate 92,92_non-creaky.wav,jʊtasˤːɪl-b.wav,t,none,t-none,none,Medial,101.png,7.png,test,control,non-creaky,يُتَصِّل,يُأَصِّل,to connect,to found or originate,يُتَصِّل,يُأَصِّل,,
+93,,93_non-creaky.wav,jaksɪr-b.wav,k,none,k-none,none,Medial,104.png,9.png,test,control,non-creaky,يَكسِر,يَقسِر,to break,to force or coerce,يَكسِر,يَقسِر,1056.0,2.0
+94,duplicated 94,94_non-creaky.wav,jaksɪr-b.wav,k,none,k-none,none,Medial,104.png,10.png,test,control,non-creaky,يَكسِر,يَأسِر,to break,to bind,يَكسِر,يَأسِر,,
+95,,95_non-creaky.wav,jakʃɪf-b.wav,k,none,k-none,none,Medial,107.png,12.png,test,control,non-creaky,يَكشِف,يَقشِف,"to expose, uncover",to live in squalor or misery,يَكشِف,يَقشِف,,
+96,,96_non-creaky.wav,jakfɪl-b.wav,k,none,k-none,none,Medial,109.png,14.png,test,control,non-creaky,يَكفِل,يَقفِل,to guarantee,to lock,يَكفِل,يَقفِل,,
+97,,97_non-creaky.wav,jʊtarːɪf-b.wav,t,none,t-none,none,Medial,112.png,16.png,test,control,non-creaky,يُترّّف,يُقرِّف,to spoil in luxury,to arouse digust,يُترّّف,يُقرِّف,,
+98,,98_non-creaky.wav,jakʊfː-b.wav,k,none,k-none,none,Medial,113.png,18.png,test,control,non-creaky,يَكُفّ,يَقُفّ,"to cease, to hem, to skirt","to ruffle, to shrivel",يَكُفّ,يَقُفّ,,
+99,,99_non-creaky.wav,jaksɪb-b.wav,k,none,k-none,none,Medial,115.png,20.png,test,control,non-creaky,يَكسِب,يَقسِب,to win a struggle or war,"to flow, to trickle down",يَكسِب,يَقسِب,,
+100,,100_non-creaky.wav,jʊtalːɪf-b.wav,t,none,t-none,none,Medial,117.png,22.png,test,control,non-creaky,يُتَلِّف,يُؤَلِّف,"to perish, to spoil, to destroy",to become familiar with,يُتَلِّف,يُؤَلِّف,,
+101,,101_non-creaky.wav,jaknɪs-b.wav,k,none,k-none,none,Medial,118.png,23.png,test,control,non-creaky,يَكنِس,يَأنِس,to hide or retreat,to become used to,يَكنِس,يَأنِس,,
+102,,102_non-creaky.wav,jakwi-b.wav,k,none,k-none,none,Medial,119.png,24.png,test,control,non-creaky,يَكوي,يَأوي,"to sear, to cauterize",to take shelter (or receive shelter),يَكوي,يَأوي,,
+103,,103_non-creaky.wav,nabat-b.wav,t,none,t-none,none,Final,120.png,25.png,test,control,non-creaky,نَبَت,نَبَأ,"to germinate, to sprout","to elevate, to exalt",نَبَت,نَبَأ,,
+104,,104_non-creaky.wav,jakuːn-b.wav,k,none,k-none,none,Medial,121.png,26.png,test,control,non-creaky,يَكون,يَقون,be,preserve;safeguard,يَكون,يَقون,254261.0,4.0
+105,,105_non-creaky.wav,kaːnuːn-b.wav,k,none,k-none,none,Initial,123.png,28.png,test,control,non-creaky,كانون,قانون,stove,law;statutes;regulations,كانون,قانون,101878.0,92378.0
+106,,106_non-creaky.wav,kuːba-b.wav,k,none,k-none,none,Initial,125.png,30.png,test,control,non-creaky,كوبا,قوبا,Cuba,young_bird;chick,كوبا,قوبا,21391.0,10.0
+107,,107_non-creaky.wav,tarak-b.wav,k,none,k-none,none,Final,127.png,32.png,test,control,non-creaky,تَرَك,تَرَق,leave;quit,ascend;rise;promote,تَرَك,تَرَق,19302.0,670.0
+108,,108_non-creaky.wav,wakarːar-b.wav,k,none,k-none,none,Medial,129.png,34.png,test,control,non-creaky,وَكَرَّر,وَقَرَّر,repeat;reiterate,decide;resolve,وَكَرَّر,وَقَرَّر,12919.0,13138.0
+109,,109_non-creaky.wav,wakæːd-b.wav,k,none,k-none,none,Medial,131.png,36.png,test,control,non-creaky,وَكاد,وَقاد,almost;hardly;no_sooner,lead;guide,وَكاد,وَقاد,7904.0,5898.0
+110,,110_non-creaky.wav,wakiːl-b.wav,k,none,k-none,none,Medial,135.png,40.png,test,control,non-creaky,وَكيل,وَقيل,representative;agent,be_said,وَكيل,وَقيل,3581.0,5767.0
+111,,111_non-creaky.wav,kawaː-b.wav,k,none,k-none,none,Initial,137.png,42.png,test,control,non-creaky,كَوى,قَوى,apertures;skylights,power;forces,كَوى,قَوى,3129.0,51772.0
+112,,112_non-creaky.wav,kalb-b.wav,k,none,k-none,none,Initial,139.png,44.png,test,control,non-creaky,كَلب,قَلب,dog,heart,كَلب,قَلب,21029.0,2704.0
+113,,113_non-creaky.wav,takuːn-b.wav,t,none,t-none,none,Initial,141.png,46.png,test,control,non-creaky,تَكون,أكون,be,be,تَكون,أكون,5576.0,100374.0
+114,,114_non-creaky.wav,tʊriːd-b.wav,t,none,t-none,none,Initial,142.png,47.png,test,control,non-creaky,تُريد,أُريد,want;desire;intend,want;desire;intend,تُريد,أُريد,17337.0,59771.0
+115,,115_non-creaky.wav,taʕmal-b.wav,t,none,t-none,none,Initial,143.png,48.png,test,control,non-creaky,تَعمَل,أعمَل,work;function;act,work;function;act,تَعمَل,أعمَل,54990.0,1553.0
+116,,116_non-creaky.wav,tarfʊdˤ-b.wav,t,none,t-none,none,Initial,145.png,50.png,test,control,non-creaky,تَرفُض,أرفُض,reject;refuse,reject;refuse,تَرفُض,أرفُض,26804.0,1387.0
+117,,117_non-creaky.wav,tatˤlʊb-b.wav,t,none,t-none,none,Initial,146.png,51.png,test,control,non-creaky,تَطلُب,أطلُب,request,request,تَطلُب,أطلُب,19843.0,3103.0
+118,,118_non-creaky.wav,tamæːm-b.wav,t,none,t-none,none,Initial,147.png,52.png,test,control,non-creaky,تَمام,أمام,exact;complete,front;forward,تَمام,أمام,2310.0,431358.0
+119,,119_non-creaky.wav,tajːɑr-b.wav,t,none,t-none,none,Initial,148.png,53.png,test,control,non-creaky,تَيّار,أيّار,current;stream,May,تَيّار,أيّار,6249.0,73492.0
+120,,120_non-creaky.wav,tʊdˤɑf-b.wav,t,none,t-none,none,Initial,149.png,54.png,test,control,non-creaky,تُضاف,أُضاف,be_added,add,تُضاف,أُضاف,4876.0,31214.0
+121,,121_non-creaky.wav,tʊqiːm-b.wav,t,none,t-none,none,Initial,150.png,55.png,test,control,non-creaky,تُقيم,أُقيم,install;establish;erect,take_place;be_installed;be_established,تُقيم,أُقيم,13107.0,18543.0
+122,,122_non-creaky.wav,tablaʁ-b.wav,t,none,t-none,none,Initial,151.png,56.png,test,control,non-creaky,تَبلَغ,أبلَغ,reach;attain,report;inform;notify,تَبلَغ,أبلَغ,47052.0,17341.0
+123,,123_non-creaky.wav,taquːl-b.wav,t,none,t-none,none,Initial,152.png,57.png,test,control,non-creaky,تَقول,أقول,say,say,تَقول,أقول,49261.0,14036.0
+124,,124_non-creaky.wav,taɾa-b.wav,t,none,t-none,none,Initial,155.png,60.png,test,control,non-creaky,تَرى,أرى,see;think;believe,see;think;believe,تَرى,أرى,38891.0,7666.0
+125,,125_non-creaky.wav,ʔɪntɪhæːk-b.wav,k,none,k-none,none,Final,156.png,61.png,test,control,non-creaky,اِنْتِهاك,اِنْتِهاء,exhaustion,finishing;completion;conclusion,اِنْتِهاك,اِنْتِهاء,6516.0,59925.0
+126,,126_non-creaky.wav,kam-b.wav,k,none,k-none,none,Initial,157.png,62.png,test,control,non-creaky,كَمْ,أَمْ,how,or,كَمْ,أَمْ,34974.0,51870.0
+127,,127_non-creaky.wav,takliːf-b.wav,k,none,k-none,none,Medial,158.png,63.png,test,control,non-creaky,تَكليف,تَأليف,charging;commissioning,authoring;composing;constituting,تَكليف,تَأليف,3958.0,15041.0
+128,,128_non-creaky.wav,ʔasmæːk-b.wav,k,none,k-none,none,Final,159.png,64.png,test,control,non-creaky,أَسماك,أَسماء,fish,names,أَسماك,أَسماء,5494.0,11967.0
+129,,129_non-creaky.wav,kamiːn-b.wav,k,none,k-none,none,Initial,160.png,65.png,test,control,non-creaky,كَمين,أمين,hidden;ambush,secretary,كَمين,أمين,3196.0,20044.0
+130,,130_non-creaky.wav,ʔærːæːkɪd-b.wav,k,none,k-none,none,Medial,162.png,67.png,test,control,non-creaky,الرّاكِد,الرّائِد,stagnant;sluggish;tranquil,leader;explorer;pioneer,الرّاكِد,الرّائِد,256.0,8609.0
+131,,131_non-creaky.wav,ræːkɪʕa-b.wav,k,none,k-none,none,Medial,163.png,68.png,test,control,non-creaky,راكِعة,رائِعة,bowing;kneeling;prostrate,splendid;marvelous;magnificent,راكِعة,رائِعة,23.0,6788.0
+132,,132_non-creaky.wav,ʔælmʊlæːkɪm-b.wav,k,none,k-none,none,Medial,164.png,69.png,test,control,non-creaky,المُلاكِم,المُلائِم,boxer;pugilist,suitable;appropriate,المُلاكِم,المُلائِم,1778.0,5061.0
+133,,133_non-creaky.wav,tæːl-b.wav,t,none,t-none,none,Initial,165.png,70.png,test,control,non-creaky,تال,قال,following;subsequent,said,تال,قال,1418.0,430162.0
+134,,134_non-creaky.wav,ʔatwa-b.wav,t,none,t-none,none,Medial,167.png,72.png,test,control,non-creaky,أَتوا,أَقوى,arrive;come;reach,stronger/strongest;more/most_powerful,أَتوا,أَقوى,2757.0,14518.0
+135,,135_non-creaky.wav,fatɾa-b.wav,t,none,t-none,none,Medial,168.png,73.png,test,control,non-creaky,فَترة,فَقرة,phase;time_period;interval,paragraph;clause,فَترة,فَقرة,109530.0,13023.0
+136,,136_non-creaky.wav,ʔælʕɑtiːd-b.wav,t,none,t-none,none,Medial,169.png,74.png,test,control,non-creaky,العَتيد,العَقيد,prepared,colonel,العَتيد,العَقيد,2069.0,12868.0
+137,,137_non-creaky.wav,jafuːt-b.wav,t,none,t-none,none,Final,175.png,80.png,test,control,non-creaky,يَفوت,يَفوق,expire;go_by,surpass;excel,يَفوت,يَفوق,1365.0,10956.0
+138,,138_non-creaky.wav,tasˤiːr-b.wav,t,none,t-none,none,Initial,176.png,81.png,test,control,non-creaky,تَصير,قَصير,become;begin_to,short;small,تَصير,قَصير,3536.0,8833.0
+139,,139_non-creaky.wav,nafat-b.wav,t,none,t-none,none,Final,177.png,82.png,test,control,non-creaky,نَفَت,نَفَق,deny;disavow;reject,tunnel;subway_shaft,نَفَت,نَفَق,10423.0,6056.0
+140,,140_non-creaky.wav,ʔælfæːʔɪta-b.wav,t,none,t-none,none,Medial,178.png,83.png,test,control,non-creaky,الفائِتة,الفائِقة,past;expired;elapsed;gone_by,boundless;exceeding,الفائِتة,الفائِقة,1647.0,5743.0
+141,,141_non-creaky.wav,ħalːat-b.wav,t,none,t-none,none,Final,179.png,84.png,test,control,non-creaky,حَلَّت,حَلَّق,dissolve;untie;solve_(problem),encircle;whirl,حَلَّت,حَلَّق,11025.0,4217.0
+142,,142_non-creaky.wav,ʕataba-b.wav,t,none,t-none,none,Medial,180.png,85.png,test,control,non-creaky,عَتَبَة,عَقَبَة,step;stair;threshold,obstacle;Aqaba(Jordan),عَتَبَة,عَقَبَة,7966.0,3346.0
+143,,143_non-creaky.wav,ʔasːabt-b.wav,t,none,t-none,none,Final,181.png,86.png,test,control,non-creaky,السَّبْت,السَّبْق,Saturday,precedence;antecedence,السَّبْت,السَّبْق,222180.0,2697.0
+144,,144_non-creaky.wav,tamːat-b.wav,t,none,t-none,none,Final,182.png,87.png,test,control,non-creaky,تَمَّت,قَمَّت,conclude;take_place,sweep,تَمَّت,قَمَّت,38873.0,1997.0
+145,,145_creaky.wav,fæːqa-c.wav,q,t,q-t,1,Medial,1.png,96.png,test,phoneme,creaky,فاقَ,فاتَ,to exceed or go beyond,to pass by in time,فاقَ,فاتَ,,
+146,,146_creaky.wav,fæːʔa-c.wav,gs,t,gs-t,2,Medial,1.png,96.png,test,allophone,creaky,فاقَ,فاتَ,to exceed or go beyond,to pass by in time,فاقَ,فاتَ,,
+147,,147_creaky.wav,jʊʔaʒɪr-c.wav,ʔ,t,ʔ-t,3,Medial,3.png,98.png,test,phoneme,creaky,يُؤَجِر,يُتَجِر,to rent out,to trade,يُؤَجِر,يُتَجِر,,
+148,,148_creaky.wav,jʊqarːɪb-c.wav,q,t,q-t,4,Medial,4.png,99.png,test,phoneme,creaky,يُقَرِّب,يُتَرِّب,to approach,to cover with dust,يُقَرِّب,يُتَرِّب,,
+149,,149_creaky.wav,jʊʔarːɪb-c.wav,gs,t,gs-t,5,Medial,4.png,99.png,test,allophone,creaky,يُقَرِّب,يُتَرِّب,to approach,to cover with dust,يُقَرِّب,يُتَرِّب,,
+150,,150_creaky.wav,jʊqasˤːɪl-c.wav,q,t,q-t,6,Medial,6.png,101.png,test,phoneme,creaky,يُقَصِّل,يُتَصِّل,to feed hay to livestock,to connect,يُقَصِّل,يُتَصِّل,,
+151,target repeats,151_creaky.wav,jʊʔasˤːɪl-c.wav,ʔ,t,ʔ-t,7,Medial,7.png,101.png,test,phoneme,creaky,يُأَصِّل,يُتَصِّل,to found or originate,to connect,يُأَصِّل,يُتَصِّل,,
+152,duplicated 151.wav,152_creaky.wav,jʊʔasˤːɪl-c.wav,gs,t,gs-t,8,Medial,6.png,101.png,test,allophone,creaky,يُقَصِّل,يُتَصِّل,to feed hay to livestock,to connect,يُقَصِّل,يُتَصِّل,,
+153,,153_creaky.wav,jaqsɪr-c.wav,q,k,q-k,9,Medial,9.png,104.png,test,phoneme,creaky,يَقسِر,يَكسِر,to force or coerce,to break,يَقسِر,يَكسِر,2.0,1056.0
+154,,154_creaky.wav,jaʔsɪr2-c.wav,ʔ,k,ʔ-k,10,Medial,10.png,104.png,test,phoneme,creaky,يَأسِر,يَكسِر,to bind,to break,يَأسِر,يَكسِر,,
+155,,155_creaky.wav,jaʔsɪr-c.wav,gs,k,gs-k,11,Medial,9.png,104.png,test,allophone,creaky,يَقسِر,يَكسِر,to force or coerce,to break,يَقسِر,يَكسِر,2.0,1056.0
+156,,156_creaky.wav,jaqʃɪf-c.wav,q,k,q-k,12,Medial,12.png,107.png,test,phoneme,creaky,يَقشِف,يَكشِف,to live in squalor or misery,"to expose, uncover",يَقشِف,يَكشِف,,
+157,,157_creaky.wav,jaʔʃɪf-c.wav,gs,k,gs-k,13,Medial,12.png,107.png,test,allophone,creaky,يَقشِف,يَكشِف,to live in squalor or misery,"to expose, uncover",يَقشِف,يَكشِف,,
+158,,158_creaky.wav,jaqfɪl-c.wav,q,k,q-k,14,Medial,14.png,109.png,test,phoneme,creaky,يَقفِل,يَكفِل,to lock,to guarantee,يَقفِل,يَكفِل,,
+159,,159_creaky.wav,jaʔfɪl-c.wav,gs,k,gs-k,15,Medial,14.png,109.png,test,allophone,creaky,يَقفِل,يَكفِل,to lock,to guarantee,يَقفِل,يَكفِل,,
+160,,160_creaky.wav,jʊqarːɪf-c.wav,q,t,q-t,16,Medial,16.png,112.png,test,phoneme,creaky,يُقرِّف,يُترّّف,to arouse digust,to spoil in luxury,يُقرِّف,يُترّّف,,
+161,,161_creaky.wav,jʊʔarːɪf-c.wav,gs,t,gs-t,17,Medial,16.png,112.png,test,allophone,creaky,يُقرِّف,يُترِّف,to arouse digust,to spoil in luxury,يُقرِّف,يُترِّف,,
+162,,162_creaky.wav,jaqʊfː-c.wav,q,k,q-k,18,Medial,18.png,113.png,test,phoneme,creaky,يَقُفّ,يَكُفّ,"to ruffle, to shrivel","to cease, to hem, to skirt",يَقُفّ,يَكُفّ,,
+163,,163_creaky.wav,jaʔʊfː-c.wav,gs,k,gs-k,19,Medial,18.png,113.png,test,allophone,creaky,يَقُفّ,يَكُفّ,"to ruffle, to shrivel","to cease, to hem, to skirt",يَقُفّ,يَكُفّ,,
+164,,164_creaky.wav,jaqsɪb-c.wav,q,k,q-k,20,Medial,20.png,115.png,test,phoneme,creaky,يَقسِب,يَكسِب,"to flow, to trickle down",to win a struggle or war,يَقسِب,يَكسِب,,
+165,,165_creaky.wav,jaʔsɪb-c.wav,gs,k,gs-k,21,Medial,20.png,115.png,test,allophone,creaky,يَقسِب,يَكسِب,"to flow, to trickle down",to win a struggle or war,يَقسِب,يَكسِب,,
+166,,166_creaky.wav,jʊʔalːɪf-c.wav,ʔ,t,ʔ-t,22,Medial,22.png,117.png,test,phoneme,creaky,يُؤَلِّف,يُتَلِّف,to become familiar with,"to perish, to spoil, to destroy",يُؤَلِّف,يُتَلِّف,,
+167,,167_creaky.wav,jaʔnɪs-c.wav,ʔ,k,ʔ-k,23,Medial,23.png,118.png,test,phoneme,creaky,يَأنِس,يَكنِس,to become used to,to hide or retreat,يَأنِس,يَكنِس,,
+168,,168_creaky.wav,jaʔwi-c.wav,ʔ,k,ʔ-k,24,Medial,24.png,119.png,test,phoneme,creaky,يَأوي,يَكوي,to take shelter (or receive shelter),"to sear, to cauterize",يَأوي,يَكوي,,
+169,,169_creaky.wav,nabaʔ-c.wav,ʔ,t,ʔ-t,25,Final,25.png,120.png,test,phoneme,creaky,نَبَأ,نَبَت,"to elevate, to exalt","to germinate, to sprout",نَبَأ,نَبَت,,
+170,,170_creaky.wav,jaquːn-c.wav,q,k,q-k,26,Medial,26.png,121.png,test,phoneme,creaky,يَقون,يَكون,preserve;safeguard,be,يَقون,يَكون,4.0,254261.0
+171,,171_creaky.wav,jaʔuːn-c.wav,gs,k,gs-k,27,Medial,26.png,121.png,test,allophone,creaky,يَقون,يَكون,preserve;safeguard,be,يَقون,يَكون,4.0,254261.0
+172,,172_creaky.wav,qaːnuːn-c.wav,q,k,q-k,28,Initial,28.png,123.png,test,phoneme,creaky,قانون,كانون,law;statutes;regulations,stove,قانون,كانون,92378.0,101878.0
+173,,173_creaky.wav,ʔaːnuːn-c.wav,gs,k,gs-k,29,Initial,28.png,123.png,test,allophone,creaky,قانون,كانون,law;statutes;regulations,stove,قانون,كانون,92378.0,101878.0
+174,,174_creaky.wav,quːba-c.wav,q,k,q-k,30,Initial,30.png,125.png,test,phoneme,creaky,قوبا,كوبا,young_bird;chick,Cuba,قوبا,كوبا,10.0,21391.0
+175,,175_creaky.wav,ʔuːba-c.wav,gs,k,gs-k,31,Initial,30.png,125.png,test,allophone,creaky,قوبا,كوبا,young_bird;chick,Cuba,قوبا,كوبا,10.0,21391.0
+176,,176_creaky.wav,taraq-c.wav,q,k,q-k,32,Final,32.png,127.png,test,phoneme,creaky,تَرَق,تَرَك,ascend;rise;promote,leave;quit,تَرَق,تَرَك,670.0,19302.0
+177,,177_creaky.wav,taraʔ-c.wav,gs,k,gs-k,33,Final,32.png,127.png,test,allophone,creaky,تَرَق,تَرَك,ascend;rise;promote,leave;quit,تَرَق,تَرَك,670.0,19302.0
+178,,178_creaky.wav,waqarːar-c.wav,q,k,q-k,34,Medial,34.png,129.png,test,phoneme,creaky,وَقَرَّر,وَكَرَّر,decide;resolve,repeat;reiterate,وَقَرَّر,وَكَرَّر,13138.0,12919.0
+179,,179_creaky.wav,waʔarːar-c.wav,gs,k,gs-k,35,Medial,34.png,129.png,test,allophone,creaky,وَقَرَّر,وَكَرَّر,decide;resolve,repeat;reiterate,وَقَرَّر,وَكَرَّر,13138.0,12919.0
+180,,180_creaky.wav,waqæːd-c.wav,q,k,q-k,36,Medial,36.png,131.png,test,phoneme,creaky,وَقاد,وَكاد,lead;guide,almost;hardly;no_sooner,وَقاد,وَكاد,5898.0,7904.0
+181,,181_creaky.wav,waʔæːd-c.wav,gs,k,gs-k,37,Medial,36.png,131.png,test,allophone,creaky,وَقاد,وَكاد,lead;guide,almost;hardly;no_sooner,وَقاد,وَكاد,5898.0,7904.0
+182,,182_creaky.wav,waqiːl-c.wav,q,k,q-k,38,Medial,40.png,135.png,test,phoneme,creaky,وَقيل,وَكيل,be_said,representative;agent,وَقيل,وَكيل,5767.0,3581.0
+183,,183_creaky.wav,waʔiːl-c.wav,gs,k,gs-k,39,Medial,40.png,135.png,test,allophone,creaky,وَقيل,وَكيل,be_said,representative;agent,وَقيل,وَكيل,5767.0,3581.0
+184,,184_creaky.wav,qawaː-c.wav,q,k,q-k,40,Initial,42.png,137.png,test,phoneme,creaky,قَوى,كَوى,power;forces,apertures;skylights,قَوى,كَوى,51772.0,3129.0
+185,,185_creaky.wav,ʔawaː-c.wav,gs,k,gs-k,41,Initial,42.png,137.png,test,allophone,creaky,قَوى,كَوى,power;forces,apertures;skylights,قَوى,كَوى,51772.0,3129.0
+186,,186_creaky.wav,qalb-c.wav,q,k,q-k,42,Initial,44.png,139.png,test,phoneme,creaky,قَلب,كَلب,heart,dog,قَلب,كَلب,2704.0,21029.0
+187,,187_creaky.wav,ʔalb-c.wav,gs,k,gs-k,43,Initial,44.png,139.png,test,allophone,creaky,قَلب,كَلب,heart,dog,قَلب,كَلب,2704.0,21029.0
+188,,188_creaky.wav,ʔakuːn-c.wav,ʔ,k,ʔ-k,44,Initial,46.png,141.png,test,phoneme,creaky,أكون,تَكون,be,be,أكون,تَكون,100374.0,5576.0
+189,,189_creaky.wav,ʔʊriːd-c.wav,ʔ,t,ʔ-t,45,Initial,47.png,142.png,test,phoneme,creaky,أُريد,تُريد,want;desire;intend,want;desire;intend,أُريد,تُريد,59771.0,17337.0
+190,,190_creaky.wav,ʔaʕmal-c.wav,ʔ,t,ʔ-t,46,Initial,48.png,143.png,test,phoneme,creaky,أعمَل,تَعمَل,work;function;act,work;function;act,أعمَل,تَعمَل,1553.0,54990.0
+191,,191_creaky.wav,ʔarfʊdˤ-c.wav,ʔ,t,ʔ-t,47,Initial,50.png,145.png,test,phoneme,creaky,أرفُض,تَرفُض,reject;refuse,reject;refuse,أرفُض,تَرفُض,1387.0,26804.0
+192,,192_creaky.wav,ʔatˤlʊb-c.wav,ʔ,t,ʔ-t,48,Initial,51.png,146.png,test,phoneme,creaky,أطلُب,تَطلُب,request,request,أطلُب,تَطلُب,3103.0,19843.0
+193,,193_creaky.wav,ʔamæːm-c.wav,ʔ,t,ʔ-t,49,Initial,52.png,147.png,test,phoneme,creaky,أمام,تَمام,front;forward,exact;complete,أمام,تَمام,431358.0,2310.0
+194,,194_creaky.wav,ʔajːɑr-c.wav,ʔ,t,ʔ-t,50,Initial,53.png,148.png,test,phoneme,creaky,أيّار,تَيّار,May,current;stream,أيّار,تَيّار,73492.0,6249.0
+195,,195_creaky.wav,ʔʊdˤɑf-c.wav,ʔ,t,ʔ-t,51,Initial,54.png,149.png,test,phoneme,creaky,أُضاف,تُضاف,add,be_added,أُضاف,تُضاف,31214.0,4876.0
+196,,196_creaky.wav,ʔʊqiːm-c.wav,ʔ,t,ʔ-t,52,Initial,55.png,150.png,test,phoneme,creaky,أُقيم,تُقيم,take_place;be_installed;be_established,install;establish;erect,أُقيم,تُقيم,18543.0,13107.0
+197,,197_creaky.wav,ʔablaʁ-c.wav,ʔ,t,ʔ-t,53,Initial,56.png,151.png,test,phoneme,creaky,أبلَغ,تَبلَغ,report;inform;notify,reach;attain,أبلَغ,تَبلَغ,17341.0,47052.0
+198,,198_creaky.wav,ʔaquːl-c.wav,ʔ,t,ʔ-t,54,Medial,57.png,152.png,test,phoneme,creaky,أقول,تَقول,say,say,أقول,تَقول,14036.0,49261.0
+199,,199_creaky.wav,ʔaɾa-c.wav,ʔ,t,ʔ-t,55,Initial,60.png,155.png,test,phoneme,creaky,أرى,تَرى,see;think;believe,see;think;believe,أرى,تَرى,7666.0,38891.0
+200,,200_creaky.wav,ʔɪntɪhæːʔ-c.wav,ʔ,k,ʔ-k,56,Final,61.png,156.png,test,phoneme,creaky,اِنْتِهاء,اِنْتِهاك,finishing;completion;conclusion,exhaustion,اِنْتِهاء,اِنْتِهاك,59925.0,6516.0
+201,,201_creaky.wav,ʔam-c.wav,ʔ,k,ʔ-k,57,Initial,62.png,157.png,test,phoneme,creaky,أَمْ,كَمْ,or,how,أَمْ,كَمْ,51870.0,34974.0
+202,,202_creaky.wav,taʔliːf-c.wav,ʔ,k,ʔ-k,58,Medial,63.png,158.png,test,phoneme,creaky,تَأليف,تَكليف,authoring;composing;constituting,charging;commissioning,تَأليف,تَكليف,15041.0,3958.0
+203,,203_creaky.wav,ʔasmæːʔ-c.wav,ʔ,k,ʔ-k,59,Final,64.png,159.png,test,phoneme,creaky,أَسماء,أَسماك,names,fish,أَسماء,أَسماك,11967.0,5494.0
+204,,204_creaky.wav,ʔamiːn-c.wav,ʔ,k,ʔ-k,60,Initial,65.png,160.png,test,phoneme,creaky,أمين,كَمين,secretary,hidden;ambush,أمين,كَمين,20044.0,3196.0
+205,,205_creaky.wav,ʔærːæːʔɪd-c.wav,ʔ,k,ʔ-k,61,Medial,67.png,162.png,test,phoneme,creaky,الرّائِد,الرّاكِد,leader;explorer;pioneer,stagnant;sluggish;tranquil,الرّائِد,الرّاكِد,8609.0,256.0
+206,,206_creaky.wav,ræːʔɪʕa-c.wav,ʔ,k,ʔ-k,62,Medial,68.png,163.png,test,phoneme,creaky,رائِعة,راكِعة,splendid;marvelous;magnificent,bowing;kneeling;prostrate,رائِعة,راكِعة,6788.0,23.0
+207,,207_creaky.wav,ʔælmʊlæːʔɪm-c.wav,ʔ,k,ʔ-k,63,Medial,69.png,164.png,test,phoneme,creaky,المُلائِم,المُلاكِم,suitable;appropriate,boxer;pugilist,المُلائِم,المُلاكِم,5061.0,1778.0
+208,,208_creaky.wav,qæːl-c.wav,q,t,q-t,64,Initial,70.png,165.png,test,phoneme,creaky,قال,تال,said,following;subsequent,قال,تال,430162.0,1418.0
+209,,209_creaky.wav,ʔaqwa-c.wav,q,t,q-t,65,Medial,72.png,167.png,test,phoneme,creaky,أَقوى,أَتوا,stronger/strongest;more/most_powerful,arrive;come;reach,أَقوى,أَتوا,14518.0,2757.0
+210,,210_creaky.wav,faqɾa-c.wav,q,t,q-t,66,Medial,73.png,168.png,test,phoneme,creaky,فَقرة,فَترة,paragraph;clause,phase;time_period;interval,فَقرة,فَترة,13023.0,109530.0
+211,,211_creaky.wav,ʔælʕɑqiːd-c.wav,q,t,q-t,67,Medial,74.png,169.png,test,phoneme,creaky,العَقيد,العَتيد,colonel,prepared,العَقيد,العَتيد,12868.0,2069.0
+212,,212_creaky.wav,ʔæːl-c.wav,gs,t,gs-t,68,Initial,75.png,165.png,test,allophone,creaky,قال,تال,said,following;subsequent,قال,تال,430162.0,1418.0
+213,,213_creaky.wav,ʔaʔwa-c.wav,gs,t,gs-t,69,Medial,72.png,167.png,test,allophone,creaky,أَقوى,أَتوا,stronger/strongest;more/most_powerful,arrive;come;reach,أَقوى,أَتوا,14518.0,2757.0
+214,,214_creaky.wav,faʔɾa-c.wav,gs,t,gs-t,70,Medial,73.png,168.png,test,allophone,creaky,فَقرة,فَترة,paragraph;clause,phase;time_period;interval,فَقرة,فَترة,13023.0,109530.0
+215,,215_creaky.wav,ʔælʕɑʔiːd-c.wav,gs,t,gs-t,71,Medial,74.png,169.png,test,allophone,creaky,العَقيد,العَتيد,colonel,prepared,العَقيد,العَتيد,12868.0,2069.0
+216,,216_creaky.wav,jafuːq-c.wav,q,t,q-t,72,Final,80.png,175.png,test,phoneme,creaky,يَفوق,يَفوت,surpass;excel,expire;go_by,يَفوق,يَفوت,10956.0,1365.0
+217,,217_creaky.wav,qasˤiːr-c.wav,q,t,q-t,73,Initial,81.png,176.png,test,phoneme,creaky,قَصير,تَصير,short;small,become;begin_to,قَصير,تَصير,8833.0,3536.0
+218,,218_creaky.wav,nafaq-c.wav,q,t,q-t,74,Final,82.png,177.png,test,phoneme,creaky,نَفَق,نَفَت,tunnel;subway_shaft,deny;disavow;reject,نَفَق,نَفَت,6056.0,10423.0
+219,,219_creaky.wav,ʔælfæːʔɪqa-c.wav,q,t,q-t,75,Medial,83.png,178.png,test,phoneme,creaky,الفائِقة,الفائِتة,boundless;exceeding,past;expired;elapsed;gone_by,الفائِقة,الفائِتة,5743.0,1647.0
+220,,220_creaky.wav,ħalːaq-c.wav,q,t,q-t,76,Final,84.png,179.png,test,phoneme,creaky,حَلَّق,حَلَّت,encircle;whirl,dissolve;untie;solve_(problem),حَلَّق,حَلَّت,4217.0,11025.0
+221,,221_creaky.wav,ʕaqaba-c.wav,q,t,q-t,77,Medial,85.png,180.png,test,phoneme,creaky,عَقَبَة,عَتَبَة,obstacle;Aqaba(Jordan),step;stair;threshold,عَقَبَة,عَتَبَة,3346.0,7966.0
+222,,222_creaky.wav,ʔasːabq-c.wav,q,t,q-t,78,Final,86.png,181.png,test,phoneme,creaky,السَّبْق,السَّبْت,precedence;antecedence,Saturday,السَّبْق,السَّبْت,2697.0,222180.0
+223,,223_creaky.wav,qamːat-c.wav,q,t,q-t,79,Initial,87.png,182.png,test,phoneme,creaky,قَمَّت,تَمَّت,sweep,conclude;take_place,قَمَّت,تَمَّت,1997.0,38873.0
+224,,224_creaky.wav,jafuːʔ-c.wav,gs,t,gs-t,80,Final,80.png,175.png,test,allophone,creaky,يَفوق,يَفوت,surpass;excel,expire;go_by,يَفوق,يَفوت,10956.0,1365.0
+225,,225_creaky.wav,ʔasˤiːr-c.wav,gs,t,gs-t,81,Initial,81.png,176.png,test,allophone,creaky,قَصير,تَصير,short;small,become;begin_to,قَصير,تَصير,8833.0,3536.0
+226,,226_creaky.wav,nafaʔ-c.wav,gs,t,gs-t,82,Final,82.png,177.png,test,allophone,creaky,نَفَق,نَفَت,tunnel;subway_shaft,deny;disavow;reject,نَفَق,نَفَت,6056.0,10423.0
+227,,227_creaky.wav,ʔælfæːʔɪʔa-c.wav,gs,t,gs-t,83,Medial,83.png,178.png,test,allophone,creaky,الفائِقة,الفائِتة,boundless;exceeding,past;expired;elapsed;gone_by,الفائِقة,الفائِتة,5743.0,1647.0
+228,,228_creaky.wav,ħalːaʔ-c.wav,gs,t,gs-t,84,Final,84.png,179.png,test,allophone,creaky,حَلَّق,حَلَّت,encircle;whirl,dissolve;untie;solve_(problem),حَلَّق,حَلَّت,4217.0,11025.0
+229,,229_creaky.wav,ʕaʔaba-c.wav,gs,t,gs-t,85,Medial,85.png,180.png,test,allophone,creaky,عَقَبَة,عَتَبَة,obstacle;Aqaba(Jordan),step;stair;threshold,عَقَبَة,عَتَبَة,3346.0,7966.0
+230,,230_creaky.wav,ʔasːabʔ-c.wav,gs,t,gs-t,86,Final,86.png,181.png,test,allophone,creaky,السَّبْق,السَّبْت,precedence;antecedence,Saturday,السَّبْق,السَّبْت,2697.0,222180.0
+231,,231_creaky.wav,ʔamːat-c.wav,gs,t,gs-t,87,Initial,87.png,182.png,test,allophone,creaky,قَمَّت,تَمَّت,sweep,conclude;take_place,قَمَّت,تَمَّت,1997.0,38873.0
+232,,232_creaky.wav,fæːta-c.wav,t,none,t-none,none,Medial,96.png,1.png,test,control,creaky,فاتَ,فاقَ,to pass by in time,to exceed or go beyond,فاتَ,فاقَ,,
+233,,233_creaky.wav,jʊtaʒɪr-c.wav,t,none,t-none,none,Medial,98.png,3.png,test,control,creaky,يُتَجِر,يُؤَجِر,to trade,to rent out,يُتَجِر,يُؤَجِر,,
+234,,234_creaky.wav,jʊtarːɪb-c.wav,t,none,t-none,none,Medial,99.png,4.png,test,control,creaky,يُتَرِّب,يُقَرِّب,to cover with dust,to approach,يُتَرِّب,يُقَرِّب,,
+235,target repeats,235_creaky.wav,jʊtasˤːɪl-c.wav,t,none,t-none,none,Medial,101.png,6.png,test,control,creaky,يُتَصِّل,يُقَصِّل,to connect,to feed hay to livestock,يُتَصِّل,يُقَصِّل,,
+236,duplicated 235,236_creaky.wav,jʊtasˤːɪl-c.wav,t,none,t-none,none,Medial,101.png,7.png,test,control,creaky,يُتَصِّل,يُأَصِّل,to connect,to found or originate,يُتَصِّل,يُأَصِّل,,
+237,,237_creaky.wav,jaksɪr-c.wav,k,none,k-none,none,Medial,104.png,9.png,test,control,creaky,يَكسِر,يَقسِر,to break,to force or coerce,يَكسِر,يَقسِر,1056.0,2.0
+238,duplicated 238,238_creaky.wav,jaksɪr-c.wav,k,none,k-none,none,Medial,104.png,10.png,test,control,creaky,يَكسِر,يَأسِر,to break,to bind,يَكسِر,يَأسِر,,
+239,,239_creaky.wav,jakʃɪf-c.wav,k,none,k-none,none,Medial,107.png,12.png,test,control,creaky,يَكشِف,يَقشِف,"to expose, uncover",to live in squalor or misery,يَكشِف,يَقشِف,,
+240,,240_creaky.wav,jakfɪl-c.wav,k,none,k-none,none,Medial,109.png,14.png,test,control,creaky,يَكفِل,يَقفِل,to guarantee,to lock,يَكفِل,يَقفِل,,
+241,,241_creaky.wav,jʊtarːɪf-c.wav,t,none,t-none,none,Medial,112.png,16.png,test,control,creaky,يُترّّف,يُقرِّف,to spoil in luxury,to arouse digust,يُترّّف,يُقرِّف,,
+242,,242_creaky.wav,jakʊfː-c.wav,k,none,k-none,none,Medial,113.png,18.png,test,control,creaky,يَكُفّ,يَقُفّ,"to cease, to hem, to skirt","to ruffle, to shrivel",يَكُفّ,يَقُفّ,,
+243,,243_creaky.wav,jaksɪb-c.wav,k,none,k-none,none,Medial,115.png,20.png,test,control,creaky,يَكسِب,يَقسِب,to win a struggle or war,"to flow, to trickle down",يَكسِب,يَقسِب,,
+244,,244_creaky.wav,jʊtalːɪf-c.wav,t,none,t-none,none,Medial,117.png,22.png,test,control,creaky,يُتَلِّف,يُؤَلِّف,"to perish, to spoil, to destroy",to become familiar with,يُتَلِّف,يُؤَلِّف,,
+245,,245_creaky.wav,jaknɪs-c.wav,k,none,k-none,none,Medial,118.png,23.png,test,control,creaky,يَكنِس,يَأنِس,to hide or retreat,to become used to,يَكنِس,يَأنِس,,
+246,,246_creaky.wav,jakwi-c.wav,k,none,k-none,none,Medial,119.png,24.png,test,control,creaky,يَكوي,يَأوي,"to sear, to cauterize",to take shelter (or receive shelter),يَكوي,يَأوي,,
+247,,247_creaky.wav,nabat-c.wav,t,none,t-none,none,Final,120.png,25.png,test,control,creaky,نَبَت,نَبَأ,"to germinate, to sprout","to elevate, to exalt",نَبَت,نَبَأ,,
+248,,248_creaky.wav,jakuːn-c.wav,k,none,k-none,none,Medial,121.png,26.png,test,control,creaky,يَكون,يَقون,be,preserve;safeguard,يَكون,يَقون,254261.0,4.0
+249,,249_creaky.wav,kaːnuːn-c.wav,k,none,k-none,none,Initial,123.png,28.png,test,control,creaky,كانون,قانون,stove,law;statutes;regulations,كانون,قانون,101878.0,92378.0
+250,,250_creaky.wav,kuːba-c.wav,k,none,k-none,none,Initial,125.png,30.png,test,control,creaky,كوبا,قوبا,Cuba,young_bird;chick,كوبا,قوبا,21391.0,10.0
+251,,251_creaky.wav,tarak-c.wav,k,none,k-none,none,Final,127.png,32.png,test,control,creaky,تَرَك,تَرَق,leave;quit,ascend;rise;promote,تَرَك,تَرَق,19302.0,670.0
+252,,252_creaky.wav,wakarːar-c.wav,k,none,k-none,none,Medial,129.png,34.png,test,control,creaky,وَكَرَّر,وَقَرَّر,repeat;reiterate,decide;resolve,وَكَرَّر,وَقَرَّر,12919.0,13138.0
+253,,253_creaky.wav,wakæːd-c.wav,k,none,k-none,none,Medial,131.png,36.png,test,control,creaky,وَكاد,وَقاد,almost;hardly;no_sooner,lead;guide,وَكاد,وَقاد,7904.0,5898.0
+254,,254_creaky.wav,wakiːl-c.wav,k,none,k-none,none,Medial,135.png,40.png,test,control,creaky,وَكيل,وَقيل,representative;agent,be_said,وَكيل,وَقيل,3581.0,5767.0
+255,,255_creaky.wav,kawaː-c.wav,k,none,k-none,none,Initial,137.png,42.png,test,control,creaky,كَوى,قَوى,apertures;skylights,power;forces,كَوى,قَوى,3129.0,51772.0
+256,,256_creaky.wav,kalb-c.wav,k,none,k-none,none,Initial,139.png,44.png,test,control,creaky,كَلب,قَلب,dog,heart,كَلب,قَلب,21029.0,2704.0
+257,,257_creaky.wav,takuːn-c.wav,t,none,t-none,none,Initial,141.png,46.png,test,control,creaky,تَكون,أكون,be,be,تَكون,أكون,5576.0,100374.0
+258,,258_creaky.wav,tʊriːd-c.wav,t,none,t-none,none,Initial,142.png,47.png,test,control,creaky,تُريد,أُريد,want;desire;intend,want;desire;intend,تُريد,أُريد,17337.0,59771.0
+259,,259_creaky.wav,taʕmal-c.wav,t,none,t-none,none,Initial,143.png,48.png,test,control,creaky,تَعمَل,أعمَل,work;function;act,work;function;act,تَعمَل,أعمَل,54990.0,1553.0
+260,,260_creaky.wav,tarfʊdˤ-c.wav,t,none,t-none,none,Initial,145.png,50.png,test,control,creaky,تَرفُض,أرفُض,reject;refuse,reject;refuse,تَرفُض,أرفُض,26804.0,1387.0
+261,,261_creaky.wav,tatˤlʊb-c.wav,t,none,t-none,none,Initial,146.png,51.png,test,control,creaky,تَطلُب,أطلُب,request,request,تَطلُب,أطلُب,19843.0,3103.0
+262,,262_creaky.wav,tamæːm-c.wav,t,none,t-none,none,Initial,147.png,52.png,test,control,creaky,تَمام,أمام,exact;complete,front;forward,تَمام,أمام,2310.0,431358.0
+263,,263_creaky.wav,tajːɑr-c.wav,t,none,t-none,none,Initial,148.png,53.png,test,control,creaky,تَيّار,أيّار,current;stream,May,تَيّار,أيّار,6249.0,73492.0
+264,,264_creaky.wav,tʊdˤɑf-c.wav,t,none,t-none,none,Initial,149.png,54.png,test,control,creaky,تُضاف,أُضاف,be_added,add,تُضاف,أُضاف,4876.0,31214.0
+265,,265_creaky.wav,tʊqiːm-c.wav,t,none,t-none,none,Initial,150.png,55.png,test,control,creaky,تُقيم,أُقيم,install;establish;erect,take_place;be_installed;be_established,تُقيم,أُقيم,13107.0,18543.0
+266,,266_creaky.wav,tablaʁ-c.wav,t,none,t-none,none,Initial,151.png,56.png,test,control,creaky,تَبلَغ,أبلَغ,reach;attain,report;inform;notify,تَبلَغ,أبلَغ,47052.0,17341.0
+267,,267_creaky.wav,taquːl-c.wav,t,none,t-none,none,Initial,152.png,57.png,test,control,creaky,تَقول,أقول,say,say,تَقول,أقول,49261.0,14036.0
+268,,268_creaky.wav,taɾa-c.wav,t,none,t-none,none,Initial,155.png,60.png,test,control,creaky,تَرى,أرى,see;think;believe,see;think;believe,تَرى,أرى,38891.0,7666.0
+269,,269_creaky.wav,ʔɪntɪhæːk-c.wav,k,none,k-none,none,Final,156.png,61.png,test,control,creaky,اِنْتِهاك,اِنْتِهاء,exhaustion,finishing;completion;conclusion,اِنْتِهاك,اِنْتِهاء,6516.0,59925.0
+270,,270_creaky.wav,kam-c.wav,k,none,k-none,none,Initial,157.png,62.png,test,control,creaky,كَمْ,أَمْ,how,or,كَمْ,أَمْ,34974.0,51870.0
+271,,271_creaky.wav,takliːf-c.wav,k,none,k-none,none,Medial,158.png,63.png,test,control,creaky,تَكليف,تَأليف,charging;commissioning,authoring;composing;constituting,تَكليف,تَأليف,3958.0,15041.0
+272,,272_creaky.wav,ʔasmæːk-c.wav,k,none,k-none,none,Final,159.png,64.png,test,control,creaky,أَسماك,أَسماء,fish,names,أَسماك,أَسماء,5494.0,11967.0
+273,,273_creaky.wav,kamiːn-c.wav,k,none,k-none,none,Initial,160.png,65.png,test,control,creaky,كَمين,أمين,hidden;ambush,secretary,كَمين,أمين,3196.0,20044.0
+274,,274_creaky.wav,ʔærːæːkɪd-c.wav,k,none,k-none,none,Medial,162.png,67.png,test,control,creaky,الرّاكِد,الرّائِد,stagnant;sluggish;tranquil,leader;explorer;pioneer,الرّاكِد,الرّائِد,256.0,8609.0
+275,,275_creaky.wav,ræːkɪʕa-c.wav,k,none,k-none,none,Medial,163.png,68.png,test,control,creaky,راكِعة,رائِعة,bowing;kneeling;prostrate,splendid;marvelous;magnificent,راكِعة,رائِعة,23.0,6788.0
+276,,276_creaky.wav,ʔælmʊlæːkɪm-c.wav,k,none,k-none,none,Medial,164.png,69.png,test,control,creaky,المُلاكِم,المُلائِم,boxer;pugilist,suitable;appropriate,المُلاكِم,المُلائِم,1778.0,5061.0
+277,,277_creaky.wav,tæːl-c.wav,t,none,t-none,none,Initial,165.png,70.png,test,control,creaky,تال,قال,following;subsequent,said,تال,قال,1418.0,430162.0
+278,,278_creaky.wav,ʔatwa-c.wav,t,none,t-none,none,Medial,167.png,72.png,test,control,creaky,أَتوا,أَقوى,arrive;come;reach,stronger/strongest;more/most_powerful,أَتوا,أَقوى,2757.0,14518.0
+279,,279_creaky.wav,fatɾa-c.wav,t,none,t-none,none,Medial,168.png,73.png,test,control,creaky,فَترة,فَقرة,phase;time_period;interval,paragraph;clause,فَترة,فَقرة,109530.0,13023.0
+280,,280_creaky.wav,ʔælʕɑtiːd-c.wav,t,none,t-none,none,Medial,169.png,74.png,test,control,creaky,العَتيد,العَقيد,prepared,colonel,العَتيد,العَقيد,2069.0,12868.0
+281,,281_creaky.wav,jafuːt-c.wav,t,none,t-none,none,Final,175.png,80.png,test,control,creaky,يَفوت,يَفوق,expire;go_by,surpass;excel,يَفوت,يَفوق,1365.0,10956.0
+282,,282_creaky.wav,tasˤiːr-c.wav,t,none,t-none,none,Initial,176.png,81.png,test,control,creaky,تَصير,قَصير,become;begin_to,short;small,تَصير,قَصير,3536.0,8833.0
+283,,283_creaky.wav,nafat-c.wav,t,none,t-none,none,Final,177.png,82.png,test,control,creaky,نَفَت,نَفَق,deny;disavow;reject,tunnel;subway_shaft,نَفَت,نَفَق,10423.0,6056.0
+284,,284_creaky.wav,ʔælfæːʔɪta-c.wav,t,none,t-none,none,Medial,178.png,83.png,test,control,creaky,الفائِتة,الفائِقة,past;expired;elapsed;gone_by,boundless;exceeding,الفائِتة,الفائِقة,1647.0,5743.0
+285,,285_creaky.wav,ħalːat-c.wav,t,none,t-none,none,Final,179.png,84.png,test,control,creaky,حَلَّت,حَلَّق,dissolve;untie;solve_(problem),encircle;whirl,حَلَّت,حَلَّق,11025.0,4217.0
+286,,286_creaky.wav,ʕataba-c.wav,t,none,t-none,none,Medial,180.png,85.png,test,control,creaky,عَتَبَة,عَقَبَة,step;stair;threshold,obstacle;Aqaba(Jordan),عَتَبَة,عَقَبَة,7966.0,3346.0
+287,,287_creaky.wav,ʔasːabt-c.wav,t,none,t-none,none,Final,181.png,86.png,test,control,creaky,السَّبْت,السَّبْق,Saturday,precedence;antecedence,السَّبْت,السَّبْق,222180.0,2697.0
+288,,288_creaky.wav,tamːat-c.wav,t,none,t-none,none,Final,182.png,87.png,test,control,creaky,تَمَّت,قَمَّت,conclude;take_place,sweep,تَمَّت,قَمَّت,38873.0,1997.0

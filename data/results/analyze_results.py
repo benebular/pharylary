@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+from scipy import stats
 
 # Load data
 results = pd.read_csv('pharylary_survey_results.csv')
@@ -79,6 +80,74 @@ print("=" * 80)
 
 # Filter to Trials block only
 trials_data = results[results['block'] == 'Trials'].copy()
+
+# Deduplicate: ensure only one response per participant per trial
+# Keep the most recent response (closest to today) if duplicates exist
+print("\n" + "=" * 80)
+print("DEDUPLICATING TRIAL RESPONSES")
+print("=" * 80)
+
+print(f"\nTotal trial responses before deduplication: {len(trials_data)}")
+
+# Convert timestamp to datetime for sorting
+trials_data['timestamp_dt'] = pd.to_datetime(trials_data['timestamp_iso'])
+
+# Sort by timestamp descending (most recent first) and drop duplicates
+trials_data = trials_data.sort_values('timestamp_dt', ascending=False)
+trials_data = trials_data.drop_duplicates(subset=['participant_id', 'trial_id'], keep='first')
+
+print(f"Total trial responses after deduplication: {len(trials_data)}")
+
+# Check the distribution of responses per trial
+responses_per_trial = trials_data.groupby('trial_id').size()
+print(f"\nResponses per trial after deduplication:")
+print(f"  Min: {responses_per_trial.min()}")
+print(f"  Max: {responses_per_trial.max()}")
+print(f"  Mean: {responses_per_trial.mean():.2f}")
+
+if responses_per_trial.max() > 20:
+    print(f"\n⚠ Warning: Some trials still have > 20 responses. Max is {responses_per_trial.max()}")
+else:
+    print(f"\n✓ All trials have ≤ 20 responses")
+
+# Calculate completion time for each participant
+print("\n" + "=" * 80)
+print("PARTICIPANT COMPLETION TIMES (Trials Block)")
+print("=" * 80)
+
+completion_times = []
+for pid in completed_ids:
+    participant_trials = trials_data[trials_data['participant_id'] == pid].copy()
+    
+    if len(participant_trials) > 0:
+        # Sort by timestamp to get first and last trial
+        participant_trials = participant_trials.sort_values('timestamp_dt')
+        
+        first_trial_time = participant_trials['timestamp_dt'].iloc[0]
+        last_trial_time = participant_trials['timestamp_dt'].iloc[-1]
+        
+        # Calculate duration
+        duration = last_trial_time - first_trial_time
+        duration_minutes = duration.total_seconds() / 60
+        
+        completion_times.append({
+            'participant_id': pid,
+            'unique_trials': len(participant_trials),
+            'first_trial': first_trial_time,
+            'last_trial': last_trial_time,
+            'duration_minutes': duration_minutes
+        })
+
+completion_times_df = pd.DataFrame(completion_times).sort_values('duration_minutes', ascending=False)
+
+print("\nCompletion times per participant:")
+print(completion_times_df[['participant_id', 'unique_trials', 'duration_minutes']].to_string(index=False))
+
+print(f"\nSummary:")
+print(f"  Mean completion time: {completion_times_df['duration_minutes'].mean():.2f} minutes")
+print(f"  Median completion time: {completion_times_df['duration_minutes'].median():.2f} minutes")
+print(f"  Min completion time: {completion_times_df['duration_minutes'].min():.2f} minutes")
+print(f"  Max completion time: {completion_times_df['duration_minutes'].max():.2f} minutes")
 
 # Calculate accuracy
 participant_stats = trials_data.groupby('participant_id').agg(
@@ -246,3 +315,185 @@ print("\n✓ Saved the following files:")
 print("  - demographics_df.csv")
 print("  - trials_meta.csv")
 print("  - survey_df.csv")
+
+# Z-score survey ratings and calculate averages by trial_id
+print("\n" + "=" * 80)
+print("SURVEY RATINGS ANALYSIS (Z-SCORED)")
+print("=" * 80)
+
+# Columns to z-score
+rating_columns = ['recognize', 'understand', 'meaning_match', 'natural']
+
+# Create a copy of survey_df for analysis
+survey_analysis = survey_df.copy()
+
+# Z-score each rating column
+from scipy import stats
+for col in rating_columns:
+    # Only z-score non-null values
+    valid_values = survey_analysis[col].dropna()
+    if len(valid_values) > 0:
+        survey_analysis[f'{col}_zscore'] = stats.zscore(survey_analysis[col], nan_policy='omit')
+        print(f"\n✓ Z-scored {col}: mean={survey_analysis[f'{col}_zscore'].mean():.3f}, std={survey_analysis[f'{col}_zscore'].std():.3f}")
+
+# Calculate average z-scores grouped by trial_id
+zscore_columns = [f'{col}_zscore' for col in rating_columns]
+trial_ratings = survey_analysis.groupby('trial_id')[zscore_columns].mean().reset_index()
+
+# Rename columns for clarity
+trial_ratings.columns = ['trial_id'] + [col.replace('_zscore', '_zscore_mean') for col in zscore_columns]
+
+print("\n" + "=" * 80)
+print("AVERAGE Z-SCORED RATINGS BY TRIAL")
+print("=" * 80)
+print(f"\nTotal unique trials in survey: {len(trial_ratings)}")
+print("\nFirst 10 trials:")
+print(trial_ratings.head(10).to_string(index=False))
+
+# Save to CSV
+trial_ratings.to_csv('trial_ratings_zscored.csv', index=False)
+print("\n✓ Saved trial_ratings_zscored.csv")
+
+# Calculate accuracy and reaction time for ALL trials first
+print("\n" + "=" * 80)
+print("CALCULATING ACCURACY AND REACTION TIME FOR ALL TRIALS")
+print("=" * 80)
+
+# Calculate mean accuracy per trial
+accuracy_by_trial = trials_data.groupby('trial_id').agg(
+    mean_accuracy=('is_correct', lambda x: (x == 'yes').mean()),
+    n_responses=('is_correct', 'count')
+).reset_index()
+
+# For reaction time: log transform, then z-score, then average
+# First, log transform RT (excluding 0 or negative values)
+trials_data_rt = trials_data.copy()
+trials_data_rt['log_rt'] = np.log(trials_data_rt['reaction_time_ms'].replace(0, np.nan))
+
+# Z-score the log RT across all responses
+trials_data_rt['log_rt_zscore'] = stats.zscore(trials_data_rt['log_rt'], nan_policy='omit')
+
+# Calculate mean z-scored log RT per trial
+rt_by_trial = trials_data_rt.groupby('trial_id').agg(
+    mean_log_rt_zscore=('log_rt_zscore', 'mean'),
+    mean_rt_ms=('reaction_time_ms', 'mean')
+).reset_index()
+
+# Merge accuracy and RT stats
+trial_performance = accuracy_by_trial.merge(rt_by_trial, on='trial_id', how='left')
+
+print(f"\nCalculated performance stats for {len(trial_performance)} trials")
+print(f"\nOverall performance statistics:")
+print(f"  Mean accuracy: {trial_performance['mean_accuracy'].mean():.3f} (SD = {trial_performance['mean_accuracy'].std():.3f})")
+print(f"  Mean z-scored log RT: {trial_performance['mean_log_rt_zscore'].mean():.3f} (SD = {trial_performance['mean_log_rt_zscore'].std():.3f})")
+print(f"  Mean RT (ms): {trial_performance['mean_rt_ms'].mean():.1f} (SD = {trial_performance['mean_rt_ms'].std():.1f})")
+
+# Merge trial ratings with metadata and performance stats, then select top 54 trials
+print("\n" + "=" * 80)
+print("SELECTING TOP 54 TRIALS (6 PAIRS × 9 TRIALS)")
+print("=" * 80)
+
+# Merge trial ratings with metadata
+trial_ratings_with_meta = trial_ratings.merge(trials_meta_copy, on='trial_id', how='left')
+
+# Merge with performance stats
+trial_ratings_with_meta = trial_ratings_with_meta.merge(trial_performance, on='trial_id', how='left')
+
+print(f"\nTotal trials before filtering: {len(trial_ratings_with_meta)}")
+print(f"Columns in merged data: {list(trial_ratings_with_meta.columns)}")
+
+# Calculate composite score (average of the 4 z-scored ratings)
+zscore_mean_cols = ['recognize_zscore_mean', 'understand_zscore_mean', 
+                     'meaning_match_zscore_mean', 'natural_zscore_mean']
+trial_ratings_with_meta['composite_score'] = trial_ratings_with_meta[zscore_mean_cols].mean(axis=1)
+
+# Filter out t-none and k-none pairs
+filtered_trials = trial_ratings_with_meta[
+    ~trial_ratings_with_meta['Pair'].isin(['t-none', 'k-none'])
+].copy()
+
+print(f"Trials after excluding t-none and k-none: {len(filtered_trials)}")
+
+# Filter to only include trials with accuracy < 100% (exclude perfect accuracy trials)
+filtered_trials = filtered_trials[filtered_trials['mean_accuracy'] < 1.0].copy()
+
+print(f"Trials after filtering to accuracy < 100%: {len(filtered_trials)}")
+print(f"  Accuracy range: {filtered_trials['mean_accuracy'].min():.3f} to {filtered_trials['mean_accuracy'].max():.3f}")
+
+print(f"\nUnique Pair values: {sorted(filtered_trials['Pair'].unique())}")
+print(f"Total unique Pairs: {filtered_trials['Pair'].nunique()}")
+
+# Count trials per Pair
+pair_counts = filtered_trials.groupby('Pair').size().sort_values(ascending=False)
+print("\nTrials per Pair:")
+print(pair_counts.to_string())
+
+# Select top 9 trials from each of the top 6 pairs by composite score
+selected_trials = []
+pair_summary = []
+
+for pair in filtered_trials['Pair'].unique():
+    pair_trials = filtered_trials[filtered_trials['Pair'] == pair].copy()
+    pair_trials = pair_trials.sort_values('composite_score', ascending=False)
+    top_9 = pair_trials.head(9)
+    
+    pair_summary.append({
+        'Pair': pair,
+        'total_trials': len(pair_trials),
+        'selected_trials': len(top_9),
+        'mean_composite_score': top_9['composite_score'].mean(),
+        'min_composite_score': top_9['composite_score'].min(),
+        'max_composite_score': top_9['composite_score'].max()
+    })
+    
+    selected_trials.append(top_9)
+
+# Combine all selected trials
+top_54_trials = pd.concat(selected_trials, ignore_index=True)
+
+# Sort pairs by their mean composite score to get top 6
+pair_summary_df = pd.DataFrame(pair_summary).sort_values('mean_composite_score', ascending=False)
+
+print("\n" + "=" * 80)
+print("PAIR SUMMARY (sorted by mean composite score)")
+print("=" * 80)
+print(pair_summary_df.to_string(index=False))
+
+# Select only the top 6 pairs
+top_6_pairs = pair_summary_df.head(6)['Pair'].tolist()
+final_54_trials = top_54_trials[top_54_trials['Pair'].isin(top_6_pairs)].copy()
+
+print("\n" + "=" * 80)
+print("FINAL SELECTION: TOP 54 TRIALS")
+print("=" * 80)
+print(f"\nTotal trials selected: {len(final_54_trials)}")
+print(f"Pairs included: {top_6_pairs}")
+print(f"\nTrials per pair in final selection:")
+print(final_54_trials.groupby('Pair').size().to_string())
+
+print(f"\nComposite score statistics:")
+print(f"  Mean: {final_54_trials['composite_score'].mean():.3f}")
+print(f"  Min: {final_54_trials['composite_score'].min():.3f}")
+print(f"  Max: {final_54_trials['composite_score'].max():.3f}")
+
+# Save the final selection
+final_54_trials_sorted = final_54_trials.sort_values(['Pair', 'composite_score'], ascending=[True, False])
+final_54_trials_sorted.to_csv('top_54_trials.csv', index=False)
+print("\n✓ Saved top_54_trials.csv")
+
+print("\nFirst 5 trials from selection:")
+print(final_54_trials_sorted[['trial_id', 'Pair', 'composite_score', 'mean_accuracy', 'mean_log_rt_zscore'] + zscore_mean_cols].head().to_string(index=False))
+
+# Save the complete dataframe
+final_54_trials_sorted.to_csv('top_54_trials_complete.csv', index=False)
+print("\n✓ Saved top_54_trials_complete.csv (includes accuracy and RT stats)")
+
+print("\n" + "=" * 80)
+print("FINAL 54 TRIALS SUMMARY")
+print("=" * 80)
+print(f"\nPerformance statistics for selected 54 trials:")
+print(f"  Mean accuracy: {final_54_trials_sorted['mean_accuracy'].mean():.3f} (SD = {final_54_trials_sorted['mean_accuracy'].std():.3f})")
+print(f"  Accuracy range: {final_54_trials_sorted['mean_accuracy'].min():.3f} to {final_54_trials_sorted['mean_accuracy'].max():.3f}")
+print(f"  Mean z-scored log RT: {final_54_trials_sorted['mean_log_rt_zscore'].mean():.3f} (SD = {final_54_trials_sorted['mean_log_rt_zscore'].std():.3f})")
+print(f"  Mean RT (ms): {final_54_trials_sorted['mean_rt_ms'].mean():.1f} (SD = {final_54_trials_sorted['mean_rt_ms'].std():.1f})")
+print(f"  Mean composite score: {final_54_trials_sorted['composite_score'].mean():.3f} (SD = {final_54_trials_sorted['composite_score'].std():.3f})")
