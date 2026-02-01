@@ -110,6 +110,72 @@ if responses_per_trial.max() > 20:
 else:
     print(f"\n✓ All trials have ≤ 20 responses")
 
+# Remove outliers based on accuracy and reaction time
+print("\n" + "=" * 80)
+print("REMOVING OUTLIERS (2 SD threshold)")
+print("=" * 80)
+
+print(f"\nTotal responses before outlier removal: {len(trials_data)}")
+
+# Calculate accuracy per trial (proportion of correct responses)
+trial_accuracy = trials_data.groupby('trial_id')['is_correct'].apply(
+    lambda x: (x == 'yes').mean()
+).reset_index()
+trial_accuracy.columns = ['trial_id', 'trial_accuracy']
+
+# Merge trial accuracy back to trials_data
+trials_data = trials_data.merge(trial_accuracy, on='trial_id', how='left')
+
+# Calculate mean and SD for trial accuracy
+accuracy_mean = trials_data['trial_accuracy'].mean()
+accuracy_sd = trials_data['trial_accuracy'].std()
+
+print(f"\nTrial Accuracy Stats:")
+print(f"  Mean: {accuracy_mean:.3f}")
+print(f"  SD: {accuracy_sd:.3f}")
+print(f"  2 SD range: [{accuracy_mean - 2*accuracy_sd:.3f}, {accuracy_mean + 2*accuracy_sd:.3f}]")
+
+# Calculate log RT and then z-score it
+trials_data['log_rt_temp'] = np.log(trials_data['reaction_time_ms'].replace(0, np.nan))
+trials_data['log_rt_zscore_temp'] = stats.zscore(trials_data['log_rt_temp'], nan_policy='omit')
+
+# Calculate mean and SD for log z-scored RT
+log_rt_zscore_mean = trials_data['log_rt_zscore_temp'].mean()
+log_rt_zscore_sd = trials_data['log_rt_zscore_temp'].std()
+
+print(f"\nLog Z-scored RT Stats:")
+print(f"  Mean: {log_rt_zscore_mean:.3f}")
+print(f"  SD: {log_rt_zscore_sd:.3f}")
+print(f"  2 SD range: [{log_rt_zscore_mean - 2*log_rt_zscore_sd:.3f}, {log_rt_zscore_mean + 2*log_rt_zscore_sd:.3f}]")
+
+# Identify outliers (responses where either metric is more than 2 SD from mean)
+accuracy_outliers = np.abs(trials_data['trial_accuracy'] - accuracy_mean) > 2 * accuracy_sd
+rt_outliers = np.abs(trials_data['log_rt_zscore_temp'] - log_rt_zscore_mean) > 2 * log_rt_zscore_sd
+
+# Combine outlier flags
+outliers = accuracy_outliers | rt_outliers
+
+print(f"\nOutliers identified:")
+print(f"  Accuracy outliers: {accuracy_outliers.sum()}")
+print(f"  RT outliers: {rt_outliers.sum()}")
+print(f"  Total outliers (combined): {outliers.sum()}")
+
+# Remove outliers
+trials_data = trials_data[~outliers].copy()
+
+# Drop temporary columns
+trials_data = trials_data.drop(columns=['trial_accuracy', 'log_rt_temp', 'log_rt_zscore_temp'])
+
+print(f"\nTotal responses after outlier removal: {len(trials_data)}")
+print(f"Responses removed: {outliers.sum()}")
+
+# Check responses per trial after outlier removal
+responses_per_trial_clean = trials_data.groupby('trial_id').size()
+print(f"\nResponses per trial after outlier removal:")
+print(f"  Min: {responses_per_trial_clean.min()}")
+print(f"  Max: {responses_per_trial_clean.max()}")
+print(f"  Mean: {responses_per_trial_clean.mean():.2f}")
+
 # Calculate completion time for each participant
 print("\n" + "=" * 80)
 print("PARTICIPANT COMPLETION TIMES (Trials Block)")
@@ -414,11 +480,21 @@ filtered_trials = trial_ratings_with_meta[
 
 print(f"Trials after excluding t-none and k-none: {len(filtered_trials)}")
 
-# Filter to only include trials with accuracy < 100% (exclude perfect accuracy trials)
-filtered_trials = filtered_trials[filtered_trials['mean_accuracy'] < 1.0].copy()
+# Filter out trials with missing accuracy or RT data
+trials_with_missing = filtered_trials[
+    filtered_trials['mean_accuracy'].isna() | 
+    filtered_trials['mean_log_rt_zscore'].isna()
+]
+if len(trials_with_missing) > 0:
+    print(f"\n⚠ Warning: Removing {len(trials_with_missing)} trials with missing performance data")
+    print(f"  Trial IDs with missing data: {trials_with_missing['trial_id'].tolist()}")
 
-print(f"Trials after filtering to accuracy < 100%: {len(filtered_trials)}")
-print(f"  Accuracy range: {filtered_trials['mean_accuracy'].min():.3f} to {filtered_trials['mean_accuracy'].max():.3f}")
+filtered_trials = filtered_trials[
+    filtered_trials['mean_accuracy'].notna() & 
+    filtered_trials['mean_log_rt_zscore'].notna()
+].copy()
+
+print(f"Trials after removing missing data: {len(filtered_trials)}")
 
 print(f"\nUnique Pair values: {sorted(filtered_trials['Pair'].unique())}")
 print(f"Total unique Pairs: {filtered_trials['Pair'].nunique()}")
@@ -428,72 +504,187 @@ pair_counts = filtered_trials.groupby('Pair').size().sort_values(ascending=False
 print("\nTrials per Pair:")
 print(pair_counts.to_string())
 
-# Select top 9 trials from each of the top 6 pairs by composite score
-selected_trials = []
-pair_summary = []
+# NEW STRATEGY: Categorize trials into three types based on accuracy and RT
+print("\n" + "=" * 80)
+print("CATEGORIZING TRIALS BY DIFFICULTY")
+print("=" * 80)
 
-for pair in filtered_trials['Pair'].unique():
-    pair_trials = filtered_trials[filtered_trials['Pair'] == pair].copy()
-    pair_trials = pair_trials.sort_values('composite_score', ascending=False)
-    top_9 = pair_trials.head(9)
+# Calculate median RT z-score for splitting high/low RT
+median_rt_zscore = filtered_trials['mean_log_rt_zscore'].median()
+print(f"\nMedian log RT z-score: {median_rt_zscore:.3f}")
+
+# Categorize trials
+def categorize_trial(row):
+    if row['mean_accuracy'] < 0.95:
+        return 'Ambiguous'
+    elif row['mean_log_rt_zscore'] > median_rt_zscore:
+        return 'Accurate-Slow'
+    else:
+        return 'Accurate-Fast'
+
+filtered_trials['trial_type'] = filtered_trials.apply(categorize_trial, axis=1)
+
+# Show distribution of trial types
+print("\nTrial type distribution:")
+type_counts = filtered_trials['trial_type'].value_counts()
+print(type_counts.to_string())
+
+print("\nTrial type distribution by Pair:")
+type_by_pair = filtered_trials.groupby(['Pair', 'trial_type']).size().unstack(fill_value=0)
+print(type_by_pair.to_string())
+
+# First, identify the top 6 pairs by overall composite score
+pair_avg_scores = filtered_trials.groupby('Pair')['composite_score'].mean().sort_values(ascending=False)
+top_6_pairs = pair_avg_scores.head(6).index.tolist()
+
+print("\n" + "=" * 80)
+print("TOP 6 PAIRS BY COMPOSITE SCORE")
+print("=" * 80)
+print(f"\nSelected pairs: {top_6_pairs}")
+for pair in top_6_pairs:
+    print(f"  {pair}: mean composite = {pair_avg_scores[pair]:.3f}")
+
+# Filter to only top 6 pairs
+top_6_trials = filtered_trials[filtered_trials['Pair'].isin(top_6_pairs)].copy()
+
+print("\n" + "=" * 80)
+print("SELECTING 3 TRIALS OF EACH TYPE PER PAIR (9 × 6 = 54 TRIALS)")
+print("=" * 80)
+
+# Select 3 trials of each type from each of the 6 pairs
+# Track used UniquePairIndex values to ensure uniqueness
+selected_trials = []
+selection_summary = []
+used_unique_pair_indices = set()
+
+for pair in top_6_pairs:
+    pair_trials = top_6_trials[top_6_trials['Pair'] == pair].copy()
     
-    pair_summary.append({
+    pair_selected = []
+    type_counts = {}
+    
+    for trial_type in ['Ambiguous', 'Accurate-Slow', 'Accurate-Fast']:
+        type_trials = pair_trials[pair_trials['trial_type'] == trial_type].copy()
+        type_trials = type_trials.sort_values('composite_score', ascending=False)
+        
+        # Select top 3 trials, checking for unique UniquePairIndex
+        selected_list = []
+        for _, trial in type_trials.iterrows():
+            if trial['UniquePairIndex'] not in used_unique_pair_indices:
+                selected_list.append(trial)
+                used_unique_pair_indices.add(trial['UniquePairIndex'])
+                
+                if len(selected_list) >= 3:
+                    break
+        
+        if len(selected_list) > 0:
+            selected = pd.DataFrame(selected_list)
+            pair_selected.append(selected)
+        type_counts[trial_type] = len(selected_list)
+        
+        if len(selected_list) < 3:
+            print(f"\n⚠ Warning: {pair} has only {len(selected_list)} unique {trial_type} trials (need 3)")
+            
+            # Try to fill from other trial types if this type doesn't have enough
+            if len(selected_list) < 3:
+                print(f"  → Attempting to fill from other trial types for {pair}")
+                needed = 3 - len(selected_list)
+                
+                # Try other types in order of preference
+                other_types = [t for t in ['Ambiguous', 'Accurate-Slow', 'Accurate-Fast'] if t != trial_type]
+                for other_type in other_types:
+                    if needed <= 0:
+                        break
+                    
+                    other_trials = pair_trials[pair_trials['trial_type'] == other_type].copy()
+                    other_trials = other_trials.sort_values('composite_score', ascending=False)
+                    
+                    for _, trial in other_trials.iterrows():
+                        if trial['UniquePairIndex'] not in used_unique_pair_indices:
+                            selected_list.append(trial)
+                            used_unique_pair_indices.add(trial['UniquePairIndex'])
+                            needed -= 1
+                            
+                            if needed <= 0:
+                                break
+                
+                # Update with filled trials
+                if len(selected_list) > len(pair_selected[-1]) if len(pair_selected) > 0 else 0:
+                    print(f"  → Filled {3 - needed - type_counts[trial_type]} additional trials from other types")
+                    if len(pair_selected) > 0:
+                        pair_selected[-1] = pd.DataFrame(selected_list)
+                    else:
+                        pair_selected.append(pd.DataFrame(selected_list))
+                    type_counts[trial_type] = len(selected_list)
+    
+    selection_summary.append({
         'Pair': pair,
-        'total_trials': len(pair_trials),
-        'selected_trials': len(top_9),
-        'mean_composite_score': top_9['composite_score'].mean(),
-        'min_composite_score': top_9['composite_score'].min(),
-        'max_composite_score': top_9['composite_score'].max()
+        'Ambiguous': type_counts.get('Ambiguous', 0),
+        'Accurate_Slow': type_counts.get('Accurate-Slow', 0),
+        'Accurate_Fast': type_counts.get('Accurate-Fast', 0),
+        'Total': sum(type_counts.values())
     })
     
-    selected_trials.append(top_9)
+    if pair_selected:
+        selected_trials.extend(pair_selected)
+
+print(f"\nTotal unique UniquePairIndex values used: {len(used_unique_pair_indices)}")
 
 # Combine all selected trials
-top_54_trials = pd.concat(selected_trials, ignore_index=True)
+final_54_trials = pd.concat(selected_trials, ignore_index=True)
 
-# Sort pairs by their mean composite score to get top 6
-pair_summary_df = pd.DataFrame(pair_summary).sort_values('mean_composite_score', ascending=False)
-
-print("\n" + "=" * 80)
-print("PAIR SUMMARY (sorted by mean composite score)")
-print("=" * 80)
-print(pair_summary_df.to_string(index=False))
-
-# Select only the top 6 pairs
-top_6_pairs = pair_summary_df.head(6)['Pair'].tolist()
-final_54_trials = top_54_trials[top_54_trials['Pair'].isin(top_6_pairs)].copy()
-
-print("\n" + "=" * 80)
-print("FINAL SELECTION: TOP 54 TRIALS")
-print("=" * 80)
+# Display selection summary
+selection_summary_df = pd.DataFrame(selection_summary)
+print("\nSelection Summary:")
+print(selection_summary_df.to_string(index=False))
 print(f"\nTotal trials selected: {len(final_54_trials)}")
-print(f"Pairs included: {top_6_pairs}")
-print(f"\nTrials per pair in final selection:")
-print(final_54_trials.groupby('Pair').size().to_string())
 
-print(f"\nComposite score statistics:")
-print(f"  Mean: {final_54_trials['composite_score'].mean():.3f}")
-print(f"  Min: {final_54_trials['composite_score'].min():.3f}")
-print(f"  Max: {final_54_trials['composite_score'].max():.3f}")
+# Show distribution of trial types in final selection
+print("\nFinal trial type distribution:")
+print(final_54_trials['trial_type'].value_counts().to_string())
 
-# Save the final selection
-final_54_trials_sorted = final_54_trials.sort_values(['Pair', 'composite_score'], ascending=[True, False])
-final_54_trials_sorted.to_csv('top_54_trials.csv', index=False)
-print("\n✓ Saved top_54_trials.csv")
-
-print("\nFirst 5 trials from selection:")
-print(final_54_trials_sorted[['trial_id', 'Pair', 'composite_score', 'mean_accuracy', 'mean_log_rt_zscore'] + zscore_mean_cols].head().to_string(index=False))
-
-# Save the complete dataframe
-final_54_trials_sorted.to_csv('top_54_trials_complete.csv', index=False)
-print("\n✓ Saved top_54_trials_complete.csv (includes accuracy and RT stats)")
+# Sort by Pair and composite score for output
+final_54_trials_sorted = final_54_trials.sort_values(['Pair', 'trial_type', 'composite_score'], 
+                                                      ascending=[True, True, False])
 
 print("\n" + "=" * 80)
 print("FINAL 54 TRIALS SUMMARY")
 print("=" * 80)
-print(f"\nPerformance statistics for selected 54 trials:")
+print(f"\nTotal trials selected: {len(final_54_trials_sorted)}")
+print(f"Pairs included: {top_6_pairs}")
+
+print(f"\nTrials per pair in final selection:")
+print(final_54_trials_sorted.groupby('Pair').size().to_string())
+
+print(f"\nComposite score statistics:")
+print(f"  Mean: {final_54_trials_sorted['composite_score'].mean():.3f}")
+print(f"  Min: {final_54_trials_sorted['composite_score'].min():.3f}")
+print(f"  Max: {final_54_trials_sorted['composite_score'].max():.3f}")
+
+print(f"\nPerformance statistics for selected trials:")
 print(f"  Mean accuracy: {final_54_trials_sorted['mean_accuracy'].mean():.3f} (SD = {final_54_trials_sorted['mean_accuracy'].std():.3f})")
 print(f"  Accuracy range: {final_54_trials_sorted['mean_accuracy'].min():.3f} to {final_54_trials_sorted['mean_accuracy'].max():.3f}")
 print(f"  Mean z-scored log RT: {final_54_trials_sorted['mean_log_rt_zscore'].mean():.3f} (SD = {final_54_trials_sorted['mean_log_rt_zscore'].std():.3f})")
 print(f"  Mean RT (ms): {final_54_trials_sorted['mean_rt_ms'].mean():.1f} (SD = {final_54_trials_sorted['mean_rt_ms'].std():.1f})")
-print(f"  Mean composite score: {final_54_trials_sorted['composite_score'].mean():.3f} (SD = {final_54_trials_sorted['composite_score'].std():.3f})")
+
+# Show stats by trial type
+print("\nPerformance by trial type:")
+for trial_type in ['Ambiguous', 'Accurate-Slow', 'Accurate-Fast']:
+    type_trials = final_54_trials_sorted[final_54_trials_sorted['trial_type'] == trial_type]
+    if len(type_trials) > 0:
+        print(f"\n  {trial_type} (n={len(type_trials)}):")
+        print(f"    Accuracy: {type_trials['mean_accuracy'].mean():.3f} (SD = {type_trials['mean_accuracy'].std():.3f})")
+        print(f"    Log RT z-score: {type_trials['mean_log_rt_zscore'].mean():.3f} (SD = {type_trials['mean_log_rt_zscore'].std():.3f})")
+        print(f"    RT (ms): {type_trials['mean_rt_ms'].mean():.1f} (SD = {type_trials['mean_rt_ms'].std():.1f})")
+        print(f"    Composite: {type_trials['composite_score'].mean():.3f} (SD = {type_trials['composite_score'].std():.3f})")
+
+# Save the final selection
+final_54_trials_sorted.to_csv('top_54_trials.csv', index=False)
+print("\n✓ Saved top_54_trials.csv")
+
+print("\nFirst 10 trials from selection:")
+print(final_54_trials_sorted[['trial_id', 'Pair', 'trial_type', 'composite_score', 'mean_accuracy', 'mean_log_rt_zscore'] + zscore_mean_cols].head(10).to_string(index=False))
+
+# Save the complete dataframe
+final_54_trials_sorted.to_csv('top_54_trials_complete.csv', index=False)
+print("\n✓ Saved top_54_trials_complete.csv (includes accuracy and RT stats)")
