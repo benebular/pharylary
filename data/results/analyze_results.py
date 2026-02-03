@@ -117,6 +117,12 @@ print("=" * 80)
 
 print(f"\nTotal responses before outlier removal: {len(trials_data)}")
 
+# Step 1: Remove trials with extremely long reaction times (> 10000ms)
+long_rt_trials = trials_data['reaction_time_ms'] > 10000
+print(f"\nRemoving trials with RT > 10000ms: {long_rt_trials.sum()} trials")
+trials_data = trials_data[~long_rt_trials].copy()
+print(f"Total responses after removing long RTs: {len(trials_data)}")
+
 # Calculate accuracy per trial (proportion of correct responses)
 trial_accuracy = trials_data.groupby('trial_id')['is_correct'].apply(
     lambda x: (x == 'yes').mean()
@@ -166,8 +172,53 @@ trials_data = trials_data[~outliers].copy()
 # Drop temporary columns
 trials_data = trials_data.drop(columns=['trial_accuracy', 'log_rt_temp', 'log_rt_zscore_temp'])
 
-print(f"\nTotal responses after outlier removal: {len(trials_data)}")
-print(f"Responses removed: {outliers.sum()}")
+print(f"\nTotal responses after trial-level outlier removal: {len(trials_data)}")
+print(f"Trial-level responses removed: {outliers.sum()}")
+
+# Step 2: Remove participants with extreme average log z-scored RT
+print("\n" + "-" * 80)
+print("Removing participants with extreme average log z-scored RT")
+print("-" * 80)
+
+# Calculate log RT and z-score it for participant-level filtering
+trials_data['log_rt_temp2'] = np.log(trials_data['reaction_time_ms'].replace(0, np.nan))
+trials_data['log_rt_zscore_temp2'] = stats.zscore(trials_data['log_rt_temp2'], nan_policy='omit')
+
+# Calculate average log z-scored RT per participant
+participant_avg_rt = trials_data.groupby('participant_id')['log_rt_zscore_temp2'].mean().reset_index()
+participant_avg_rt.columns = ['participant_id', 'avg_log_rt_zscore']
+
+# Calculate mean and SD of participant averages
+avg_mean = participant_avg_rt['avg_log_rt_zscore'].mean()
+avg_sd = participant_avg_rt['avg_log_rt_zscore'].std()
+
+print(f"\nParticipant average log z-scored RT stats:")
+print(f"  Mean: {avg_mean:.3f}")
+print(f"  SD: {avg_sd:.3f}")
+print(f"  2 SD range: [{avg_mean - 2*avg_sd:.3f}, {avg_mean + 2*avg_sd:.3f}]")
+
+# Identify participants with extreme average RT
+extreme_rt_participants = participant_avg_rt[
+    np.abs(participant_avg_rt['avg_log_rt_zscore'] - avg_mean) > 2 * avg_sd
+]['participant_id'].tolist()
+
+if len(extreme_rt_participants) > 0:
+    print(f"\nRemoving {len(extreme_rt_participants)} participant(s) with extreme average RT:")
+    for pid in extreme_rt_participants:
+        avg_rt = participant_avg_rt[participant_avg_rt['participant_id'] == pid]['avg_log_rt_zscore'].values[0]
+        n_trials = len(trials_data[trials_data['participant_id'] == pid])
+        print(f"  - {pid}: avg z-scored log RT = {avg_rt:.3f} ({n_trials} trials)")
+    
+    # Remove all trials from these participants
+    trials_data = trials_data[~trials_data['participant_id'].isin(extreme_rt_participants)].copy()
+else:
+    print("\n✓ No participants with extreme average RT (all within 2 SD)")
+
+# Drop temporary columns
+trials_data = trials_data.drop(columns=['log_rt_temp2', 'log_rt_zscore_temp2'])
+
+print(f"\nTotal responses after participant-level outlier removal: {len(trials_data)}")
+print(f"Remaining participants: {trials_data['participant_id'].nunique()}")
 
 # Check responses per trial after outlier removal
 responses_per_trial_clean = trials_data.groupby('trial_id').size()
