@@ -1,6 +1,8 @@
 import pandas as pd
 import numpy as np
 from scipy import stats
+import matplotlib.pyplot as plt
+import seaborn as sns
 
 # Load data
 results = pd.read_csv('pharylary_survey_results.csv')
@@ -98,6 +100,18 @@ trials_data = trials_data.drop_duplicates(subset=['participant_id', 'trial_id'],
 
 print(f"Total trial responses after deduplication: {len(trials_data)}")
 
+# DIAGNOSTIC: Track q-k creaky trials through filtering
+print("\n" + "=" * 80)
+print("DIAGNOSTIC: Tracking q-k creaky trials through filtering")
+print("=" * 80)
+
+# Merge with metadata to identify q-k creaky trials
+trials_data_with_meta = trials_data.merge(trials_meta_copy, on='trial_id', how='left')
+qk_creaky_mask = (trials_data_with_meta['Pair'] == 'q-k') & (trials_data_with_meta['CarrierType'] == 'creaky')
+qk_creaky_initial = trials_data_with_meta[qk_creaky_mask]['trial_id'].unique()
+print(f"\nUnique q-k creaky trial IDs after deduplication: {len(qk_creaky_initial)}")
+print(f"Trial IDs: {sorted(qk_creaky_initial)}")
+
 # Check the distribution of responses per trial
 responses_per_trial = trials_data.groupby('trial_id').size()
 print(f"\nResponses per trial after deduplication:")
@@ -117,11 +131,20 @@ print("=" * 80)
 
 print(f"\nTotal responses before outlier removal: {len(trials_data)}")
 
-# Step 1: Remove trials with extremely long reaction times (> 10000ms)
-long_rt_trials = trials_data['reaction_time_ms'] > 10000
-print(f"\nRemoving trials with RT > 10000ms: {long_rt_trials.sum()} trials")
+# Step 1: Remove trials with extremely long reaction times (> 1000ms)
+long_rt_trials = trials_data['reaction_time_ms'] > 1000
+print(f"\nRemoving trials with RT > 1000ms: {long_rt_trials.sum()} trials")
 trials_data = trials_data[~long_rt_trials].copy()
 print(f"Total responses after removing long RTs: {len(trials_data)}")
+
+# DIAGNOSTIC: Check q-k creaky trials after RT filter
+trials_data_with_meta = trials_data.merge(trials_meta_copy, on='trial_id', how='left')
+qk_creaky_mask = (trials_data_with_meta['Pair'] == 'q-k') & (trials_data_with_meta['CarrierType'] == 'creaky')
+qk_creaky_after_rt = trials_data_with_meta[qk_creaky_mask]['trial_id'].unique()
+print(f"q-k creaky trials after RT filter: {len(qk_creaky_after_rt)}")
+if len(qk_creaky_initial) != len(qk_creaky_after_rt):
+    removed = set(qk_creaky_initial) - set(qk_creaky_after_rt)
+    print(f"  ⚠ Removed {len(removed)} q-k creaky trials: {sorted(removed)}")
 
 # Calculate accuracy per trial (proportion of correct responses)
 trial_accuracy = trials_data.groupby('trial_id')['is_correct'].apply(
@@ -175,6 +198,15 @@ trials_data = trials_data.drop(columns=['trial_accuracy', 'log_rt_temp', 'log_rt
 print(f"\nTotal responses after trial-level outlier removal: {len(trials_data)}")
 print(f"Trial-level responses removed: {outliers.sum()}")
 
+# DIAGNOSTIC: Check q-k creaky trials after trial-level outlier removal
+trials_data_with_meta = trials_data.merge(trials_meta_copy, on='trial_id', how='left')
+qk_creaky_mask = (trials_data_with_meta['Pair'] == 'q-k') & (trials_data_with_meta['CarrierType'] == 'creaky')
+qk_creaky_after_trial_outliers = trials_data_with_meta[qk_creaky_mask]['trial_id'].unique()
+print(f"q-k creaky trials after trial-level outlier removal: {len(qk_creaky_after_trial_outliers)}")
+if len(qk_creaky_after_rt) != len(qk_creaky_after_trial_outliers):
+    removed = set(qk_creaky_after_rt) - set(qk_creaky_after_trial_outliers)
+    print(f"  ⚠ Removed {len(removed)} q-k creaky trials: {sorted(removed)}")
+
 # Step 2: Remove participants with extreme average log z-scored RT
 print("\n" + "-" * 80)
 print("Removing participants with extreme average log z-scored RT")
@@ -219,6 +251,15 @@ trials_data = trials_data.drop(columns=['log_rt_temp2', 'log_rt_zscore_temp2'])
 
 print(f"\nTotal responses after participant-level outlier removal: {len(trials_data)}")
 print(f"Remaining participants: {trials_data['participant_id'].nunique()}")
+
+# DIAGNOSTIC: Check q-k creaky trials after participant-level outlier removal
+trials_data_with_meta = trials_data.merge(trials_meta_copy, on='trial_id', how='left')
+qk_creaky_mask = (trials_data_with_meta['Pair'] == 'q-k') & (trials_data_with_meta['CarrierType'] == 'creaky')
+qk_creaky_after_participant_outliers = trials_data_with_meta[qk_creaky_mask]['trial_id'].unique()
+print(f"q-k creaky trials after participant-level outlier removal: {len(qk_creaky_after_participant_outliers)}")
+if len(qk_creaky_after_trial_outliers) != len(qk_creaky_after_participant_outliers):
+    removed = set(qk_creaky_after_trial_outliers) - set(qk_creaky_after_participant_outliers)
+    print(f"  ⚠ Removed {len(removed)} q-k creaky trials: {sorted(removed)}")
 
 # Check responses per trial after outlier removal
 responses_per_trial_clean = trials_data.groupby('trial_id').size()
@@ -547,6 +588,43 @@ filtered_trials = filtered_trials[
 
 print(f"Trials after removing missing data: {len(filtered_trials)}")
 
+# DIAGNOSTIC: Check q-k creaky trials after missing data filter
+qk_creaky_in_filtered = filtered_trials[
+    (filtered_trials['Pair'] == 'q-k') & 
+    (filtered_trials['CarrierType'] == 'creaky')
+]['trial_id'].unique()
+print(f"\nq-k creaky trials after missing data filter: {len(qk_creaky_in_filtered)}")
+print(f"Trial IDs: {sorted(qk_creaky_in_filtered)}")
+if len(qk_creaky_after_participant_outliers) != len(qk_creaky_in_filtered):
+    removed = set(qk_creaky_after_participant_outliers) - set(qk_creaky_in_filtered)
+    print(f"  ⚠ Removed {len(removed)} q-k creaky trials due to missing data: {sorted(removed)}")
+
+# ============================================================================
+# DIAGNOSTIC: Check for trials with all NaN log RTs
+# ============================================================================
+print("\n" + "=" * 80)
+print("CHECKING FOR TRIALS WITH ALL NaN LOG RTs")
+print("=" * 80)
+
+all_trial_ids = trial_ratings_with_meta['trial_id'].unique()
+trials_with_all_nan_rts = []
+
+for trial_id in all_trial_ids:
+    trial_log_rts = trials_data_rt[trials_data_rt['trial_id'] == trial_id]['log_rt']
+    valid_log_rts = trial_log_rts.notna().sum()
+    
+    if valid_log_rts == 0:
+        trials_with_all_nan_rts.append(trial_id)
+
+if len(trials_with_all_nan_rts) > 0:
+    print(f"\n⚠ Found {len(trials_with_all_nan_rts)} trial(s) with ALL NaN log RTs:")
+    for trial_id in trials_with_all_nan_rts:
+        pair = trial_ratings_with_meta[trial_ratings_with_meta['trial_id'] == trial_id]['Pair'].values[0] if len(trial_ratings_with_meta[trial_ratings_with_meta['trial_id'] == trial_id]) > 0 else 'Unknown'
+        print(f"  - Trial {trial_id} ({pair})")
+    print(f"\nThese trials will be filtered out due to NaN mean_log_rt_zscore.")
+else:
+    print(f"\n✓ No trials found with ALL NaN log RTs - all trials have at least one valid RT response.")
+
 print(f"\nUnique Pair values: {sorted(filtered_trials['Pair'].unique())}")
 print(f"Total unique Pairs: {filtered_trials['Pair'].nunique()}")
 
@@ -602,6 +680,10 @@ print("\n" + "=" * 80)
 print("SELECTING 3 TRIALS OF EACH TYPE PER PAIR (9 × 6 = 54 TRIALS)")
 print("=" * 80)
 
+# Hard-coded trials for q-k and gs-k pairs based on naturalness scores
+hardcoded_trials = [28, 29, 34, 35, 36, 37, 38, 39, 42, 43, 14, 15]
+print(f"\nHard-coded trials for q-k and gs-k: {hardcoded_trials}")
+
 # Select 3 trials of each type from each of the 6 pairs
 # Track used UniquePairIndex values to ensure uniqueness
 selected_trials = []
@@ -613,6 +695,85 @@ for pair in top_6_pairs:
     
     pair_selected = []
     type_counts = {}
+    
+    # For q-k and gs-k, prioritize hard-coded trials
+    if pair in ['q-k', 'gs-k']:
+        # First, select hard-coded trials for this pair
+        hardcoded_for_pair = pair_trials[pair_trials['trial_id'].isin(hardcoded_trials)].copy()
+        hardcoded_for_pair = hardcoded_for_pair.sort_values('composite_score', ascending=False)
+        
+        print(f"\n{pair}: Found {len(hardcoded_for_pair)} hard-coded trials")
+        
+        # Add hard-coded trials first
+        hardcoded_selected = []
+        for _, trial in hardcoded_for_pair.iterrows():
+            if trial['UniquePairIndex'] not in used_unique_pair_indices:
+                hardcoded_selected.append(trial)
+                used_unique_pair_indices.add(trial['UniquePairIndex'])
+        
+        if len(hardcoded_selected) > 0:
+            hardcoded_df = pd.DataFrame(hardcoded_selected)
+            pair_selected.append(hardcoded_df)
+            print(f"  Selected {len(hardcoded_selected)} hard-coded trials")
+        
+        # Calculate how many more trials we need (target is 9 per pair)
+        needed = 9 - len(hardcoded_selected)
+        print(f"  Need {needed} more trials to reach 9 total")
+        
+        # Fill remaining with best trials from any type
+        if needed > 0:
+            remaining_trials = pair_trials[~pair_trials['trial_id'].isin(hardcoded_trials)].copy()
+            remaining_trials = remaining_trials.sort_values('composite_score', ascending=False)
+            
+            additional_selected = []
+            for _, trial in remaining_trials.iterrows():
+                if trial['UniquePairIndex'] not in used_unique_pair_indices:
+                    additional_selected.append(trial)
+                    used_unique_pair_indices.add(trial['UniquePairIndex'])
+                    
+                    if len(additional_selected) >= needed:
+                        break
+            
+            if len(additional_selected) > 0:
+                additional_df = pd.DataFrame(additional_selected)
+                pair_selected.append(additional_df)
+                print(f"  Filled {len(additional_selected)} additional trials")
+        
+        # Count by type for summary
+        if pair_selected:
+            all_selected = pd.concat(pair_selected, ignore_index=True)
+            type_counts = all_selected['trial_type'].value_counts().to_dict()
+        
+        selection_summary.append({
+            'Pair': pair,
+            'Ambiguous': type_counts.get('Ambiguous', 0),
+            'Accurate_Slow': type_counts.get('Accurate-Slow', 0),
+            'Accurate_Fast': type_counts.get('Accurate-Fast', 0),
+            'Total': sum(type_counts.values())
+        })
+        
+        if pair_selected:
+            selected_trials.extend(pair_selected)
+        
+        continue  # Skip the normal selection logic for q-k and gs-k
+    
+    # Normal selection logic for other pairs
+    # Filter to only include trials with natural z-score >= (mean - 2 SD)
+    natural_mean = pair_trials['natural_zscore_mean'].mean()
+    natural_sd = pair_trials['natural_zscore_mean'].std()
+    natural_threshold = natural_mean - (2 * natural_sd)
+    pair_trials = pair_trials[pair_trials['natural_zscore_mean'] >= natural_threshold].copy()
+    
+    if len(pair_trials) == 0:
+        print(f"\n⚠ Warning: {pair} has no trials with positive natural z-score")
+        selection_summary.append({
+            'Pair': pair,
+            'Ambiguous': 0,
+            'Accurate_Slow': 0,
+            'Accurate_Fast': 0,
+            'Total': 0
+        })
+        continue
     
     for trial_type in ['Ambiguous', 'Accurate-Slow', 'Accurate-Fast']:
         type_trials = pair_trials[pair_trials['trial_type'] == trial_type].copy()
@@ -739,3 +900,733 @@ print(final_54_trials_sorted[['trial_id', 'Pair', 'trial_type', 'composite_score
 # Save the complete dataframe
 final_54_trials_sorted.to_csv('top_54_trials_complete.csv', index=False)
 print("\n✓ Saved top_54_trials_complete.csv (includes accuracy and RT stats)")
+
+# Show which hard-coded trials were included
+if len(final_54_trials_sorted[final_54_trials_sorted['trial_id'].isin(hardcoded_trials)]) > 0:
+    print("\nHard-coded trials included in final selection:")
+    hardcoded_included = final_54_trials_sorted[final_54_trials_sorted['trial_id'].isin(hardcoded_trials)]
+    print(hardcoded_included[['trial_id', 'Pair', 'Position', 'CarrierType']].to_string(index=False))
+
+# ============================================================================
+# PERFORMANCE PLOTS (ACCURACY + RT) BY SEGMENT/PAIR
+# ============================================================================
+print("\n" + "=" * 80)
+print("CREATING PERFORMANCE PLOTS (ACCURACY + RT)")
+print("=" * 80)
+print("\n" + "=" * 80)
+print("CREATING PERFORMANCE PLOTS (ACCURACY + RT)")
+print("=" * 80)
+
+# Define colors for CarrierType
+carrier_colors = {
+    'non-creaky': '#D32F2F',
+    'creaky': '#1976D2',
+    'CV': '#7B1FA2'
+}
+
+def create_grouped_barplot(data, y_col, ylabel, title, center_at_zero=False):
+    """
+    Create a figure with subplots by Position, grouped by TargetSegment, split by CarrierType.
+    """
+    position_order = ['Initial', 'Medial', 'Final']
+    positions = [p for p in position_order if p in data['Position'].unique()]
+    n_positions = len(positions)
+
+    fig, axes = plt.subplots(1, n_positions, figsize=(6 * n_positions, 6), sharey=True)
+    if n_positions == 1:
+        axes = [axes]
+
+    handles_dict = {}
+    all_max_extents = []  # Track max extent across all subplots
+
+    for idx, position in enumerate(positions):
+        ax = axes[idx]
+        position_data = data[data['Position'] == position]
+
+        target_segments = sorted(position_data['TargetSegment'].unique())
+        carrier_types = sorted(position_data['CarrierType'].unique())
+
+        x = np.arange(len(target_segments))
+        width = 0.25
+
+        for i, carrier in enumerate(carrier_types):
+            carrier_data = position_data[position_data['CarrierType'] == carrier]
+
+            means = []
+            errors = []
+            for segment in target_segments:
+                segment_values = carrier_data[carrier_data['TargetSegment'] == segment][y_col]
+                if len(segment_values) > 0:
+                    means.append(segment_values.mean())
+                    errors.append(segment_values.std() / np.sqrt(len(segment_values)))
+                else:
+                    means.append(0)
+                    errors.append(0)
+
+            # Track max extent including error bars
+            if len(means) > 0 and len(errors) > 0:
+                upper_extent = [m + e for m, e in zip(means, errors)]
+                lower_extent = [m - e for m, e in zip(means, errors)]
+                all_max_extents.extend(upper_extent + lower_extent)
+
+            offset = (i - len(carrier_types)/2 + 0.5) * width
+            bars = ax.bar(
+                x + offset,
+                means,
+                width,
+                label=carrier,
+                color=carrier_colors.get(carrier, 'gray'),
+                yerr=errors,
+                capsize=5,
+                alpha=0.8,
+                edgecolor='black',
+                linewidth=1
+            )
+
+            if carrier not in handles_dict:
+                handles_dict[carrier] = bars
+
+        ax.set_xlabel('Target Segment', fontsize=12, fontweight='bold')
+        ax.set_ylabel(ylabel if idx == 0 else '', fontsize=12, fontweight='bold')
+        ax.set_title(f'Position: {position}', fontsize=14, fontweight='bold')
+        ax.set_xticks(x)
+        ax.set_xticklabels(target_segments, fontsize=11)
+        ax.grid(axis='y', alpha=0.3, linestyle='--')
+
+    # Set consistent y-axis limits across all subplots
+    if center_at_zero and len(all_max_extents) > 0:
+        # Filter out NaN and Inf values
+        valid_extents = [e for e in all_max_extents if np.isfinite(e)]
+        if len(valid_extents) > 0:
+            max_abs = max(abs(min(valid_extents)), abs(max(valid_extents)))
+            max_abs *= 1.1  # Add 10% padding
+            for ax in axes:
+                ax.set_ylim(-max_abs, max_abs)
+                ax.axhline(0, color='black', linewidth=1.5, linestyle='-', alpha=0.5)
+
+    fig.suptitle(title, fontsize=16, fontweight='bold', y=1.02)
+
+    carrier_types_sorted = sorted(handles_dict.keys())
+    handles = [handles_dict[ct] for ct in carrier_types_sorted]
+    fig.legend(
+        handles,
+        carrier_types_sorted,
+        title='Carrier Type',
+        loc='upper center',
+        bbox_to_anchor=(0.5, -0.02),
+        ncol=len(carrier_types_sorted),
+        fontsize=11,
+        frameon=True
+    )
+
+    plt.tight_layout()
+    return fig
+
+def create_grouped_barplot_by_pair(data, y_col, ylabel, title, center_at_zero=False):
+    """
+    Create a figure with subplots by Position, grouped by Pair, split by CarrierType.
+    """
+    position_order = ['Initial', 'Medial', 'Final']
+    positions = [p for p in position_order if p in data['Position'].unique()]
+    n_positions = len(positions)
+
+    fig, axes = plt.subplots(1, n_positions, figsize=(8 * n_positions, 6), sharey=True)
+    if n_positions == 1:
+        axes = [axes]
+
+    handles_dict = {}
+    all_max_extents = []  # Track max extent across all subplots
+
+    for idx, position in enumerate(positions):
+        ax = axes[idx]
+        position_data = data[data['Position'] == position]
+
+        pairs = sorted(position_data['Pair'].unique())
+        carrier_types = sorted(position_data['CarrierType'].unique())
+
+        x = np.arange(len(pairs))
+        width = 0.25
+
+        for i, carrier in enumerate(carrier_types):
+            carrier_data = position_data[position_data['CarrierType'] == carrier]
+
+            means = []
+            errors = []
+            for pair in pairs:
+                pair_values = carrier_data[carrier_data['Pair'] == pair][y_col]
+                if len(pair_values) > 0:
+                    means.append(pair_values.mean())
+                    errors.append(pair_values.std() / np.sqrt(len(pair_values)))
+                else:
+                    means.append(0)
+                    errors.append(0)
+
+            # Track max extent including error bars
+            if len(means) > 0 and len(errors) > 0:
+                upper_extent = [m + e for m, e in zip(means, errors)]
+                lower_extent = [m - e for m, e in zip(means, errors)]
+                all_max_extents.extend(upper_extent + lower_extent)
+
+            offset = (i - len(carrier_types)/2 + 0.5) * width
+            bars = ax.bar(
+                x + offset,
+                means,
+                width,
+                label=carrier,
+                color=carrier_colors.get(carrier, 'gray'),
+                yerr=errors,
+                capsize=5,
+                alpha=0.8,
+                edgecolor='black',
+                linewidth=1
+            )
+
+            if carrier not in handles_dict:
+                handles_dict[carrier] = bars
+
+        ax.set_xlabel('Pair', fontsize=12, fontweight='bold')
+        ax.set_ylabel(ylabel if idx == 0 else '', fontsize=12, fontweight='bold')
+        ax.set_title(f'Position: {position}', fontsize=14, fontweight='bold')
+        ax.set_xticks(x)
+        ax.set_xticklabels(pairs, fontsize=9, rotation=45, ha='right')
+        ax.grid(axis='y', alpha=0.3, linestyle='--')
+
+    # Set consistent y-axis limits across all subplots
+    if center_at_zero and len(all_max_extents) > 0:
+        # Filter out NaN and Inf values
+        valid_extents = [e for e in all_max_extents if np.isfinite(e)]
+        if len(valid_extents) > 0:
+            max_abs = max(abs(min(valid_extents)), abs(max(valid_extents)))
+            max_abs *= 1.1  # Add 10% padding
+            for ax in axes:
+                ax.set_ylim(-max_abs, max_abs)
+                ax.axhline(0, color='black', linewidth=1.5, linestyle='-', alpha=0.5)
+
+    fig.suptitle(title, fontsize=16, fontweight='bold', y=1.02)
+
+    carrier_types_sorted = sorted(handles_dict.keys())
+    handles = [handles_dict[ct] for ct in carrier_types_sorted]
+    fig.legend(
+        handles,
+        carrier_types_sorted,
+        title='Carrier Type',
+        loc='upper center',
+        bbox_to_anchor=(0.5, -0.05),
+        ncol=len(carrier_types_sorted),
+        fontsize=11,
+        frameon=True
+    )
+
+    plt.tight_layout()
+    return fig
+
+# Prepare datasets for plotting
+trials_all_plot = trial_ratings_with_meta[
+    trial_ratings_with_meta['mean_accuracy'].notna() &
+    trial_ratings_with_meta['mean_log_rt_zscore'].notna()
+].copy()
+
+trials_top54_plot = final_54_trials_sorted.copy()
+
+# Plot 1: Mean Accuracy (Top 54)
+fig1 = create_grouped_barplot(
+    trials_top54_plot,
+    'mean_accuracy',
+    'Mean Accuracy',
+    'Mean Accuracy by Position, Target Segment, and Carrier Type (Top 54 Trials)',
+    center_at_zero=False
+)
+fig1.savefig('plot_accuracy_top54.png', dpi=300, bbox_inches='tight')
+print("✓ Saved plot_accuracy_top54.png")
+
+# Plot 2: Mean Log RT Z-score (Top 54)
+fig2 = create_grouped_barplot(
+    trials_top54_plot,
+    'mean_log_rt_zscore',
+    'Mean Log RT (Z-score)',
+    'Mean Log RT Z-score by Position, Target Segment, and Carrier Type (Top 54 Trials)',
+    center_at_zero=True
+)
+fig2.savefig('plot_rt_zscore_top54.png', dpi=300, bbox_inches='tight')
+print("✓ Saved plot_rt_zscore_top54.png")
+
+# Plot 3: Mean Accuracy (All Trials)
+fig3 = create_grouped_barplot(
+    trials_all_plot,
+    'mean_accuracy',
+    'Mean Accuracy',
+    'Mean Accuracy by Position, Target Segment, and Carrier Type (All Trials)',
+    center_at_zero=False
+)
+fig3.savefig('plot_accuracy_all.png', dpi=300, bbox_inches='tight')
+print("✓ Saved plot_accuracy_all.png")
+
+# Plot 4: Mean Log RT Z-score (All Trials)
+fig4 = create_grouped_barplot(
+    trials_all_plot,
+    'mean_log_rt_zscore',
+    'Mean Log RT (Z-score)',
+    'Mean Log RT Z-score by Position, Target Segment, and Carrier Type (All Trials)',
+    center_at_zero=True
+)
+fig4.savefig('plot_rt_zscore_all.png', dpi=300, bbox_inches='tight')
+print("✓ Saved plot_rt_zscore_all.png")
+
+# Plot 5: Mean Accuracy (All Trials, by Pair)
+fig5 = create_grouped_barplot_by_pair(
+    trials_all_plot,
+    'mean_accuracy',
+    'Mean Accuracy',
+    'Mean Accuracy by Position, Pair, and Carrier Type (All Trials)',
+    center_at_zero=False
+)
+fig5.savefig('plot_accuracy_all_by_pair.png', dpi=300, bbox_inches='tight')
+print("✓ Saved plot_accuracy_all_by_pair.png")
+
+# Plot 6: Mean Log RT Z-score (All Trials, by Pair)
+fig6 = create_grouped_barplot_by_pair(
+    trials_all_plot,
+    'mean_log_rt_zscore',
+    'Mean Log RT (Z-score)',
+    'Mean Log RT Z-score by Position, Pair, and Carrier Type (All Trials)',
+    center_at_zero=True
+)
+fig6.savefig('plot_rt_zscore_all_by_pair.png', dpi=300, bbox_inches='tight')
+print("✓ Saved plot_rt_zscore_all_by_pair.png")
+
+# Plot 7: Natural Z-score for Top 54 Trials by Pair and CarrierType
+print("\nCreating natural z-score plot for top 54 trials...")
+
+# Create a single bar plot similar to the z-scored rating plots
+fig7, ax = plt.subplots(figsize=(12, 6))
+
+# Use seaborn barplot with Pair on x-axis and CarrierType as hue
+sns.barplot(data=trials_top54_plot, x='Pair', y='natural_zscore_mean', hue='CarrierType', 
+            ax=ax, palette='Set2', order=sorted(trials_top54_plot['Pair'].unique()),
+            errorbar='se', capsize=0.1)
+
+# Customize plot
+ax.set_title('Z-Scored Natural Ratings by Pair Type and Carrier Type (Top 54 Trials)', 
+             fontsize=14, fontweight='bold')
+ax.set_xlabel('Pair Type', fontsize=12)
+ax.set_ylabel('Z-Scored Natural', fontsize=12)
+ax.legend(title='Carrier Type', fontsize=10)
+ax.grid(axis='y', alpha=0.3)
+ax.axhline(0, color='black', linewidth=1.5, linestyle='-', alpha=0.5)
+
+# Rotate x-axis labels for better readability
+plt.xticks(rotation=45, ha='right')
+
+plt.tight_layout()
+
+fig7.savefig('plot_natural_zscore_top54_by_pair.png', dpi=300, bbox_inches='tight')
+print("✓ Saved plot_natural_zscore_top54_by_pair.png")
+
+plt.close()
+
+# ============================================================================
+# PLOTTING RAW (NON-Z-SCORED) RATINGS BY PAIR TYPE AND CARRIER TYPE
+# ============================================================================
+print("\n" + "=" * 80)
+print("CREATING DISTRIBUTION PLOTS FOR RAW (NON-Z-SCORED) RATINGS")
+print("=" * 80)
+
+# Merge survey_analysis with metadata to get Pair and CarrierType for each individual rating
+raw_rating_columns = ['recognize', 'understand', 'meaning_match', 'natural']
+survey_with_meta = survey_analysis.merge(trials_meta_copy, on='trial_id', how='left')
+
+print(f"\nColumns available for plotting raw ratings: {list(survey_with_meta.columns)}")
+print(f"Total individual survey responses: {len(survey_with_meta)}")
+
+# Create 4 separate distribution plots for each raw rating metric
+for metric in raw_rating_columns:
+    # Create figure with subplots for each Pair type
+    unique_pairs = sorted(survey_with_meta['Pair'].dropna().unique())
+    n_pairs = len(unique_pairs)
+    
+    # Create a grid of subplots
+    n_cols_dist = 4
+    n_rows_dist = int(np.ceil(n_pairs / n_cols_dist))
+    
+    fig, axes = plt.subplots(n_rows_dist, n_cols_dist, figsize=(n_cols_dist * 4, n_rows_dist * 3))
+    axes = axes.flatten() if n_pairs > 1 else [axes]
+    
+    # Plot distribution for each Pair
+    for idx, pair in enumerate(unique_pairs):
+        ax = axes[idx]
+        pair_data = survey_with_meta[survey_with_meta['Pair'] == pair]
+        
+        # Plot distribution for each CarrierType
+        for carrier_type in sorted(pair_data['CarrierType'].dropna().unique()):
+            carrier_data = pair_data[pair_data['CarrierType'] == carrier_type][metric].dropna()
+            if len(carrier_data) > 0:
+                sns.histplot(carrier_data, kde=True, label=carrier_type, ax=ax, 
+                           stat='density', alpha=0.5, bins=20)
+        
+        ax.set_title(f'{pair}', fontsize=10, fontweight='bold')
+        ax.set_xlabel(f'{metric.replace("_", " ").title()} Score', fontsize=8)
+        ax.set_ylabel('Density', fontsize=8)
+        ax.legend(title='Carrier Type', fontsize=7)
+        ax.grid(axis='y', alpha=0.3)
+    
+    # Hide empty subplots
+    for idx in range(n_pairs, len(axes)):
+        axes[idx].set_visible(False)
+    
+    # Overall title
+    fig.suptitle(f'Distribution of Raw {metric.replace("_", " ").title()} Ratings by Pair Type and Carrier Type', 
+                 fontsize=14, fontweight='bold')
+    
+    plt.tight_layout()
+    
+    # Save figure
+    filename = f'{metric}_raw_distribution_by_pair_carriertype.png'
+    plt.savefig(filename, dpi=300, bbox_inches='tight')
+    print(f"✓ Saved {filename}")
+    
+    plt.close()
+
+print("\n✓ All 4 raw rating distribution plots created successfully!")
+
+# ============================================================================
+# PLOTTING Z-SCORED RATINGS BY PAIR TYPE AND CARRIER TYPE
+# ============================================================================
+print("\n" + "=" * 80)
+print("CREATING PLOTS FOR Z-SCORED RATINGS")
+print("=" * 80)
+
+# Prepare data for plotting: merge ratings with metadata to get Pair and CarrierType
+plot_data = trial_ratings.merge(trials_meta_copy, on='trial_id', how='left')
+
+# Extract the two pair components and carrier type information from the Pair column
+# Pair format is like "t-p" with carrier, so we need CarrierType column
+print(f"\nColumns available for plotting: {list(plot_data.columns)}")
+
+# Create 4 separate plots for each rating metric
+rating_metrics = ['recognize', 'understand', 'meaning_match', 'natural']
+zscore_cols_for_plotting = ['recognize_zscore_mean', 'understand_zscore_mean', 
+                            'meaning_match_zscore_mean', 'natural_zscore_mean']
+
+for metric, zscore_col in zip(rating_metrics, zscore_cols_for_plotting):
+    # Create figure
+    fig, ax = plt.subplots(figsize=(12, 6))
+    
+    # Create the plot with Pair on x-axis and CarrierType as hue (split)
+    sns.barplot(data=plot_data, x='Pair', y=zscore_col, hue='CarrierType', 
+                ax=ax, palette='Set2', order=sorted(plot_data['Pair'].unique()))
+    
+    # Customize plot
+    ax.set_title(f'Z-Scored {metric.replace("_", " ").title()} Ratings by Pair Type and Carrier Type', 
+                 fontsize=14, fontweight='bold')
+    ax.set_xlabel('Pair Type', fontsize=12)
+    ax.set_ylabel(f'Z-Scored {metric.replace("_", " ").title()}', fontsize=12)
+    ax.legend(title='Carrier Type', fontsize=10)
+    ax.grid(axis='y', alpha=0.3)
+    
+    # Rotate x-axis labels for better readability
+    plt.xticks(rotation=45, ha='right')
+    
+    plt.tight_layout()
+    
+    # Save figure
+    filename = f'{metric}_zscored_by_pair_carriertype.png'
+    plt.savefig(filename, dpi=300, bbox_inches='tight')
+    print(f"✓ Saved {filename}")
+    
+    plt.close()
+
+print("\n✓ All 4 plots created successfully!")
+
+# ============================================================================
+# LARGE SUBPLOT FIGURE: Z-SCORED RATINGS FOR EACH TRIAL
+# ============================================================================
+print("\n" + "=" * 80)
+print("CREATING LARGE SUBPLOT FIGURE WITH ONE SUBPLOT PER TRIAL")
+print("=" * 80)
+
+# Get unique trials and sort them
+unique_trials = plot_data.drop_duplicates(subset=['trial_id']).copy()
+unique_trials = unique_trials.sort_values('trial_id').reset_index(drop=True)
+
+n_trials = len(unique_trials)
+print(f"\nTotal trials to plot: {n_trials}")
+
+# Calculate subplot grid dimensions (aim for roughly square layout)
+n_cols = int(np.ceil(np.sqrt(n_trials)))
+n_rows = int(np.ceil(n_trials / n_cols))
+
+print(f"Subplot grid: {n_rows} rows × {n_cols} columns")
+
+# Create large figure
+fig, axes = plt.subplots(n_rows, n_cols, figsize=(n_cols * 3, n_rows * 3))
+
+# Flatten axes array for easier iteration
+if n_trials == 1:
+    axes = np.array([axes])
+elif n_rows == 1 or n_cols == 1:
+    axes = axes.flatten()
+else:
+    axes = axes.flatten()
+
+print(f"Figure shape: {fig.get_size_inches()}")
+
+# Iterate through each trial
+for idx, (_, trial_row) in enumerate(unique_trials.iterrows()):
+    trial_id = trial_row['trial_id']
+    pair_type = trial_row['Pair']
+    
+    # Get data for this trial
+    trial_data = plot_data[plot_data['trial_id'] == trial_id].copy()
+    
+    # Prepare data in long format for plotting the 4 metrics
+    trial_metrics_data = []
+    for metric, zscore_col in zip(rating_metrics, zscore_cols_for_plotting):
+        for _, row in trial_data.iterrows():
+            trial_metrics_data.append({
+                'Metric': metric.replace('_', ' ').title(),
+                'Z-Scored Value': row[zscore_col],
+                'Carrier Type': row['CarrierType']
+            })
+    
+    trial_metrics_df = pd.DataFrame(trial_metrics_data)
+    
+    # Create bar plot in this subplot
+    ax = axes[idx]
+    
+    if len(trial_metrics_df) > 0:
+        # Color bars based on positive (green) or negative (red) values
+        colors = ['#2ECC71' if val >= 0 else '#E74C3C' for val in trial_metrics_df['Z-Scored Value']]
+        
+        x_pos = np.arange(len(trial_metrics_df))
+        ax.bar(x_pos, trial_metrics_df['Z-Scored Value'], color=colors, alpha=0.7, edgecolor='black', linewidth=0.5)
+        
+        # Add horizontal line at 0
+        ax.axhline(0, color='black', linewidth=1.5, linestyle='-', alpha=0.8)
+        
+        ax.set_title(f'Trial {trial_id}: {pair_type}', fontsize=10, fontweight='bold')
+        ax.set_xlabel('', fontsize=8)
+        ax.set_ylabel('Z-Scored Rating', fontsize=8)
+        ax.set_xticks(x_pos)
+        ax.set_xticklabels(trial_metrics_df['Metric'], fontsize=7, rotation=45, ha='right')
+        ax.tick_params(axis='y', labelsize=7)
+        ax.grid(axis='y', alpha=0.3, zorder=0)
+    else:
+        ax.text(0.5, 0.5, f'Trial {trial_id}\nNo data', 
+               ha='center', va='center', transform=ax.transAxes)
+        ax.set_xticks([])
+        ax.set_yticks([])
+
+# Hide empty subplots
+for idx in range(n_trials, len(axes)):
+    axes[idx].set_visible(False)
+
+# Overall title
+fig.suptitle('Z-Scored Ratings by Trial and Carrier Type', 
+             fontsize=16, fontweight='bold', y=0.995)
+
+plt.tight_layout(rect=[0, 0, 1, 0.99])
+
+# Save the large figure
+large_fig_filename = 'all_trials_subplots_zscored_ratings.png'
+plt.savefig(large_fig_filename, dpi=150, bbox_inches='tight')
+print(f"\n✓ Saved {large_fig_filename} ({n_rows}×{n_cols} grid)")
+
+plt.close()
+
+print("\n✓ Large subplot figure created successfully!")
+
+# ============================================================================
+# SUBPLOT FIGURE FOR TOP 54 TRIALS: Z-SCORED RATINGS FOR EACH TRIAL
+# ============================================================================
+print("\n" + "=" * 80)
+print("CREATING SUBPLOT FIGURE FOR TOP 54 TRIALS")
+print("=" * 80)
+
+# Get unique trials from final_54_trials_sorted and sort them
+top54_unique_trials = final_54_trials_sorted.drop_duplicates(subset=['trial_id']).copy()
+top54_unique_trials = top54_unique_trials.sort_values('trial_id').reset_index(drop=True)
+
+n_top54_trials = len(top54_unique_trials)
+print(f"\nTotal top 54 trials to plot: {n_top54_trials}")
+
+# Calculate subplot grid dimensions (aim for roughly square layout)
+n_cols_top54 = int(np.ceil(np.sqrt(n_top54_trials)))
+n_rows_top54 = int(np.ceil(n_top54_trials / n_cols_top54))
+
+print(f"Subplot grid: {n_rows_top54} rows × {n_cols_top54} columns")
+
+# Create large figure
+fig, axes = plt.subplots(n_rows_top54, n_cols_top54, figsize=(n_cols_top54 * 3, n_rows_top54 * 3))
+
+# Flatten axes array for easier iteration
+if n_top54_trials == 1:
+    axes = np.array([axes])
+elif n_rows_top54 == 1 or n_cols_top54 == 1:
+    axes = axes.flatten()
+else:
+    axes = axes.flatten()
+
+print(f"Figure shape: {fig.get_size_inches()}")
+
+# Iterate through each trial
+for idx, (_, trial_row) in enumerate(top54_unique_trials.iterrows()):
+    trial_id = trial_row['trial_id']
+    pair_type = trial_row['Pair']
+    
+    # Get data for this trial from final_54_trials_sorted
+    trial_data = final_54_trials_sorted[final_54_trials_sorted['trial_id'] == trial_id].copy()
+    
+    # Prepare data in long format for plotting the 4 metrics
+    trial_metrics_data = []
+    for metric, zscore_col in zip(rating_metrics, zscore_cols_for_plotting):
+        for _, row in trial_data.iterrows():
+            trial_metrics_data.append({
+                'Metric': metric.replace('_', ' ').title(),
+                'Z-Scored Value': row[zscore_col],
+                'Carrier Type': row['CarrierType']
+            })
+    
+    trial_metrics_df = pd.DataFrame(trial_metrics_data)
+    
+    # Create bar plot in this subplot
+    ax = axes[idx]
+    
+    if len(trial_metrics_df) > 0:
+        # Color bars based on positive (green) or negative (red) values
+        colors = ['#2ECC71' if val >= 0 else '#E74C3C' for val in trial_metrics_df['Z-Scored Value']]
+        
+        x_pos = np.arange(len(trial_metrics_df))
+        ax.bar(x_pos, trial_metrics_df['Z-Scored Value'], color=colors, alpha=0.7, edgecolor='black', linewidth=0.5)
+        
+        # Add horizontal line at 0
+        ax.axhline(0, color='black', linewidth=1.5, linestyle='-', alpha=0.8)
+        
+        ax.set_title(f'Trial {trial_id}: {pair_type}', fontsize=10, fontweight='bold')
+        ax.set_xlabel('', fontsize=8)
+        ax.set_ylabel('Z-Scored Rating', fontsize=8)
+        ax.set_xticks(x_pos)
+        ax.set_xticklabels(trial_metrics_df['Metric'], fontsize=7, rotation=45, ha='right')
+        ax.tick_params(axis='y', labelsize=7)
+        ax.grid(axis='y', alpha=0.3, zorder=0)
+    else:
+        ax.text(0.5, 0.5, f'Trial {trial_id}\nNo data', 
+               ha='center', va='center', transform=ax.transAxes)
+        ax.set_xticks([])
+        ax.set_yticks([])
+
+# Hide empty subplots
+for idx in range(n_top54_trials, len(axes)):
+    axes[idx].set_visible(False)
+
+# Overall title
+fig.suptitle('Z-Scored Ratings by Trial and Carrier Type (Top 54 Trials)', 
+             fontsize=16, fontweight='bold', y=0.995)
+
+plt.tight_layout(rect=[0, 0, 1, 0.99])
+
+# Save the figure
+top54_fig_filename = 'top_54_trials_subplots_zscored_ratings.png'
+plt.savefig(top54_fig_filename, dpi=150, bbox_inches='tight')
+print(f"\n✓ Saved {top54_fig_filename} ({n_rows_top54}×{n_cols_top54} grid)")
+
+plt.close()
+
+print("\n✓ Top 54 trials subplot figure created successfully!")
+
+# ============================================================================
+# FILTERED SUBPLOT FIGURE: GS-K AND Q-K PAIRS ONLY
+# ============================================================================
+print("\n" + "=" * 80)
+print("CREATING FILTERED SUBPLOT FIGURE (GS-K AND Q-K PAIRS ONLY)")
+print("=" * 80)
+
+# Filter to only gs-k and q-k pairs
+filtered_plot_data = plot_data[plot_data['Pair'].isin(['gs-k', 'q-k'])].copy()
+
+# Get unique trials from filtered data and sort them
+unique_filtered_trials = filtered_plot_data.drop_duplicates(subset=['trial_id']).copy()
+unique_filtered_trials = unique_filtered_trials.sort_values('trial_id').reset_index(drop=True)
+
+n_filtered_trials = len(unique_filtered_trials)
+print(f"\nTotal trials to plot (gs-k and q-k only): {n_filtered_trials}")
+
+if n_filtered_trials > 0:
+    # Calculate subplot grid dimensions (aim for roughly square layout)
+    n_cols_filtered = int(np.ceil(np.sqrt(n_filtered_trials)))
+    n_rows_filtered = int(np.ceil(n_filtered_trials / n_cols_filtered))
+    
+    print(f"Subplot grid: {n_rows_filtered} rows × {n_cols_filtered} columns")
+    
+    # Create large figure
+    fig, axes = plt.subplots(n_rows_filtered, n_cols_filtered, 
+                            figsize=(n_cols_filtered * 3, n_rows_filtered * 3))
+    
+    # Flatten axes array for easier iteration
+    if n_filtered_trials == 1:
+        axes = np.array([axes])
+    elif n_rows_filtered == 1 or n_cols_filtered == 1:
+        axes = axes.flatten()
+    else:
+        axes = axes.flatten()
+    
+    print(f"Figure shape: {fig.get_size_inches()}")
+    
+    # Iterate through each trial
+    for idx, (_, trial_row) in enumerate(unique_filtered_trials.iterrows()):
+        trial_id = trial_row['trial_id']
+        pair_type = trial_row['Pair']
+        
+        # Get data for this trial
+        trial_data = filtered_plot_data[filtered_plot_data['trial_id'] == trial_id].copy()
+        
+        # Prepare data in long format for plotting the 4 metrics
+        trial_metrics_data = []
+        for metric, zscore_col in zip(rating_metrics, zscore_cols_for_plotting):
+            for _, row in trial_data.iterrows():
+                trial_metrics_data.append({
+                    'Metric': metric.replace('_', ' ').title(),
+                    'Z-Scored Value': row[zscore_col],
+                    'Carrier Type': row['CarrierType']
+                })
+        
+        trial_metrics_df = pd.DataFrame(trial_metrics_data)
+        
+        # Create bar plot in this subplot
+        ax = axes[idx]
+        
+        if len(trial_metrics_df) > 0:
+            sns.barplot(data=trial_metrics_df, x='Metric', y='Z-Scored Value', 
+                       hue='Carrier Type', ax=ax, palette='Set2')
+            ax.set_title(f'Trial {trial_id}: {pair_type}', fontsize=10, fontweight='bold')
+            ax.set_xlabel('', fontsize=8)
+            ax.set_ylabel('Z-Scored Rating', fontsize=8)
+            ax.tick_params(axis='x', labelsize=7, rotation=45)
+            ax.tick_params(axis='y', labelsize=7)
+            ax.legend(fontsize=7, title_fontsize=7)
+            ax.grid(axis='y', alpha=0.3)
+        else:
+            ax.text(0.5, 0.5, f'Trial {trial_id}\nNo data', 
+                   ha='center', va='center', transform=ax.transAxes)
+            ax.set_xticks([])
+            ax.set_yticks([])
+    
+    # Hide empty subplots
+    for idx in range(n_filtered_trials, len(axes)):
+        axes[idx].set_visible(False)
+    
+    # Overall title
+    fig.suptitle('Z-Scored Ratings by Trial and Carrier Type (GS-K and Q-K Pairs Only)', 
+                 fontsize=16, fontweight='bold', y=0.995)
+    
+    plt.tight_layout(rect=[0, 0, 1, 0.99])
+    
+    # Save the filtered figure
+    filtered_fig_filename = 'gsk_qk_trials_subplots_zscored_ratings.png'
+    plt.savefig(filtered_fig_filename, dpi=150, bbox_inches='tight')
+    print(f"\n✓ Saved {filtered_fig_filename} ({n_rows_filtered}×{n_cols_filtered} grid)")
+    
+    plt.close()
+    
+    print("\n✓ Filtered subplot figure (gs-k and q-k) created successfully!")
+else:
+    print("\n⚠ No trials found for gs-k and q-k pairs")
