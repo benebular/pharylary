@@ -3,10 +3,17 @@ import numpy as np
 from scipy import stats
 import matplotlib.pyplot as plt
 import seaborn as sns
+import os
 
 # Load data
 results = pd.read_csv('pharylary_survey_results.csv')
 trials_meta = pd.read_csv('../trials.csv')
+
+# Prepare a copy of trials metadata for early diagnostics
+if 'Trial' in trials_meta.columns:
+    trials_meta_copy = trials_meta.rename(columns={'Trial': 'trial_id'}, inplace=False).copy()
+else:
+    trials_meta_copy = trials_meta.copy()
 
 # Filter to only completed participants (from Prolific)
 completed_ids = [
@@ -1344,96 +1351,99 @@ print("\n" + "=" * 80)
 print("CREATING LARGE SUBPLOT FIGURE WITH ONE SUBPLOT PER TRIAL")
 print("=" * 80)
 
-# Get unique trials and sort them
-unique_trials = plot_data.drop_duplicates(subset=['trial_id']).copy()
-unique_trials = unique_trials.sort_values('trial_id').reset_index(drop=True)
-
-n_trials = len(unique_trials)
-print(f"\nTotal trials to plot: {n_trials}")
-
-# Calculate subplot grid dimensions (aim for roughly square layout)
-n_cols = int(np.ceil(np.sqrt(n_trials)))
-n_rows = int(np.ceil(n_trials / n_cols))
-
-print(f"Subplot grid: {n_rows} rows × {n_cols} columns")
-
-# Create large figure
-fig, axes = plt.subplots(n_rows, n_cols, figsize=(n_cols * 3, n_rows * 3))
-
-# Flatten axes array for easier iteration
-if n_trials == 1:
-    axes = np.array([axes])
-elif n_rows == 1 or n_cols == 1:
-    axes = axes.flatten()
-else:
-    axes = axes.flatten()
-
-print(f"Figure shape: {fig.get_size_inches()}")
-
-# Iterate through each trial
-for idx, (_, trial_row) in enumerate(unique_trials.iterrows()):
-    trial_id = trial_row['trial_id']
-    pair_type = trial_row['Pair']
-    
-    # Get data for this trial
-    trial_data = plot_data[plot_data['trial_id'] == trial_id].copy()
-    
-    # Prepare data in long format for plotting the 4 metrics
-    trial_metrics_data = []
-    for metric, zscore_col in zip(rating_metrics, zscore_cols_for_plotting):
-        for _, row in trial_data.iterrows():
-            trial_metrics_data.append({
-                'Metric': metric.replace('_', ' ').title(),
-                'Z-Scored Value': row[zscore_col],
-                'Carrier Type': row['CarrierType']
-            })
-    
-    trial_metrics_df = pd.DataFrame(trial_metrics_data)
-    
-    # Create bar plot in this subplot
-    ax = axes[idx]
-    
-    if len(trial_metrics_df) > 0:
-        # Color bars based on positive (green) or negative (red) values
-        colors = ['#2ECC71' if val >= 0 else '#E74C3C' for val in trial_metrics_df['Z-Scored Value']]
-        
-        x_pos = np.arange(len(trial_metrics_df))
-        ax.bar(x_pos, trial_metrics_df['Z-Scored Value'], color=colors, alpha=0.7, edgecolor='black', linewidth=0.5)
-        
-        # Add horizontal line at 0
-        ax.axhline(0, color='black', linewidth=1.5, linestyle='-', alpha=0.8)
-        
-        ax.set_title(f'Trial {trial_id}: {pair_type}', fontsize=10, fontweight='bold')
-        ax.set_xlabel('', fontsize=8)
-        ax.set_ylabel('Z-Scored Rating', fontsize=8)
-        ax.set_xticks(x_pos)
-        ax.set_xticklabels(trial_metrics_df['Metric'], fontsize=7, rotation=45, ha='right')
-        ax.tick_params(axis='y', labelsize=7)
-        ax.grid(axis='y', alpha=0.3, zorder=0)
-    else:
-        ax.text(0.5, 0.5, f'Trial {trial_id}\nNo data', 
-               ha='center', va='center', transform=ax.transAxes)
-        ax.set_xticks([])
-        ax.set_yticks([])
-
-# Hide empty subplots
-for idx in range(n_trials, len(axes)):
-    axes[idx].set_visible(False)
-
-# Overall title
-fig.suptitle('Z-Scored Ratings by Trial and Carrier Type', 
-             fontsize=16, fontweight='bold', y=0.995)
-
-plt.tight_layout(rect=[0, 0, 1, 0.99])
-
-# Save the large figure
 large_fig_filename = 'all_trials_subplots_zscored_ratings.png'
-plt.savefig(large_fig_filename, dpi=150, bbox_inches='tight')
-print(f"\n✓ Saved {large_fig_filename} ({n_rows}×{n_cols} grid)")
+if os.path.exists(large_fig_filename):
+    print(f"\n✓ {large_fig_filename} already exists. Skipping creation.")
+else:
+    # Get unique trials and sort them
+    unique_trials = plot_data.drop_duplicates(subset=['trial_id']).copy()
+    unique_trials = unique_trials.sort_values('trial_id').reset_index(drop=True)
 
-plt.close()
+    n_trials = len(unique_trials)
+    print(f"\nTotal trials to plot: {n_trials}")
 
-print("\n✓ Large subplot figure created successfully!")
+    # Calculate subplot grid dimensions (aim for roughly square layout)
+    n_cols = int(np.ceil(np.sqrt(n_trials)))
+    n_rows = int(np.ceil(n_trials / n_cols))
+
+    print(f"Subplot grid: {n_rows} rows × {n_cols} columns")
+
+    # Create large figure
+    fig, axes = plt.subplots(n_rows, n_cols, figsize=(n_cols * 3, n_rows * 3))
+
+    # Flatten axes array for easier iteration
+    if n_trials == 1:
+        axes = np.array([axes])
+    elif n_rows == 1 or n_cols == 1:
+        axes = axes.flatten()
+    else:
+        axes = axes.flatten()
+
+    print(f"Figure shape: {fig.get_size_inches()}")
+
+    # Iterate through each trial
+    for idx, (_, trial_row) in enumerate(unique_trials.iterrows()):
+        trial_id = trial_row['trial_id']
+        pair_type = trial_row['Pair']
+        
+        # Get data for this trial
+        trial_data = plot_data[plot_data['trial_id'] == trial_id].copy()
+        
+        # Prepare data in long format for plotting the 4 metrics
+        trial_metrics_data = []
+        for metric, zscore_col in zip(rating_metrics, zscore_cols_for_plotting):
+            for _, row in trial_data.iterrows():
+                trial_metrics_data.append({
+                    'Metric': metric.replace('_', ' ').title(),
+                    'Z-Scored Value': row[zscore_col],
+                    'Carrier Type': row['CarrierType']
+                })
+        
+        trial_metrics_df = pd.DataFrame(trial_metrics_data)
+        
+        # Create bar plot in this subplot
+        ax = axes[idx]
+        
+        if len(trial_metrics_df) > 0:
+            # Color bars based on positive (green) or negative (red) values
+            colors = ['#2ECC71' if val >= 0 else '#E74C3C' for val in trial_metrics_df['Z-Scored Value']]
+            
+            x_pos = np.arange(len(trial_metrics_df))
+            ax.bar(x_pos, trial_metrics_df['Z-Scored Value'], color=colors, alpha=0.7, edgecolor='black', linewidth=0.5)
+            
+            # Add horizontal line at 0
+            ax.axhline(0, color='black', linewidth=1.5, linestyle='-', alpha=0.8)
+            
+            ax.set_title(f'Trial {trial_id}: {pair_type}', fontsize=10, fontweight='bold')
+            ax.set_xlabel('', fontsize=8)
+            ax.set_ylabel('Z-Scored Rating', fontsize=8)
+            ax.set_xticks(x_pos)
+            ax.set_xticklabels(trial_metrics_df['Metric'], fontsize=7, rotation=45, ha='right')
+            ax.tick_params(axis='y', labelsize=7)
+            ax.grid(axis='y', alpha=0.3, zorder=0)
+        else:
+            ax.text(0.5, 0.5, f'Trial {trial_id}\nNo data', 
+                   ha='center', va='center', transform=ax.transAxes)
+            ax.set_xticks([])
+            ax.set_yticks([])
+
+    # Hide empty subplots
+    for idx in range(n_trials, len(axes)):
+        axes[idx].set_visible(False)
+
+    # Overall title
+    fig.suptitle('Z-Scored Ratings by Trial and Carrier Type', 
+                 fontsize=16, fontweight='bold', y=0.995)
+
+    plt.tight_layout(rect=[0, 0, 1, 0.99])
+
+    # Save the large figure
+    plt.savefig(large_fig_filename, dpi=150, bbox_inches='tight')
+    print(f"\n✓ Saved {large_fig_filename} ({n_rows}×{n_cols} grid)")
+
+    plt.close()
+
+    print("\n✓ Large subplot figure created successfully!")
 
 # ============================================================================
 # SUBPLOT FIGURE FOR TOP 54 TRIALS: Z-SCORED RATINGS FOR EACH TRIAL
@@ -1595,15 +1605,22 @@ if n_filtered_trials > 0:
         ax = axes[idx]
         
         if len(trial_metrics_df) > 0:
-            sns.barplot(data=trial_metrics_df, x='Metric', y='Z-Scored Value', 
-                       hue='Carrier Type', ax=ax, palette='Set2')
+            # Color bars based on positive (green) or negative (red) values
+            colors = ['#2ECC71' if val >= 0 else '#E74C3C' for val in trial_metrics_df['Z-Scored Value']]
+
+            x_pos = np.arange(len(trial_metrics_df))
+            ax.bar(x_pos, trial_metrics_df['Z-Scored Value'], color=colors, alpha=0.7, edgecolor='black', linewidth=0.5)
+
+            # Add horizontal line at 0
+            ax.axhline(0, color='black', linewidth=1.5, linestyle='-', alpha=0.8)
+
             ax.set_title(f'Trial {trial_id}: {pair_type}', fontsize=10, fontweight='bold')
             ax.set_xlabel('', fontsize=8)
             ax.set_ylabel('Z-Scored Rating', fontsize=8)
-            ax.tick_params(axis='x', labelsize=7, rotation=45)
+            ax.set_xticks(x_pos)
+            ax.set_xticklabels(trial_metrics_df['Metric'], fontsize=7, rotation=45, ha='right')
             ax.tick_params(axis='y', labelsize=7)
-            ax.legend(fontsize=7, title_fontsize=7)
-            ax.grid(axis='y', alpha=0.3)
+            ax.grid(axis='y', alpha=0.3, zorder=0)
         else:
             ax.text(0.5, 0.5, f'Trial {trial_id}\nNo data', 
                    ha='center', va='center', transform=ax.transAxes)
@@ -1630,3 +1647,219 @@ if n_filtered_trials > 0:
     print("\n✓ Filtered subplot figure (gs-k and q-k) created successfully!")
 else:
     print("\n⚠ No trials found for gs-k and q-k pairs")
+
+# ============================================================================
+# FILTERED SUBPLOT FIGURE: ʔ-K PAIRS ONLY
+# ============================================================================
+print("\n" + "=" * 80)
+print("CREATING FILTERED SUBPLOT FIGURE (ʔ-K PAIR ONLY)")
+print("=" * 80)
+
+# Filter to only ʔ-k pairs
+filtered_plot_data_uk = plot_data[plot_data['Pair'] == 'ʔ-k'].copy()
+
+# Get unique trials from filtered data and sort them
+unique_filtered_trials_uk = filtered_plot_data_uk.drop_duplicates(subset=['trial_id']).copy()
+unique_filtered_trials_uk = unique_filtered_trials_uk.sort_values('trial_id').reset_index(drop=True)
+
+n_filtered_trials_uk = len(unique_filtered_trials_uk)
+print(f"\nTotal trials to plot (ʔ-k only): {n_filtered_trials_uk}")
+
+if n_filtered_trials_uk > 0:
+    # Calculate subplot grid dimensions (aim for roughly square layout)
+    n_cols_filtered_uk = int(np.ceil(np.sqrt(n_filtered_trials_uk)))
+    n_rows_filtered_uk = int(np.ceil(n_filtered_trials_uk / n_cols_filtered_uk))
+    
+    print(f"Subplot grid: {n_rows_filtered_uk} rows × {n_cols_filtered_uk} columns")
+    
+    # Create large figure
+    fig, axes = plt.subplots(n_rows_filtered_uk, n_cols_filtered_uk, 
+                            figsize=(n_cols_filtered_uk * 3, n_rows_filtered_uk * 3))
+    
+    # Flatten axes array for easier iteration
+    if n_filtered_trials_uk == 1:
+        axes = np.array([axes])
+    elif n_rows_filtered_uk == 1 or n_cols_filtered_uk == 1:
+        axes = axes.flatten()
+    else:
+        axes = axes.flatten()
+    
+    print(f"Figure shape: {fig.get_size_inches()}")
+    
+    # Iterate through each trial
+    for idx, (_, trial_row) in enumerate(unique_filtered_trials_uk.iterrows()):
+        trial_id = trial_row['trial_id']
+        pair_type = trial_row['Pair']
+        
+        # Get data for this trial
+        trial_data = filtered_plot_data_uk[filtered_plot_data_uk['trial_id'] == trial_id].copy()
+        
+        # Prepare data in long format for plotting the 4 metrics
+        trial_metrics_data = []
+        for metric, zscore_col in zip(rating_metrics, zscore_cols_for_plotting):
+            for _, row in trial_data.iterrows():
+                trial_metrics_data.append({
+                    'Metric': metric.replace('_', ' ').title(),
+                    'Z-Scored Value': row[zscore_col],
+                    'Carrier Type': row['CarrierType']
+                })
+        
+        trial_metrics_df = pd.DataFrame(trial_metrics_data)
+        
+        # Create bar plot in this subplot
+        ax = axes[idx]
+        
+        if len(trial_metrics_df) > 0:
+            # Color bars based on positive (green) or negative (red) values
+            colors = ['#2ECC71' if val >= 0 else '#E74C3C' for val in trial_metrics_df['Z-Scored Value']]
+
+            x_pos = np.arange(len(trial_metrics_df))
+            ax.bar(x_pos, trial_metrics_df['Z-Scored Value'], color=colors, alpha=0.7, edgecolor='black', linewidth=0.5)
+
+            # Add horizontal line at 0
+            ax.axhline(0, color='black', linewidth=1.5, linestyle='-', alpha=0.8)
+
+            ax.set_title(f'Trial {trial_id}: {pair_type}', fontsize=10, fontweight='bold')
+            ax.set_xlabel('', fontsize=8)
+            ax.set_ylabel('Z-Scored Rating', fontsize=8)
+            ax.set_xticks(x_pos)
+            ax.set_xticklabels(trial_metrics_df['Metric'], fontsize=7, rotation=45, ha='right')
+            ax.tick_params(axis='y', labelsize=7)
+            ax.grid(axis='y', alpha=0.3, zorder=0)
+        else:
+            ax.text(0.5, 0.5, f'Trial {trial_id}\nNo data', 
+                   ha='center', va='center', transform=ax.transAxes)
+            ax.set_xticks([])
+            ax.set_yticks([])
+    
+    # Hide empty subplots
+    for idx in range(n_filtered_trials_uk, len(axes)):
+        axes[idx].set_visible(False)
+    
+    # Overall title
+    fig.suptitle('Z-Scored Ratings by Trial and Carrier Type (ʔ-K Pair Only)', 
+                 fontsize=16, fontweight='bold', y=0.995)
+    
+    plt.tight_layout(rect=[0, 0, 1, 0.99])
+    
+    # Save the filtered figure
+    filtered_fig_filename_uk = 'uk_trials_subplots_zscored_ratings.png'
+    plt.savefig(filtered_fig_filename_uk, dpi=150, bbox_inches='tight')
+    print(f"\n✓ Saved {filtered_fig_filename_uk} ({n_rows_filtered_uk}×{n_cols_filtered_uk} grid)")
+    
+    plt.close()
+    
+    print("\n✓ Filtered subplot figure (ʔ-k) created successfully!")
+else:
+    print("\n⚠ No trials found for ʔ-k pairs")
+
+# ============================================================================
+# FILTERED SUBPLOT FIGURE: ʔ-K PAIRS ONLY (EXCLUDING TOP 54 TRIALS)
+# ============================================================================
+print("\n" + "=" * 80)
+print("CREATING FILTERED SUBPLOT FIGURE (ʔ-K PAIR ONLY, EXCLUDING TOP 54)")
+print("=" * 80)
+
+# Identify ʔ-k trials included in the top 54 selection
+uk_top54_trial_ids = final_54_trials_sorted[final_54_trials_sorted['Pair'] == 'ʔ-k']['trial_id'].unique().tolist()
+
+# Filter to only ʔ-k pairs excluding top 54 trials
+filtered_plot_data_uk_excl = plot_data[
+    (plot_data['Pair'] == 'ʔ-k') &
+    (~plot_data['trial_id'].isin(uk_top54_trial_ids))
+].copy()
+
+# Get unique trials from filtered data and sort them
+unique_filtered_trials_uk_excl = filtered_plot_data_uk_excl.drop_duplicates(subset=['trial_id']).copy()
+unique_filtered_trials_uk_excl = unique_filtered_trials_uk_excl.sort_values('trial_id').reset_index(drop=True)
+
+n_filtered_trials_uk_excl = len(unique_filtered_trials_uk_excl)
+print(f"\nTotal trials to plot (ʔ-k only, excluding top 54): {n_filtered_trials_uk_excl}")
+
+if n_filtered_trials_uk_excl > 0:
+    # Calculate subplot grid dimensions (aim for roughly square layout)
+    n_cols_filtered_uk_excl = int(np.ceil(np.sqrt(n_filtered_trials_uk_excl)))
+    n_rows_filtered_uk_excl = int(np.ceil(n_filtered_trials_uk_excl / n_cols_filtered_uk_excl))
+    
+    print(f"Subplot grid: {n_rows_filtered_uk_excl} rows × {n_cols_filtered_uk_excl} columns")
+    
+    # Create large figure
+    fig, axes = plt.subplots(n_rows_filtered_uk_excl, n_cols_filtered_uk_excl, 
+                            figsize=(n_cols_filtered_uk_excl * 3, n_rows_filtered_uk_excl * 3))
+    
+    # Flatten axes array for easier iteration
+    if n_filtered_trials_uk_excl == 1:
+        axes = np.array([axes])
+    elif n_rows_filtered_uk_excl == 1 or n_cols_filtered_uk_excl == 1:
+        axes = axes.flatten()
+    else:
+        axes = axes.flatten()
+    
+    print(f"Figure shape: {fig.get_size_inches()}")
+    
+    # Iterate through each trial
+    for idx, (_, trial_row) in enumerate(unique_filtered_trials_uk_excl.iterrows()):
+        trial_id = trial_row['trial_id']
+        pair_type = trial_row['Pair']
+        
+        # Get data for this trial
+        trial_data = filtered_plot_data_uk_excl[filtered_plot_data_uk_excl['trial_id'] == trial_id].copy()
+        
+        # Prepare data in long format for plotting the 4 metrics
+        trial_metrics_data = []
+        for metric, zscore_col in zip(rating_metrics, zscore_cols_for_plotting):
+            for _, row in trial_data.iterrows():
+                trial_metrics_data.append({
+                    'Metric': metric.replace('_', ' ').title(),
+                    'Z-Scored Value': row[zscore_col],
+                    'Carrier Type': row['CarrierType']
+                })
+        
+        trial_metrics_df = pd.DataFrame(trial_metrics_data)
+        
+        # Create bar plot in this subplot
+        ax = axes[idx]
+        
+        if len(trial_metrics_df) > 0:
+            # Color bars based on positive (green) or negative (red) values
+            colors = ['#2ECC71' if val >= 0 else '#E74C3C' for val in trial_metrics_df['Z-Scored Value']]
+
+            x_pos = np.arange(len(trial_metrics_df))
+            ax.bar(x_pos, trial_metrics_df['Z-Scored Value'], color=colors, alpha=0.7, edgecolor='black', linewidth=0.5)
+
+            # Add horizontal line at 0
+            ax.axhline(0, color='black', linewidth=1.5, linestyle='-', alpha=0.8)
+
+            ax.set_title(f'Trial {trial_id}: {pair_type}', fontsize=10, fontweight='bold')
+            ax.set_xlabel('', fontsize=8)
+            ax.set_ylabel('Z-Scored Rating', fontsize=8)
+            ax.set_xticks(x_pos)
+            ax.set_xticklabels(trial_metrics_df['Metric'], fontsize=7, rotation=45, ha='right')
+            ax.tick_params(axis='y', labelsize=7)
+            ax.grid(axis='y', alpha=0.3, zorder=0)
+        else:
+            ax.text(0.5, 0.5, f'Trial {trial_id}\nNo data', 
+                   ha='center', va='center', transform=ax.transAxes)
+            ax.set_xticks([])
+            ax.set_yticks([])
+    
+    # Hide empty subplots
+    for idx in range(n_filtered_trials_uk_excl, len(axes)):
+        axes[idx].set_visible(False)
+    
+    # Overall title
+    fig.suptitle('Z-Scored Ratings by Trial and Carrier Type (ʔ-K Pair Only, Excluding Top 54)', 
+                 fontsize=16, fontweight='bold', y=0.995)
+    
+    plt.tight_layout(rect=[0, 0, 1, 0.99])
+    
+    # Save the filtered figure
+    filtered_fig_filename_uk_excl = 'uk_trials_subplots_zscored_ratings_excluding_top54.png'
+    plt.savefig(filtered_fig_filename_uk_excl, dpi=150, bbox_inches='tight')
+    print(f"\n✓ Saved {filtered_fig_filename_uk_excl} ({n_rows_filtered_uk_excl}×{n_cols_filtered_uk_excl} grid)")
+    
+    plt.close()
+    
+    print("\n✓ Filtered subplot figure (ʔ-k, excluding top 54) created successfully!")
+else:
+    print("\n⚠ No trials found for ʔ-k pairs after excluding top 54")
