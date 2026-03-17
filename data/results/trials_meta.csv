@@ -42,7 +42,7 @@ trial_id,Note,TargetWordAudioFile,TargetWordOriginalFile,TargetSegment,Distracto
 41,,41_non-creaky.wav,ʔawaː-b.wav,gs,k,gs-k,41,Initial,42.png,137.png,test,allophone,non-creaky,قَوى,كَوى,power;forces,apertures;skylights,قَوى,كَوى,51772.0,3129.0
 42,,42_non-creaky.wav,qalb-b.wav,q,k,q-k,42,Initial,44.png,139.png,test,phoneme,non-creaky,قَلب,كَلب,heart,dog,قَلب,كَلب,2704.0,21029.0
 43,,43_non-creaky.wav,ʔalb-b.wav,gs,k,gs-k,43,Initial,44.png,139.png,test,allophone,non-creaky,قَلب,كَلب,heart,dog,قَلب,كَلب,2704.0,21029.0
-44,,44_non-creaky.wav,ʔakuːn-b.wav,ʔ,k,ʔ-k,44,Initial,46.png,141.png,test,phoneme,non-creaky,أكون,تَكون,be,be,أكون,تَكون,100374.0,5576.0
+44,,44_non-creaky.wav,ʔakuːn-b.wav,ʔ,t,ʔ-t,44,Initial,46.png,141.png,test,phoneme,non-creaky,أكون,تَكون,be,be,أكون,تَكون,100374.0,5576.0
 45,,45_non-creaky.wav,ʔʊriːd-b.wav,ʔ,t,ʔ-t,45,Initial,47.png,142.png,test,phoneme,non-creaky,أُريد,تُريد,want;desire;intend,want;desire;intend,أُريد,تُريد,59771.0,17337.0
 46,,46_non-creaky.wav,ʔaʕmal-b.wav,ʔ,t,ʔ-t,46,Initial,48.png,143.png,test,phoneme,non-creaky,أعمَل,تَعمَل,work;function;act,work;function;act,أعمَل,تَعمَل,1553.0,54990.0
 47,,47_non-creaky.wav,ʔarfʊdˤ-b.wav,ʔ,t,ʔ-t,47,Initial,50.png,145.png,test,phoneme,non-creaky,أرفُض,تَرفُض,reject;refuse,reject;refuse,أرفُض,تَرفُض,1387.0,26804.0
@@ -186,7 +186,7 @@ trial_id,Note,TargetWordAudioFile,TargetWordOriginalFile,TargetSegment,Distracto
 185,,185_creaky.wav,ʔawaː-c.wav,gs,k,gs-k,41,Initial,42.png,137.png,test,allophone,creaky,قَوى,كَوى,power;forces,apertures;skylights,قَوى,كَوى,51772.0,3129.0
 186,,186_creaky.wav,qalb-c.wav,q,k,q-k,42,Initial,44.png,139.png,test,phoneme,creaky,قَلب,كَلب,heart,dog,قَلب,كَلب,2704.0,21029.0
 187,,187_creaky.wav,ʔalb-c.wav,gs,k,gs-k,43,Initial,44.png,139.png,test,allophone,creaky,قَلب,كَلب,heart,dog,قَلب,كَلب,2704.0,21029.0
-188,,188_creaky.wav,ʔakuːn-c.wav,ʔ,k,ʔ-k,44,Initial,46.png,141.png,test,phoneme,creaky,أكون,تَكون,be,be,أكون,تَكون,100374.0,5576.0
+188,,188_creaky.wav,ʔakuːn-c.wav,ʔ,t,ʔ-t,44,Initial,46.png,141.png,test,phoneme,creaky,أكون,تَكون,be,be,أكون,تَكون,100374.0,5576.0
 189,,189_creaky.wav,ʔʊriːd-c.wav,ʔ,t,ʔ-t,45,Initial,47.png,142.png,test,phoneme,creaky,أُريد,تُريد,want;desire;intend,want;desire;intend,أُريد,تُريد,59771.0,17337.0
 190,,190_creaky.wav,ʔaʕmal-c.wav,ʔ,t,ʔ-t,46,Initial,48.png,143.png,test,phoneme,creaky,أعمَل,تَعمَل,work;function;act,work;function;act,أعمَل,تَعمَل,1553.0,54990.0
 191,,191_creaky.wav,ʔarfʊdˤ-c.wav,ʔ,t,ʔ-t,47,Initial,50.png,145.png,test,phoneme,creaky,أرفُض,تَرفُض,reject;refuse,reject;refuse,أرفُض,تَرفُض,1387.0,26804.0
