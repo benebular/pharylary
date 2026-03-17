@@ -34,30 +34,9 @@ library(grid)
 library(gridExtra)
 library(scales)
 
-# 
-ms_colors <- c(
-  "ħ"    = "#1b9e77", # orange
-  "h" = "#d95f02", # blue
-  "ʔ" = "#7570b3",  # green
-  "ʕ" = "#e7298a"  # red
-)
-# 
-# ms_facets <- list(
-#   scale_color_manual(name = NULL, values = ms_colors),
-#   scale_fill_manual(name = NULL, values = ms_colors),
-#   theme_light(),
-#   theme(
-#     aspect.ratio     = 1,
-#     legend.position  = "bottom",
-#     strip.background = element_blank(),
-#     strip.text       = element_text(color = "black", hjust = 0, size = 11),
-#     panel.border     = element_rect(color = "black", fill = NA)
-#   )
-# )
-
 #paths
-orig_data_path <- sprintf('/Volumes/circe/alldata/dissertation/vs/output_preproc/pharylary_subset_mean.csv')
-# orig_data_path <- sprintf('/Volumes/cassandra/alldata/dissertation/vs/output_preproc/pharylary_subset_mean.csv')
+# orig_data_path <- sprintf('/Volumes/circe/alldata/dissertation/vs/output_preproc/pharylary_subset_mean.csv')
+orig_data_path <- sprintf('/Volumes/cassandra/alldata/dissertation/vs/output_preproc/pharylary_subset_mean.csv')
 
 subset_mean = read.csv(orig_data_path)
 
@@ -105,7 +84,24 @@ unique_data$interval <- str_replace(unique_data$interval, "j|w", "j/w")
 # Desired order of intervals
 # Desired order of intervals# Desired order of intervals
 # interval_order <- c("j/w", "ħ", "ʕ", "h", "ʔ")
-interval_order <- c("h", "j/w", "ʕ", "ħ", "ʔ")
+# interval_order <- c("h", "j/w", "ʕ", "ħ", "ʔ")
+interval_order <- c("j/w","ʔ","h","ʕ","ħ")
+
+interval_colors <- c(
+  "ħ"   = "#e7298a",
+  "ʕ"   = "#7570b3",
+  "h"   = "#1b9e77",
+  "ʔ"   = "#66a61e",
+  "j/w" = "#d95f02"
+)
+
+interval_colors <- c(
+  "ħ"   = "#1b9e77",
+  "ʕ"   = "#d95f02",
+  "h"   = "#7570b3",
+  "ʔ"   = "#e7298a",
+  "j/w" = "#66a61e"
+)
 
 plot8 <- ggplot(
   unique_data %>%
@@ -131,7 +127,10 @@ plot8 <- ggplot(
   ) +
   coord_flip(clip = "off") +
   labs(x = NULL, y = "Normalized Residual H1", title='Residual H1') +
-  scale_fill_brewer(palette = "Dark2", name = "Segment") +
+  scale_fill_manual(
+    values = interval_colors, 
+    name = "Segment"
+  ) +
   guides(
     fill = guide_legend(
       reverse = TRUE,
@@ -177,7 +176,10 @@ plot9 <- ggplot(
   ) +
   coord_flip(clip = "off") +
   labs(x = NULL, y = "Normalized CPP", title='Cepstral Peak Prominence (CPP)') +
-  scale_fill_brewer(palette = "Dark2", name = "Segment") +
+  scale_fill_manual(
+    values = interval_colors, 
+    name = "Segment"
+  ) +
   guides(
     fill = guide_legend(
       reverse = TRUE,
@@ -222,8 +224,11 @@ plot10 <- ggplot(
     shape = 22, size = 8, alpha = 0, inherit.aes = FALSE, show.legend = TRUE
   ) +
   coord_flip(clip = "off") +
-  labs(x = NULL, y = "Normalized SoE", title='Strength of Excitation (SoE)') +
-  scale_fill_brewer(palette = "Dark2", name = "Segment") +
+  labs(x = NULL, y = "Normalized SoE", title='Strength of Excitation') +
+  scale_fill_manual(
+    values = interval_colors, 
+    name = "Segment"
+  ) +
   guides(
     fill = guide_legend(
       reverse = TRUE,
@@ -268,8 +273,11 @@ plot11 <- ggplot(
     shape = 22, size = 8, alpha = 0, inherit.aes = FALSE, show.legend = TRUE
   ) +
   coord_flip(clip = "off") +
-  labs(x = NULL, y = "Normalized F1", title='F1 (First Formant)') +
-  scale_fill_brewer(palette = "Dark2", name = "Segment") +
+  labs(x = NULL, y = "Normalized F1", title='F1') +
+  scale_fill_manual(
+    values = interval_colors, 
+    name = "Segment"
+  ) +
   guides(
     fill = guide_legend(
       reverse = TRUE,
@@ -329,7 +337,10 @@ plot12 <- ggplot(
   ) +
   coord_flip(clip = "off") +
   labs(x = NULL, y = "Normalized f0", title='Fundamental Frequency (f0)') +
-  scale_fill_brewer(palette = "Dark2", name = "Segment") +
+  scale_fill_manual(
+    values = interval_colors, 
+    name = "Segment"
+  ) +
   guides(
     fill = guide_legend(
       reverse = TRUE,
@@ -358,6 +369,21 @@ grid.arrange(
   plot8, plot9, plot10, plot11,
   ncol = 2, nrow = 2,
   top = grid::textGrob("Acoustic Feature Means for Laryngeal and Pharyngeal Consonants", gp=grid::gpar(fontsize=20))
+)
+
+featuregrid <- grid.arrange(
+  plot11, plot10, plot8,
+  ncol = 3, nrow = 1
+  # top = grid::textGrob("Acoustic Feature Means for Laryngeal and Pharyngeal Consonants", gp=grid::gpar(fontsize=20))
+)
+
+ggsave(
+  filename = "F1_soe_resH1_grid.tif",
+  plot = featuregrid,
+  width = 24, 
+  height = 8, 
+  dpi = 600,          # High resolution for printing
+  compression = "lzw" # Keeps file size manageable without losing quality
 )
 
 
