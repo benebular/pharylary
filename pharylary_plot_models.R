@@ -56,8 +56,8 @@ ms_colors <- c(
 # )
 
 #paths
-# orig_data_path <- sprintf('/Volumes/circe/alldata/dissertation/vs/output_preproc/pharylary_subset_mean.csv')
-orig_data_path <- sprintf('/Volumes/cassandra/alldata/dissertation/vs/output_preproc/pharylary_subset_mean.csv')
+orig_data_path <- sprintf('/Volumes/circe/alldata/dissertation/vs/output_preproc/pharylary_subset_mean.csv')
+# orig_data_path <- sprintf('/Volumes/cassandra/alldata/dissertation/vs/output_preproc/pharylary_subset_mean.csv')
 
 subset_mean = read.csv(orig_data_path)
 
@@ -130,7 +130,7 @@ plot8 <- ggplot(
     shape = 22, size = 8, alpha = 0, inherit.aes = FALSE, show.legend = TRUE
   ) +
   coord_flip(clip = "off") +
-  labs(x = NULL, y = "Normalized Residual H1") +
+  labs(x = NULL, y = "Normalized Residual H1", title='Residual H1') +
   scale_fill_brewer(palette = "Dark2", name = "Segment") +
   guides(
     fill = guide_legend(
@@ -141,17 +141,18 @@ plot8 <- ggplot(
   theme_minimal(base_size = 18) +
   theme(
     panel.grid.major.y = element_blank(),
-    legend.position = "left",                    # <-- clean, external left legend
+    legend.position = "left",              # bottom-left inside
     legend.direction = "vertical",
     legend.background = element_rect(fill = "white", color = "white"),
-    legend.key.size = unit(1.2, "cm"),
-    legend.title = element_text(size = 16),
-    legend.text  = element_text(size = 16),
+    legend.key.size = unit(1.2, "cm"),            # makes legend squares larger
+    legend.title = element_text(size = 32),  # larger title
+    legend.text  = element_text(size = 30),        # larger labels
     axis.text.y  = element_blank(),
     axis.ticks.y = element_blank(),
-    axis.text.x  = element_text(size = 20),
-    axis.title.x = element_text(size = 18, margin = margin(t = 10)),
-    plot.margin  = margin(20, 20, 20, 20)
+    axis.text.x  = element_text(size = 30),
+    axis.title.x = element_text(size = 32, margin = margin(t = 10)),
+    plot.margin  = margin(20, 20, 20, 20),
+    plot.title = element_text(hjust = 0.5, size=36)
   )
 
 plot9 <- ggplot(
@@ -175,7 +176,7 @@ plot9 <- ggplot(
     shape = 22, size = 8, alpha = 0, inherit.aes = FALSE, show.legend = TRUE
   ) +
   coord_flip(clip = "off") +
-  labs(x = NULL, y = "Normalized CPP") +
+  labs(x = NULL, y = "Normalized CPP", title='Cepstral Peak Prominence (CPP)') +
   scale_fill_brewer(palette = "Dark2", name = "Segment") +
   guides(
     fill = guide_legend(
@@ -190,13 +191,14 @@ plot9 <- ggplot(
     legend.direction = "vertical",
     legend.background = element_rect(fill = "white", color = "white"),
     legend.key.size = unit(1.2, "cm"),            # makes legend squares larger
-    legend.title = element_text(size = 18),  # larger title
-    legend.text  = element_text(size = 16),        # larger labels
+    legend.title = element_text(size = 32),  # larger title
+    legend.text  = element_text(size = 30),        # larger labels
     axis.text.y  = element_blank(),
     axis.ticks.y = element_blank(),
-    axis.text.x  = element_text(size = 20),
-    axis.title.x = element_text(size = 18, margin = margin(t = 10)),
-    plot.margin  = margin(20, 20, 20, 20)
+    axis.text.x  = element_text(size = 30),
+    axis.title.x = element_text(size = 32, margin = margin(t = 10)),
+    plot.margin  = margin(20, 20, 20, 20),
+    plot.title = element_text(hjust = 0.5, size=36)
   )
 
 plot10 <- ggplot(
@@ -220,7 +222,7 @@ plot10 <- ggplot(
     shape = 22, size = 8, alpha = 0, inherit.aes = FALSE, show.legend = TRUE
   ) +
   coord_flip(clip = "off") +
-  labs(x = NULL, y = "Normalized SoE") +
+  labs(x = NULL, y = "Normalized SoE", title='Strength of Excitation (SoE)') +
   scale_fill_brewer(palette = "Dark2", name = "Segment") +
   guides(
     fill = guide_legend(
@@ -235,13 +237,14 @@ plot10 <- ggplot(
     legend.direction = "vertical",
     legend.background = element_rect(fill = "white", color = "white"),
     legend.key.size = unit(1.2, "cm"),            # makes legend squares larger
-    legend.title = element_text(size = 18),  # larger title
-    legend.text  = element_text(size = 16),        # larger labels
+    legend.title = element_text(size = 32),  # larger title
+    legend.text  = element_text(size = 30),        # larger labels
     axis.text.y  = element_blank(),
     axis.ticks.y = element_blank(),
-    axis.text.x  = element_text(size = 20),
-    axis.title.x = element_text(size = 18, margin = margin(t = 10)),
-    plot.margin  = margin(20, 20, 20, 20)
+    axis.text.x  = element_text(size = 30),
+    axis.title.x = element_text(size = 32, margin = margin(t = 10)),
+    plot.margin  = margin(20, 20, 20, 20),
+    plot.title = element_text(hjust = 0.5, size=36)
   )
 
 plot11 <- ggplot(
@@ -265,7 +268,7 @@ plot11 <- ggplot(
     shape = 22, size = 8, alpha = 0, inherit.aes = FALSE, show.legend = TRUE
   ) +
   coord_flip(clip = "off") +
-  labs(x = NULL, y = "Normalized F1") +
+  labs(x = NULL, y = "Normalized F1", title='F1 (First Formant)') +
   scale_fill_brewer(palette = "Dark2", name = "Segment") +
   guides(
     fill = guide_legend(
@@ -274,19 +277,34 @@ plot11 <- ggplot(
     )
   ) +
   theme_minimal(base_size = 18) +
+  # theme(
+  #   panel.grid.major.y = element_blank(),
+  #   legend.position = "left",              # bottom-left inside
+  #   legend.direction = "vertical",
+  #   legend.background = element_rect(fill = "white", color = "white"),
+  #   legend.key.size = unit(1.2, "cm"),            # makes legend squares larger
+  #   legend.title = element_text(size = 18),  # larger title
+  #   legend.text  = element_text(size = 16),        # larger labels
+  #   axis.text.y  = element_blank(),
+  #   axis.ticks.y = element_blank(),
+  #   axis.text.x  = element_text(size = 20),
+  #   axis.title.x = element_text(size = 18, margin = margin(t = 10)),
+  #   plot.margin  = margin(20, 20, 20, 20)
+  # )
   theme(
     panel.grid.major.y = element_blank(),
     legend.position = "left",              # bottom-left inside
     legend.direction = "vertical",
     legend.background = element_rect(fill = "white", color = "white"),
     legend.key.size = unit(1.2, "cm"),            # makes legend squares larger
-    legend.title = element_text(size = 18),  # larger title
-    legend.text  = element_text(size = 16),        # larger labels
+    legend.title = element_text(size = 32),  # larger title
+    legend.text  = element_text(size = 30),        # larger labels
     axis.text.y  = element_blank(),
     axis.ticks.y = element_blank(),
-    axis.text.x  = element_text(size = 20),
-    axis.title.x = element_text(size = 18, margin = margin(t = 10)),
-    plot.margin  = margin(20, 20, 20, 20)
+    axis.text.x  = element_text(size = 30),
+    axis.title.x = element_text(size = 32, margin = margin(t = 10)),
+    plot.margin  = margin(20, 20, 20, 20),
+    plot.title = element_text(hjust = 0.5, size=36)
   )
 
 plot12 <- ggplot(
@@ -310,7 +328,7 @@ plot12 <- ggplot(
     shape = 22, size = 8, alpha = 0, inherit.aes = FALSE, show.legend = TRUE
   ) +
   coord_flip(clip = "off") +
-  labs(x = NULL, y = "Normalized f0") +
+  labs(x = NULL, y = "Normalized f0", title='Fundamental Frequency (f0)') +
   scale_fill_brewer(palette = "Dark2", name = "Segment") +
   guides(
     fill = guide_legend(
@@ -325,13 +343,14 @@ plot12 <- ggplot(
     legend.direction = "vertical",
     legend.background = element_rect(fill = "white", color = "white"),
     legend.key.size = unit(1.2, "cm"),            # makes legend squares larger
-    legend.title = element_text(size = 18),  # larger title
-    legend.text  = element_text(size = 16),        # larger labels
+    legend.title = element_text(size = 32),  # larger title
+    legend.text  = element_text(size = 30),        # larger labels
     axis.text.y  = element_blank(),
     axis.ticks.y = element_blank(),
-    axis.text.x  = element_text(size = 20),
-    axis.title.x = element_text(size = 18, margin = margin(t = 10)),
-    plot.margin  = margin(20, 20, 20, 20)
+    axis.text.x  = element_text(size = 30),
+    axis.title.x = element_text(size = 32, margin = margin(t = 10)),
+    plot.margin  = margin(20, 20, 20, 20),
+    plot.title = element_text(hjust = 0.5, size=36)
   )
 
 
@@ -413,6 +432,7 @@ pairs(emms_H1res)  # all pairwise comparisons
 
 
 #### rain clouds
+#### not super functional now
 
 rain_height <- .1
 
