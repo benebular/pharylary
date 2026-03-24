@@ -84,8 +84,11 @@ unique_data$interval <- str_replace(unique_data$interval, "j|w", "j/w")
 # Desired order of intervals
 # Desired order of intervals# Desired order of intervals
 # interval_order <- c("j/w", "ħ", "ʕ", "h", "ʔ")
-# interval_order <- c("h", "j/w", "ʕ", "ħ", "ʔ")
-interval_order <- c("j/w","ʔ","h","ʕ","ħ")
+interval_order <- c("h", "j/w", "ʕ", "ħ", "ʔ")
+interval_order_H1res <- c("h", "j/w", "ʕ", "ħ", "ʔ")
+interval_order_F1 <- c("ʕ","ħ","h","ʔ","j/w")
+interval_order_soe <- c("j/w","ʕ","h","ʔ","ħ")
+interval_order_CPP <- c("j/w","ʕ","ʔ","h","ħ")
 
 interval_colors <- c(
   "ħ"   = "#e7298a",
@@ -95,18 +98,19 @@ interval_colors <- c(
   "j/w" = "#d95f02"
 )
 
-interval_colors <- c(
-  "ħ"   = "#1b9e77",
-  "ʕ"   = "#d95f02",
-  "h"   = "#7570b3",
-  "ʔ"   = "#e7298a",
-  "j/w" = "#66a61e"
-)
+# interval_colors <- c(
+#   "ħ"   = "#1b9e77",
+#   "ʕ"   = "#d95f02",
+#   "h"   = "#7570b3",
+#   "ʔ"   = "#e7298a",
+#   "j/w" = "#66a61e"
+# )
 
+# H1res
 plot8 <- ggplot(
   unique_data %>%
     filter(H1res_mean_z_outlier_unique == "OK") %>%
-    mutate(interval = factor(interval, levels = interval_order)),
+    mutate(interval = factor(interval, levels = interval_order_H1res)),
   aes(x = interval, y = H1res_mean_z_unique, fill = interval)
 ) +
   # half violin
@@ -121,12 +125,12 @@ plot8 <- ggplot(
   # invisible points for solid legend squares
   geom_point(
     data = distinct(unique_data, interval) %>%
-      mutate(interval = factor(interval, levels = interval_order)),
+      mutate(interval = factor(interval, levels = interval_order_H1res)),
     aes(x = interval, y = NA, fill = interval),
     shape = 22, size = 8, alpha = 0, inherit.aes = FALSE, show.legend = TRUE
   ) +
   coord_flip(clip = "off") +
-  labs(x = NULL, y = "Normalized Residual H1", title='Residual H1') +
+  labs(x = NULL, y = "Normalized Residual H1*", title='Residual H1*') +
   scale_fill_manual(
     values = interval_colors, 
     name = "Segment"
@@ -140,7 +144,7 @@ plot8 <- ggplot(
   theme_minimal(base_size = 18) +
   theme(
     panel.grid.major.y = element_blank(),
-    legend.position = "left",              # bottom-left inside
+    legend.position = "none",              # bottom-left inside
     legend.direction = "vertical",
     legend.background = element_rect(fill = "white", color = "white"),
     legend.key.size = unit(1.2, "cm"),            # makes legend squares larger
@@ -149,13 +153,23 @@ plot8 <- ggplot(
     axis.text.y  = element_blank(),
     axis.ticks.y = element_blank(),
     axis.text.x  = element_text(size = 30),
-    axis.title.x = element_text(size = 32, margin = margin(t = 10)),
+    axis.title.x = element_text(size = 34, margin = margin(t = 10)),
     plot.margin  = margin(20, 20, 20, 20),
-    plot.title = element_text(hjust = 0.5, size=36)
+    plot.title = element_text(hjust = 0.5, size=48)
   )
 
+ggsave(
+  filename = "resH1.tif",
+  plot = plot8,
+  width = 8, 
+  height = 8, 
+  dpi = 600,          # High resolution for printing
+  compression = "lzw" # Keeps file size manageable without losing quality
+)
+
+# CPP
 plot9 <- ggplot(
-  unique_data %>% filter(CPP_mean_log_z_outlier_unique=="OK") %>% mutate(interval = factor(interval, levels = interval_order)),
+  unique_data %>% filter(CPP_mean_log_z_outlier_unique=="OK") %>% mutate(interval = factor(interval, levels = interval_order_CPP)),
   aes(x = interval, y = CPP_mean_log_z_unique, fill = interval)
 ) +
   # half violin (no legend)
@@ -170,12 +184,12 @@ plot9 <- ggplot(
   # invisible points for solid legend squares
   geom_point(
     data = distinct(unique_data, interval) %>%
-      mutate(interval = factor(interval, levels = interval_order)),
+      mutate(interval = factor(interval, levels = interval_order_CPP)),
     aes(x = interval, y = NA, fill = interval),
     shape = 22, size = 8, alpha = 0, inherit.aes = FALSE, show.legend = TRUE
   ) +
   coord_flip(clip = "off") +
-  labs(x = NULL, y = "Normalized CPP", title='Cepstral Peak Prominence (CPP)') +
+  labs(x = NULL, y = "Normalized CPP", title='CPP') +
   scale_fill_manual(
     values = interval_colors, 
     name = "Segment"
@@ -189,7 +203,7 @@ plot9 <- ggplot(
   theme_minimal(base_size = 18) +
   theme(
     panel.grid.major.y = element_blank(),
-    legend.position = "left",              # bottom-left inside
+    legend.position = "none",              # bottom-left inside
     legend.direction = "vertical",
     legend.background = element_rect(fill = "white", color = "white"),
     legend.key.size = unit(1.2, "cm"),            # makes legend squares larger
@@ -198,13 +212,23 @@ plot9 <- ggplot(
     axis.text.y  = element_blank(),
     axis.ticks.y = element_blank(),
     axis.text.x  = element_text(size = 30),
-    axis.title.x = element_text(size = 32, margin = margin(t = 10)),
+    axis.title.x = element_text(size = 34, margin = margin(t = 10)),
     plot.margin  = margin(20, 20, 20, 20),
-    plot.title = element_text(hjust = 0.5, size=36)
+    plot.title = element_text(hjust = 0.5, size=48)
   )
 
+ggsave(
+  filename = "CPP.tif",
+  plot = plot9,
+  width = 8, 
+  height = 8, 
+  dpi = 600,          # High resolution for printing
+  compression = "lzw" # Keeps file size manageable without losing quality
+)
+
+# soe
 plot10 <- ggplot(
-  unique_data %>% filter(soe_mean_log_z_outlier_unique=="OK") %>% mutate(interval = factor(interval, levels = interval_order)),
+  unique_data %>% filter(soe_mean_log_z_outlier_unique=="OK") %>% mutate(interval = factor(interval, levels = interval_order_soe)),
   aes(x = interval, y = soe_mean_log_z_unique, fill = interval)
 ) +
   # half violin (no legend)
@@ -219,12 +243,12 @@ plot10 <- ggplot(
   # invisible points for solid legend squares
   geom_point(
     data = distinct(unique_data, interval) %>%
-      mutate(interval = factor(interval, levels = interval_order)),
+      mutate(interval = factor(interval, levels = interval_order_soe)),
     aes(x = interval, y = NA, fill = interval),
     shape = 22, size = 8, alpha = 0, inherit.aes = FALSE, show.legend = TRUE
   ) +
   coord_flip(clip = "off") +
-  labs(x = NULL, y = "Normalized SoE", title='Strength of Excitation') +
+  labs(x = NULL, y = "Normalized SoE", title='SoE') +
   scale_fill_manual(
     values = interval_colors, 
     name = "Segment"
@@ -238,7 +262,7 @@ plot10 <- ggplot(
   theme_minimal(base_size = 18) +
   theme(
     panel.grid.major.y = element_blank(),
-    legend.position = "left",              # bottom-left inside
+    legend.position = "none",              # bottom-left inside
     legend.direction = "vertical",
     legend.background = element_rect(fill = "white", color = "white"),
     legend.key.size = unit(1.2, "cm"),            # makes legend squares larger
@@ -247,13 +271,23 @@ plot10 <- ggplot(
     axis.text.y  = element_blank(),
     axis.ticks.y = element_blank(),
     axis.text.x  = element_text(size = 30),
-    axis.title.x = element_text(size = 32, margin = margin(t = 10)),
+    axis.title.x = element_text(size = 34, margin = margin(t = 10)),
     plot.margin  = margin(20, 20, 20, 20),
-    plot.title = element_text(hjust = 0.5, size=36)
+    plot.title = element_text(hjust = 0.5, size=48)
   )
 
+ggsave(
+  filename = "soe.tif",
+  plot = plot10,
+  width = 8, 
+  height = 8, 
+  dpi = 600,          # High resolution for printing
+  compression = "lzw" # Keeps file size manageable without losing quality
+)
+
+# F1
 plot11 <- ggplot(
-  unique_data %>% filter(formant_outlier_unique != "outlier" | is.na(formant_outlier_unique)) %>% mutate(interval = factor(interval, levels = interval_order)),
+  unique_data %>% filter(formant_outlier_unique != "outlier" | is.na(formant_outlier_unique)) %>% mutate(interval = factor(interval, levels = interval_order_F1)),
   aes(x = interval, y = F1n_mean_unique, fill = interval)
 ) +
   # half violin (no legend)
@@ -268,7 +302,7 @@ plot11 <- ggplot(
   # invisible points for solid legend squares
   geom_point(
     data = distinct(unique_data, interval) %>%
-      mutate(interval = factor(interval, levels = interval_order)),
+      mutate(interval = factor(interval, levels = interval_order_F1)),
     aes(x = interval, y = NA, fill = interval),
     shape = 22, size = 8, alpha = 0, inherit.aes = FALSE, show.legend = TRUE
   ) +
@@ -301,7 +335,7 @@ plot11 <- ggplot(
   # )
   theme(
     panel.grid.major.y = element_blank(),
-    legend.position = "left",              # bottom-left inside
+    legend.position = "none",              # bottom-left inside
     legend.direction = "vertical",
     legend.background = element_rect(fill = "white", color = "white"),
     legend.key.size = unit(1.2, "cm"),            # makes legend squares larger
@@ -310,11 +344,21 @@ plot11 <- ggplot(
     axis.text.y  = element_blank(),
     axis.ticks.y = element_blank(),
     axis.text.x  = element_text(size = 30),
-    axis.title.x = element_text(size = 32, margin = margin(t = 10)),
+    axis.title.x = element_text(size = 34, margin = margin(t = 10)),
     plot.margin  = margin(20, 20, 20, 20),
-    plot.title = element_text(hjust = 0.5, size=36)
+    plot.title = element_text(hjust = 0.5, size=48)
   )
 
+ggsave(
+  filename = "F1.tif",
+  plot = plot11,
+  width = 8, 
+  height = 8, 
+  dpi = 600,          # High resolution for printing
+  compression = "lzw" # Keeps file size manageable without losing quality
+)
+
+# f0
 plot12 <- ggplot(
   unique_data %>% filter(strF0_mean_z_outlier_unique == "OK" | is.na(strF0_mean_z_outlier_unique)) %>% mutate(interval = factor(interval, levels = interval_order)),
   aes(x = interval, y = strF0_mean_z_unique, fill = interval)
