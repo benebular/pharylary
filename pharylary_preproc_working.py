@@ -369,6 +369,11 @@ stim_meta_df = stim_meta_df.astype({'phrase': int})
 all_relevant_data = all_relevant_data.astype({'phrase': int})
 all_data = pd.merge(all_relevant_data, stim_meta_df, on='phrase', how='inner')
 
+record_data = pd.read_csv('/Users/bcl/GitHub/pharylary/PharyLary Participant Record.csv')
+record_data_df = record_data[['Participant','Experiment']]
+record_data_df = record_data_df.rename(columns={'Experiment':'Carrier','Participant':'participant'})
+all_data = pd.merge(all_data, record_data_df, on='participant', how='inner')
+
 # Output the final DataFrame
 # print(all_relevant_data)
 # Optionally, save to a file

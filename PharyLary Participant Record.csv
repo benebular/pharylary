@@ -1,0 +1,50 @@
+Participant,Date,Experiment,Experimenter,Segmenter 1,Seg 1?,Archived to circe-cassandra,Notes,Segmentation 1 Notes,Corrector,Corrected?,Phary-note?,Final Check?,Segmenter 2,Seg 2?,Archived to circe-cassandra,Notes,Segmentation 2 Notes,Corrector,Corrected?,Phary-note?,Final Check?,Did they vowel the first word?,L1 or L2?,Carrier Phrase,Notes,Location,Dialect,Acoustics Recorded?,Survey Completed?,UCSD SONA,NYUAD Payment,Paid for Survey?
+Y0378,09/27/2023,Pilot (157),BL,AJ/BL,,,,,,,,,,,,,,,,,,N,L1,qɑl,"Some hesitation, repeats just word",NYUAD,Palestinian,X,Sent,no,X,
+Y0409,9/28/2023,Pilot (157),BL,HA,X,yes,deduped,,ME,X,X,,MK3,X,yes,,,RR,X,,,Sometimes,L1,qɑl,,NYUAD,Egyptian,X,X,no,X,X
+Y0395,9/28/2023,Pilot (157),BL,BL,X,yes,,,ME,X,X,,GR,x,yes,,,RR,,,,Y,L1,qɑl,,NYUAD,Sudanese,X,X,no,X,X
+Y0388,09/29/2023,Pilot (157),BL,HF,X,yes,deduped,,HF,X,X,,CHS,X,yes,,,RR,,,,Y,L1,qɑl,Interesting /r/,NYUAD,Sudanese,X,X,no,X,X
+Y0401,10/2/2023,Pilot (157),BL,HA,X,yes,deduped,,MK,X,X,,LM,X,yes,,,RR,,,,N,L1,qɑl,fast,NYUAD,Lebanese,X,X,no,X,X
+Y0396,10/2/2023,Pilot (157),BL,BL,X,yes,,,HF,X,X,,AD,X,yes,,,RR,X,,,Sometimes,L1,qɑl,fast,NYUAD,Emirati,X,X,no,X,X
+SD0001,10/11/2023,Pilot (157),BL,MK,X,yes,,,MK,X,X,,JV,X,yes,,,RR,,,,N,L1,qɑl,,UCSD,Syrian,X,X,yes,NA,NA
+Y0410,12/14/23,pharylary1 (162),SW,,,,,,,,,,,,,,,,,,,,L1,qɑl,,NYUAD,Emirati,X,X,no,X,X
+SD0002,11/29/23,Pilot (157),"MK, BL",,,,,,,,,,,,,,,,,,,,L1,qɑl,quiet,UCSD,"Saudi, Emirati",X,X,yes,NA,NA
+SD0003,11/30/23,pharylary1 (162),"HA, BL",AD,X,yes,,,ME,X,X,,RD,X,yes,,,RR,,,,,L1,qɑl,Might not have completed,UCSD,Sudanese,X,X,yes,NA,NA
+SD0004,12/1/23,pharylary1 (162),"AJ, BL",,,,,,,,,,,,,,,,,,,,L2,qɑl,,UCSD,American,X,X,yes,NA,NA
+SD0005,12/5/23,pharylary1 (162),BL,HA,X,yes,,,AN,X,,,DN,X,yes,,,CHS,,,,,L1,qɑl,,UCSD,Jordanian,X,X,yes,NA,NA
+Y0415,12/14/23,pharylary1 (162),SW,,,,,,,,,,,,,,,,,,,,L1,qɑl,really fusha,NYUAD,Jordanian,X,X,no,X,X
+A0249,12/14/23,pharylary1 (162),SW,,,,,,,,,,,,,,,,,,,,L1,qɑl,,NYUAD,Moroccan,X,X,no,X,X
+Y0208,12/14/23,pharylary1 (162),SW,,,,,,,,,,,,,,,,,,,,L1,qɑl,,NYUAD,Palestinian,X,X,no,X,X
+SD0006,1/16/24,pharylary1 (162),BL,AN,X,yes,check phrasenum for IPA,,AN,X,X,,MK3,X,yes,,,CHS,,,,,L1/L2,qɑl,,UCSD,Egyptian,X,X,yes,NA,NA
+SD0007,1/23/24,pharylary1 (162),"HA, BL",MK,X,yes,,,MK,X,X,,AN,X,yes,,,CHS,,,,,L1,qɑl,,UCSD,Kuwaiti,X,X,yes,NA,NA
+SD0008,2/6/24,pharylary1 (162),"HA, BL",CV,X,yes,deduped,,HF,X,X,,MK3,X,yes,missing a lot of trials,,CHS,,,,,L1,qɑl,Might be missing a lot of trials int he second session,UCSD,Syrian?,X,X,yes,NA,NA
+SD0009,2/20/24,pharylary1 (162),"HA, BL",EM,,,,,,,,,ME,X,yes,,,ME,X,,,,L1,qɑl,,UCSD,Iraqi,X,X,yes,NA,NA
+SD0010,2/23/24,pharylary1 (162),"AD, HA, BL",AD,X,yes,,,AVD,X,,,GG2,,,,,,,,,,L2/L1,qɑl,heritage speaker with low Arabic experience,UCSD,Iraqi,X,X,yes,NA,NA
+SD0011,2/27/24,pharylary1 (162),BL,"EW, AD",X,yes,AD finishing fall 2025,,ME,X,,,"CZ, BL2",X,yes,might need a lot of review,,,,,,,L1,qɑl,also did pilot for pharylary 2,UCSD,Iraqi,X,X,yes,NA,NA
+SD0012,2/27/24,pharylary1 (162),"HA, BL",HF,X,yes,,,HF,X,,,AVD,X,yes,,,CHS,,,,,L1,qɑl,,UCSD,Syrian,X,X,yes,NA,NA
+SD0013,3/1/24,pharylary1 (162),"AD, BL",MK2,X,yes,deduped,,JV,X,,,"CZ, SS",X,yes,might need a lot of review,,,,,,Y,L1,qɑl,might be usable for 1B,UCSD,Egyptian,X,X,yes,NA,NA
+SD0014,3/5/24,pharylary1 (162),"HA, BL",KL,X,yes,,,HF,X,,,AVD,X,yes,,,,,,,,L1,qɑl,missing trial 4,UCSD,Palestinian,X,X,yes,NA,NA
+SD0015,3/8/24,pharylary1 (162),BL,KS,X,yes,,,HF,X,,,TH,,,,,,,,,N,L2,qɑl,missing trial 98,UCSD,Palestinian,X,X,yes,NA,NA
+SD0016,4/10/24,pharylary2,"BL, AD",HA,X,yes,no,,MK,X,,,RR,X,X,,,,,,,no,L1,qʊl,possible stutter,UCSD,Lebanese,X,X,yes,,
+SD0017,4/16/24,pharylary2,"BL, HA",AD,X,yes,no,,MK,X,,,RR,X,X,,,,,,,no,L1,qʊl,,UCSD,Egyptian,X,X,yes,,
+SD0018,4/17/24,pharylary2,BL,AN,X,yes,check phrasenum for IPA,,AN,X,,,AD,X,X,,,,,,,no,L1,qʊl,,UCSD,Hijazi,X,X,yes,,
+SD0019,4/23/24,pharylary2,BL,,,,,,,,,,,,,,,,,,,no,L2/L1,qʊl,"heritage speaker, leans L2; lots of repetitions; tried to reduce repetitions around 97",UCSD,Iraqi,X,X,yes,,
+SD0020,4/24/24,pharylary2,"BL, MK",,,,,,,,,,,,,,,,,,,no,L2/L1,qʊl,"heritage speaker, leans L2; lots of repetitions",UCSD,Iraqi,X,X,yes,,
+SD0021,4/24/24,pharylary2,BL,,,,,,,,,,,,,,,,,,,no,L2,qʊl,not an american english speaker,UCSD,Egyptian,X,X,yes,,
+SD0022,4/30/24,pharylary2,BL,,,,,,,,,,,,,,,,,,,no,L2,qʊl,not heritage,UCSD,Egyptian,X,X,volunteer,,
+SD0023,5/8/24,pharylary2,BL,CV,X,yes,none,,CV,X,,,JD,X,yes,"Needs 2, 3",,RR,X,,,no,L1,qʊl,expert,UCSD,Kuwaiti,X,X,yes,,
+SD0024,5/14/24,pharylary2,"BL, HA",JV,X,yes,no,,ME,X,,,FR,X,yes,,,,,,,no,L1,qʊl,,UCSD,Jordanian,X,X,yes,,
+SD0025,5/15/24,pharylary2,"BL, MK",MK,X,yes,no,,MK,X,,,OB,X,yes,,,,,,,no,L1,qʊl,,UCSD,Kuwaiti,X,X,yes,,
+SD0026,5/21/24,pharylary2,"BL, HA",AN,X,yes,no,,AN,X,,,GR,X,yes,,,,,,,no,L1,qʊl,,UCSD,Lebanese,X,X,yes,,
+SD0027,5/22/24,pharylary2,"BL, AD",AVD,X,yes,deduped,,AN,X,,,EM,X,yes,,,,,,,no,L1,qʊl,,UCSD,Egyptian,X,X,yes,,
+SD0028,5/22/24,pharylary2,BL,ME,X,yes,deduped,,ME,X,,,AK,X,yes,,,,,,,no,L1,qʊl,"really great, ask back for other experiments",UCSD,Palestinian,X,X,yes,,
+SD0029,5/22/24,pharylary2,BL,HF,X,yes,no,,HF,X,,,SS,X,,,,,,,,no,,qʊl,,UCSD,"Jordanian, Palestinian",X,X,yes,,
+SD0030,6/4/24,pharylary2,"BL, HA",GG,X,yes,deduped,,AN,X,,,LM,X,yes,,,,,,,no,L1,qʊl,,UCSD,Syrian,X,X,yes,,
+SD0031,6/5/24,pharylary2,"BL, AD",GO,X,yes,deduped,,AN,X,,,BL2,X,yes,,,,,,,no,L1,qʊl,,UCSD,Syrian,X,X,yes,,
+SD0032,10/16/24,pharylary2,,,,,,,,,,,,,,,,,,,,,,,"did not do pharylary, only pilot for 1B",UCSD,Moroccan,,X,yes,,
+SD0033,10/17/24,pharylary2,"BL, HF, GO",CV,X,yes,deduped,,MK,X,,,CHS,X,yes,,,,,,,no,L1,qʊl,,UCSD,Jordanian,X,X,yes,,
+SD0034,10/24/24,pharylary2,"BL, AVD",GO,X,yes,check phrasenum for IPA,,AD,X,,,GG2,,,,,,,,,no,L1,qʊl,,UCSD,Moroccan,X,X,yes,,
+SD0035,10/31/24,pharylary2,"BL, HF",AD,X,yes,no,,RR,X,,,TH,X,yes,,,,,,,no,L1,qʊl,use for 1B,UCSD,Egyptian,X,X,yes,,
+SD0036,11/1/24,pharylary2,BL,RR,X,yes,deduped,,AD,X,,,AK,,,,,,,,,no,L1,qʊl,,UCSD,Saudi,X,X,yes,,
+SD0037,11/7/24,pharylary2,"BL, AVD",JK,X,yes,no,,AD,X,,,CV,X,yes,,,,,,,no,L1,qʊl,use for 1B,UCSD,Jordanian,X,X,yes,,
+SD0038,11/20/24,pharylary2,"BL, AVD",AVD,X,yes,no,,CV,X,,,EM,,,,,,,,,no,L1,qʊl,,UCSD,Derija,X,X,yes,,
+SD0039,12/2/24,pharylary2,BL,JV,X,yes,no,,RR,X,,,FR,,,,,,,,,no,L1,qʊl,,UCSD,Egyptian,X,X,yes,,

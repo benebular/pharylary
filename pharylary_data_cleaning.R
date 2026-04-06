@@ -35,8 +35,8 @@ library("tidyverse")
 # library(gridExtra)
 
 ### data for the intervals as extracted from overlap with tier 3 because there's no unique labels in tier 1
-data_path <- sprintf('/Volumes/circe/alldata/dissertation/vs/output_preproc/preproc_matchesformeans.csv')
-# data_path <- sprintf('/Volumes/cassandra/alldata/dissertation/vs/output_preproc/preproc_matchesformeans.csv')
+# data_path <- sprintf('/Volumes/circe/alldata/dissertation/vs/output_preproc/preproc_matchesformeans.csv')
+data_path <- sprintf('/Volumes/cassandra/alldata/dissertation/vs/output_preproc/preproc_matchesformeans.csv')
 data = read.csv(data_path)
 
 ### time-series data cleaning

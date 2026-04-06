@@ -421,14 +421,14 @@ featuregrid <- grid.arrange(
   # top = grid::textGrob("Acoustic Feature Means for Laryngeal and Pharyngeal Consonants", gp=grid::gpar(fontsize=20))
 )
 
-ggsave(
-  filename = "F1_soe_resH1_grid.tif",
-  plot = featuregrid,
-  width = 24, 
-  height = 8, 
-  dpi = 600,          # High resolution for printing
-  compression = "lzw" # Keeps file size manageable without losing quality
-)
+# ggsave(
+#   filename = "F1_soe_resH1_grid.tif",
+#   plot = featuregrid,
+#   width = 24, 
+#   height = 8, 
+#   dpi = 600,          # High resolution for printing
+#   compression = "lzw" # Keeps file size manageable without losing quality
+# )
 
 
 ### run some models!
@@ -452,7 +452,7 @@ subset_mean <- subset_mean %>%
 
 mod_f0 <- lmer(
   formula = strF0_mean ~
-    interval + (1|participant) + (1|phrase),
+    interval + (1|participant) + (1|phrase) + (1|Experiment),
   data = subset_mean %>% filter(strF0_mean_z_outlier=="OK")
 )
 summary(mod_f0)
