@@ -84,3 +84,51 @@ sorted_res_ACC <- pairs(emms_ACC) %>%
   as.data.frame() %>%
   arrange(p.value)
 print(sorted_res_ACC)
+
+
+# 1. Extract RT Estimates (on the log-z scale)
+plot_data_rt <- emmeans(mod_RT, ~ Condition * CarrierType) %>%
+  as.data.frame()
+
+# 2. Extract Accuracy Estimates 
+# NOTE: We use 'type = "response"' to convert log-odds back into 0-1 probability (percentages)
+plot_data_acc <- emmeans(mod_ACC, ~ Condition * CarrierType, type = "response") %>%
+  as.data.frame()
+
+ggplot(plot_data_rt, aes(x = Condition, y = emmean, fill = CarrierType)) +
+  # Create the bars, 'stat = "identity"' tells it to use the values in the dataframe
+  geom_col(position = position_dodge(width = 0.9), alpha = 0.8) +
+  # Add the error bars
+  geom_errorbar(aes(ymin = emmean - SE, ymax = emmean + SE), 
+                position = position_dodge(width = 0.9), width = 0.2, color = "black") +
+  labs(title = "Model-Estimated Reaction Time",
+       y = "Reaction Time (log-z score)",
+       x = "Condition") +
+  theme_minimal() +
+  scale_fill_brewer(palette = "Set1")
+
+ggplot(plot_data_acc, aes(x = Condition, y = emmean, fill = CarrierType)) +
+  # Create the bars
+  geom_col(position = position_dodge(width = 0.9), alpha = 0.8) +
+  # Add the error bars using your specific column names
+  geom_errorbar(aes(ymin = asymp.LCL, ymax = asymp.UCL), 
+                position = position_dodge(width = 0.9), width = 0.2, color = "black") +
+  # Format as percentages
+  scale_y_continuous(labels = scales::percent) +
+  # Zoom in on the top 20% so you can actually see the differences
+  # coord_cartesian(ylim = c(0.8, 1.0)) + 
+  labs(title = "Model-Estimated Accuracy",
+       y = "Predicted Accuracy (%)",
+       x = "Condition") +
+  theme_minimal() +
+  scale_fill_brewer(palette = "Dark2")
+
+# Assuming your data frame is named 'df'
+ggplot(df, aes(x = reaction_time_raw)) +
+  geom_histogram(binwidth = 0.5, # Adjust binwidth based on your data scale
+                 fill = "steelblue", 
+                 color = "white") +
+  labs(title = "Distribution of Reaction Times",
+       x = "Reaction Time (Raw)",
+       y = "Frequency") +
+  theme_minimal()

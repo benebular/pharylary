@@ -39,209 +39,16 @@ library("tidyverse")
 data_path <- sprintf('/Volumes/cassandra/alldata/dissertation/vs/output_preproc/preproc_matchesformeans.csv')
 data = read.csv(data_path)
 
-### time-series data cleaning
-subset_time = subset(data, tier == 'V-sequence')
-
-subset_time = subset(subset_time, interval == 'ħ-V' | interval == 'h-V' | interval == 'ʔ-V' | interval == 'ʕ-V' |
-                     interval == 'V-ħ-V' | interval == 'V-h-V' | interval == 'V-ʔ-V' | interval == 'V-ʕ-V' |
-                     interval == 'V-ħ' | interval == 'V-h' | interval == 'V-ʔ' | interval == 'V-ʕ' |
-                      interval == 'V-son' | interval == 'V-son-V' | interval == 'son-V'
-                     )
-
-# subset_time = subset_time %>%
-#   group_by(participant) %>%
-#   mutate(strF0z = (strF0 - mean(strF0, na.rm = T))/sd(strF0, na.rm = T)) %>%
-#   ungroup()
-# 
-# subset_time = subset_time %>%
-#   mutate(str_outlier = if_else(abs(strF0z) > 3, "outlier", "OK"))
-
-cols_to_z <- c("strF0", "CPP", "soe", "H1c", "H1H2c", "sF3", "HNR05", "Energy")
-thresh <- 3
-
-subset_time <- subset_time %>%
-  group_by(participant) %>%
-  mutate(
-    across(all_of(cols_to_z), ~{
-      m <- mean(.x, na.rm = TRUE)
-      s <- sd(.x,   na.rm = TRUE)
-      if (is.finite(s) && s > 0) (.x - m) / s else NA_real_
-    }, .names = "{.col}z")
-  ) %>%
-  ungroup() %>%
-  mutate(
-    across(
-      ends_with("z"),
-      ~ if_else(is.finite(.x) & abs(.x) > thresh, "outlier", "OK"),
-      .names = "{.col}_outlier"
-    )
-  )
-
-### flagging formant outliers
-### Calculate Mahalanobis distance for formants
-
-vmahalanobis = function (dat) {
-  if (nrow(dat) < 25) {
-    dat$zF1F2 = NA
-    return(dat)
-  }
-  means = c(mean(dat$sF1, na.rm=T), mean(dat$sF2, na.rm=T))
-  cov = cov(cbind(dat$sF1, dat$sF2))
-  
-  dat$zF1F2 = mahalanobis(cbind(dat$sF1, dat$sF2),
-                          center=means, cov=cov)
-  dat
-}
-
-# Distance larger than 6 is considered as outlier    #MG: smaller numbers = more outliers. The paper I linked to uses 4.
-distance_cutoff = 6
-
-# Perform Mahalanobis on dataset
-subset_time =  subset_time %>%                 #MG: this was cut from a dataset called "tot_fin"
-  group_by(interval) %>%
-  do(vmahalanobis(.)) %>%
-  ungroup() %>%
-  mutate(formant_outlier = NA)
-
-# Visualize the formants with flagged values
-subset_time %>%
-  filter(is.na(formant_outlier)) %>%
-  ggplot(aes(x = sF2, y = sF1, color = zF1F2 > distance_cutoff)) +       #MG: sF2 and sF1 = Snack values from VS
-  geom_point(size = 0.6) +
-  facet_wrap(.~interval)+
-  scale_y_reverse(limits = c(2000,0),position = "right") +
-  scale_x_reverse(limits = c(3500,0),position = "top")+
-  theme_bw()
-
-# Tag flagged values
-for (i in 1:nrow(subset_time)) {
-  if (!is.na(subset_time$zF1F2[i])) {
-    if (subset_time$zF1F2[i] > distance_cutoff){
-      subset_time$formant_outlier[i] = "outlier"
-    }
-  }
-  
-}
-
-# Visualize the vowel formant after exclusion
-subset_time %>%
-  filter(is.na(formant_outlier)) %>%
-  ggplot(aes(x = sF2, y = sF1)) +
-  geom_point(size = 0.6) +
-  #geom_text()+
-  facet_wrap(.~interval)+
-  #geom_density_2d() +
-  #  scale_color_manual(values=c('#a6611a','#dfc27d','#018571'))+
-  scale_y_reverse(limits = c(2000,0),position = "right") +
-  scale_x_reverse(limits = c(3500,0),position = "top")+
-  theme_bw()
-
-#### Formant normalization 
-
-### Delta-F method for normalizing VT length (Johnson 2020)
-subset_time = subset_time %>%
-  rowwise() %>% 
-  mutate(DF = mean(c(sF1/0.5, sF2/1.5, sF3/2.5)),
-         F1n = sF1/DF,
-         F2n = sF2/DF,
-         F3n = sF3/DF)
-
-# --- 1) Diagnose quickly -----------------------------------------------------
-c(
-  H1c_nonfinite    = sum(!is.finite(subset_time$H1c)),
-  Energy_NA        = sum(is.na(subset_time$Energy)),
-  Energy_nonfinite = sum(!is.finite(subset_time$Energy)),
-  Energy_le0       = sum(subset_time$Energy <= 0, na.rm = TRUE)
-)
-
-# --- 2) Clean + prepare model frame ------------------------------------------
-H1c_mod_dat <- subset_time %>%
-  mutate(
-    participant = as.factor(participant),
-    logEnergy   = if_else(Energy > 0 & is.finite(Energy), log(Energy), NA_real_)
-  ) %>%
-  filter(
-    is.finite(H1c),
-    is.finite(logEnergy),
-    !is.na(strF0z_outlier),
-    !is.na(H1cz_outlier),
-    Energy >= 0
-  )
-
-# --- 3) Fit model ------------------------------------------------------------
-mod <- lmer(H1c ~ logEnergy + strF0z + (logEnergy || participant), data = H1c_mod_dat)
-
-sm <- summary(mod)
-H1res_estimate <- coef(sm)["logEnergy", "Estimate"]
-
-# --- 4) Compute H1res safely in-place on subset_time -------------------------
-# use the same logEnergy definition as above, ensure finite computation only
-subset_time <- subset_time %>%
-  mutate(
-    logEnergy = if_else(Energy > 0 & is.finite(Energy), log(Energy), NA_real_)
-  ) %>%
-  mutate(
-    H1res = if_else(
-      is.finite(H1c) & is.finite(logEnergy),
-      H1c - H1res_estimate * logEnergy,
-      NA_real_
-    )
-  )
-
-# optional: check non-finite values
-sum(!is.finite(subset_time$H1res))
-
-subset_time <- subset_time %>%
-  group_by(participant) %>%
-  mutate(
-    H1resz = (H1res - mean(H1res, na.rm = TRUE)) / sd(H1res, na.rm = TRUE)
-  ) %>%
-  ungroup() %>%
-  mutate(
-    H1resz_outlier = if_else(abs(H1resz) > 3, "outlier", "OK")
-  )
-
-## calculate mean values for all intervals in each word for each participant
-
-subset_mean_time <- subset_time %>% group_by(participant,phrase,interval) %>% mutate(strF0_mean = mean(strF0, na.rm = TRUE))
-subset_mean_time <- subset_mean_time %>% group_by(participant,phrase,interval) %>% mutate(strF0z_mean = mean(strF0z, na.rm = TRUE))
-subset_mean_time <- subset_mean_time %>% group_by(participant,phrase,interval) %>% mutate(H1H2c_mean = mean(H1H2c, na.rm = TRUE))
-subset_mean_time <- subset_mean_time %>% group_by(participant,phrase,interval) %>% mutate(CPP_mean = mean(CPP, na.rm = TRUE))
-subset_mean_time <- subset_mean_time %>% group_by(participant,phrase,interval) %>% mutate(soe_mean = mean(soe, na.rm = TRUE))
-subset_mean_time <- subset_mean_time %>% group_by(participant,phrase,interval) %>% mutate(sF1_mean = mean(sF1, na.rm = TRUE))
-subset_mean_time <- subset_mean_time %>% group_by(participant,phrase,interval) %>% mutate(sF2_mean = mean(sF2, na.rm = TRUE))
-subset_mean_time <- subset_mean_time %>% group_by(participant,phrase,interval) %>% mutate(sF3_mean = mean(sF3, na.rm = TRUE))
-subset_mean_time <- subset_mean_time %>% group_by(participant,phrase,interval) %>% mutate(F1n_mean = mean(F1n, na.rm = TRUE))
-subset_mean_time <- subset_mean_time %>% group_by(participant,phrase,interval) %>% mutate(F2n_mean = mean(F2n, na.rm = TRUE))
-subset_mean_time <- subset_mean_time %>% group_by(participant,phrase,interval) %>% mutate(F3n_mean = mean(F3n, na.rm = TRUE))
-subset_mean_time <- subset_mean_time %>% group_by(participant,phrase,interval) %>% mutate(HNR05_mean = mean(HNR05, na.rm = TRUE))
-subset_mean_time <- subset_mean_time %>% group_by(participant,phrase,interval) %>% mutate(H1c_mean = mean(H1c, na.rm = TRUE))
-subset_mean_time <- subset_mean_time %>% group_by(participant,phrase,interval) %>% mutate(H1res_mean = mean(H1res, na.rm = TRUE))
-
-# Histogram of raw Energy values
-ggplot(subset_mean_time, aes(x = Energy)) +
-  geom_histogram(aes(y = ..density..), binwidth = 0.5, colour = "black", fill = "white") +
-  geom_density(alpha = .2, fill = "#FF6666") +
-  labs(title = "Histogram of Energy", x = "Energy", y = "Density")
-
-# Histogram of log-transformed Energy values
-ggplot(subset_mean_time, aes(x = log(Energy))) +
-  geom_histogram(aes(y = ..density..), binwidth = 0.5, colour = "black", fill = "white") +
-  geom_density(alpha = .2, fill = "#FF6666") +
-  labs(title = "Histogram of log-transformed Energy", x = "Log(Energy)", y = "Density")
-
-
-# write unfiltered subset_mean
-# write.csv(subset_mean_time, "/Volumes/cassandra/alldata/dissertation/vs/output_preproc/pharylary_subset_mean_time.csv", row.names=FALSE)
-write.csv(subset_mean, "/Volumes/circe/alldata/dissertation/vs/output_preproc/pharylary_subset_mean_time.csv", row.names=FALSE)
-# write.csv(subset_mean, "/Users/bcl/Desktop/subset_mean.csv", row.names=FALSE)
-
-
-
-
 ### Interval and means section for abstracts
 # order of operations
 # average token
+
+# count numbers of intervals
+# flag places where the interval is not the target sound and remove
+# remove any intervals where the comment contains ignore
+# print out all the other comments to see if any need to be removed
+# calculate some percentages of the comments that contain the word vowel since it usuall means a missing vowel or an added vowel
+# optional filtering of all comments out, only keeping the none and spaces -- results in too few trials at the moment for clean processing
 
 # vowels
 # average token
@@ -288,6 +95,158 @@ sonorant_subset = subset(data, interval == 'w' | interval == 'j')
 subset_int <- rbind(subset_int, sonorant_subset)
 
 
+## check how many intervals there are per participant
+interval_check <- subset_int %>%
+  group_by(participant, phrase) %>%
+  summarise(intervals_present = paste(unique(interval), collapse = ", "), .groups = "drop")
+
+print(interval_check)
+
+## report on and remove any rows where the interval is not the target
+# 1. Capture the mismatched rows
+mismatched_data <- subset_int %>%
+  filter(interval != Segment)
+
+# 2. Apply the filter to keep only matches
+subset_int <- subset_int %>%
+  filter(interval == Segment)
+
+# --- READOUT ---
+cat("--- Mismatch Filter Summary ---\n")
+
+if(nrow(mismatched_data) > 0) {
+  
+  # A. Unique Intervals REMOVED per Participant
+  interval_removal_summary <- mismatched_data %>%
+    distinct(participant, phrase, interval) %>% 
+    group_by(participant, interval) %>%
+    summarise(unique_intervals_removed = n(), .groups = "drop")
+  
+  cat("\n--- Unique Interval Units REMOVED per Participant ---\n")
+  print(interval_removal_summary)
+  
+} else {
+  cat("No mismatches found.\n")
+}
+
+# B. Unique Intervals REMAINING per Participant (In the filtered subset_int)
+interval_remaining_summary <- subset_int %>%
+  distinct(participant, phrase, interval) %>%
+  group_by(participant, interval) %>%
+  summarise(unique_intervals_remaining = n(), .groups = "drop")
+
+cat("\n--- Unique Interval Units REMAINING in subset_int ---\n")
+cat("(Count of unique participant-phrase trials left after filtering)\n")
+print(interval_remaining_summary)
+
+# C. Detailed mismatch list (if any)
+if(nrow(mismatched_data) > 0) {
+  mismatch_summary <- mismatched_data %>%
+    distinct(participant, phrase, interval, Segment) %>%
+    arrange(participant, phrase)
+  
+  cat("\n--- Detailed Breakdown: Mismatched Trial Units ---\n")
+  print(mismatch_summary)
+}
+
+## remove the rows that contain the comment ignore
+removed_rows <- subset(subset_int, grepl("ignore", comments, ignore.case = TRUE))
+subset_int <- subset(subset_int, !grepl("ignore", comments, ignore.case = TRUE))
+removed_summary <- unique(removed_rows[, c("participant", "interval", "phrase", "comments")])
+cat("Total rows removed:", nrow(removed_rows), "\n")
+cat("Unique entries removed:\n")
+print(removed_summary)
+
+## remaining comments to evaluate what else needs to go
+comment_summary = unique(subset_int[, c("comments", "participant", "phrase")])
+print(comment_summary)
+
+## flag any comments with the word vowel in it
+# 1. Create a logical flag for the presence of "vowel"
+comment_summary$has_vowel <- grepl("vowel", comment_summary$comments, ignore.case = TRUE)
+
+# --- TOTAL SUMMARY ---
+total_vowel <- sum(comment_summary$has_vowel)
+total_no_vowel <- sum(!comment_summary$has_vowel)
+total_rows <- nrow(comment_summary)
+total_percent <- (total_vowel / total_rows) * 100
+
+cat("--- Global Summary ---\n")
+cat("Contains 'vowel':", total_vowel, "\n")
+cat("Does not contain 'vowel':", total_no_vowel, "\n")
+cat("Percentage containing 'vowel':", round(total_percent, 2), "%\n\n")
+
+# --- PARTICIPANT SUMMARY ---
+# Calculate counts and percentages per participant
+participant_stats <- aggregate(has_vowel ~ participant, data = comment_summary, 
+                               FUN = function(x) {
+                                 c(Count = sum(x), 
+                                   Total = length(x), 
+                                   Percent = round((sum(x) / length(x)) * 100, 2))
+                               })
+
+# Flatten the aggregate result into a clean data frame
+participant_stats <- data.frame(participant_stats$participant, participant_stats$has_vowel)
+colnames(participant_stats) <- c("Participant", "Vowel_Comments", "Total_Comments", "Percentage")
+
+cat("--- Participant Breakdown ---\n")
+print(participant_stats)
+
+## only keep target segments
+
+# # 1. Capture removed rows (Meaningful comments)
+# removed_data <- subset_int %>%
+#   filter(!grepl("^\\s*$|^none$", comments, ignore.case = TRUE))
+# 
+# # 2. Apply filter to main data (Keep only meaningless/none)
+# subset_int <- subset_int %>%
+#   filter(grepl("^\\s*$|^none$", comments, ignore.case = TRUE))
+# 
+# # 3. Generate initial breakdown (Total rows per unique entry)
+# removal_breakdown <- removed_data %>%
+#   group_by(participant, phrase, interval) %>%
+#   summarise(rows_removed = n(), .groups = "drop")
+# 
+# cat("--- Detailed Removal Breakdown ---\n")
+# print(removal_breakdown)
+# 
+# # --- NEW SUMMARIES ---
+# 
+# # 4. Summary: Unique Trials Removed per Participant
+# # (Using distinct to count a participant+phrase as one entry)
+# participant_summary <- removed_data %>%
+#   distinct(participant, phrase) %>%
+#   group_by(participant) %>%
+#   summarise(unique_trials_removed = n(), .groups = "drop")
+# 
+# cat("\n--- Summary: Unique Trials Removed per Participant ---\n")
+# print(participant_summary)
+# 
+# # 5. Summary: Interval Removals and Percentages
+# # Count unique trials (participant+phrase) for removed vs remaining
+# interval_removed_counts <- removed_data %>%
+#   distinct(participant, phrase, interval) %>%
+#   group_by(interval) %>%
+#   summarise(n_removed = n())
+# 
+# interval_remaining_counts <- subset_int %>%
+#   distinct(participant, phrase, interval) %>%
+#   group_by(interval) %>%
+#   summarise(n_remaining = n())
+# 
+# # Join, handle zeros, and calculate percentage of that interval removed
+# interval_summary <- full_join(interval_removed_counts, interval_remaining_counts, by = "interval") %>%
+#   mutate(
+#     n_removed = coalesce(n_removed, 0),
+#     n_remaining = coalesce(n_remaining, 0),
+#     total_for_interval = n_removed + n_remaining,
+#     percent_removed = round((n_removed / total_for_interval) * 100, 2)
+#   ) %>%
+#   select(interval, n_removed, total_for_interval, percent_removed)
+# 
+# cat("\n--- Summary: Percentage of Interval Trials Removed ---\n")
+# print(interval_summary)
+
 # set the features you want means for (edit this list as needed)
 features <- c(
   "strF0",
@@ -320,7 +279,7 @@ vmahalanobis = function (dat) {
 }
 
 # Distance larger than 6 is considered as outlier    #MG: smaller numbers = more outliers. The paper I linked to uses 4.
-distance_cutoff = 6
+distance_cutoff = 4
 
 # Perform Mahalanobis on dataset
 subset_mean =  subset_mean %>%                 #MG: this was cut from a dataset called "tot_fin"
@@ -562,8 +521,127 @@ subset_mean <- subset_mean %>%
 
 # write unfiltered subset_mean
 # write.csv(subset_mean, "/Volumes/cassandra/alldata/dissertation/vs/output_preproc/pharylary_subset_mean.csv", row.names=FALSE)
-write.csv(subset_mean, "/Volumes/circe/alldata/dissertation/vs/output_preproc/pharylary_subset_mean.csv", row.names=FALSE)
+# write.csv(subset_mean, "/Volumes/circe/alldata/dissertation/vs/output_preproc/pharylary_subset_mean.csv", row.names=FALSE)
+write.csv(subset_mean, "/Volumes/cassandra/alldata/dissertation/vs/output_preproc/pharylary_subset_mean_truncated.csv", row.names=FALSE)
 # write.csv(subset_mean, "/Users/bcl/Desktop/subset_mean.csv", row.names=FALSE)
+
+
+### finding the vowel means adjacent to the intervals and preprocessing them
+
+# temporarily show any weird rows and then filter for only the phonetic tier
+# show the glottis rows (just to inspect)
+data %>%
+  filter(tier == "glottis") %>%
+  View()   # or print(), head(), etc.
+
+# keep only phonetic rows
+data_filtered <- data %>%
+  filter(tier == "phonetic")
+
+# 1. Get unique intervals and sort them alphabetically
+unique_tokens <- data_filtered %>%
+  pull(interval) %>%
+  unique() %>%
+  sort()
+
+# 2. Print the list
+cat("--- Unique Tokens in the Interval Column ---\n")
+print(unique_tokens)
+
+# 3. Optional: See how common each token is (Frequency Table)
+# This helps you know if a token is a typo or a common category
+token_counts <- data_filtered %>%
+  count(interval, sort = TRUE)
+
+cat("\n--- Token Frequency (Top 20) ---\n")
+print(head(token_counts, 20))
+
+library(dplyr)
+
+# 1. Define target intervals
+targets <- c('ħ', 'ʕ', 'h', 'ʔ', 'w', 'j')
+
+# 2. Collapse the time-series into a sequence of unique labels per trial
+# We use 'rle' (Run Length Encoding) logic to get the sequence of labels 
+# without the thousands of repeated time-series rows.
+phrase_sequences <- data_filtered %>%
+  group_by(participant, phrase) %>%
+  summarise(
+    # This keeps the order of labels but reduces repetitions to 1
+    sequence = list(rle(as.character(interval))$values), 
+    .groups = "drop"
+  )
+
+# 3. Create a helper function to find neighbors in a list
+get_neighbors <- function(seq, targets, direction = "preceding") {
+  indices <- which(seq %in% targets)
+  
+  if (length(indices) == 0) return(NULL)
+  
+  results <- lapply(indices, function(i) {
+    target_val <- seq[i]
+    if (direction == "preceding") {
+      context_val <- if (i > 1) seq[i - 1] else NA
+    } else {
+      context_val <- if (i < length(seq)) seq[i + 1] else NA
+    }
+    data.frame(target = target_val, context = context_val)
+  })
+  
+  bind_rows(results)
+}
+
+# 4. Extract context into separate DataFrames
+df_preceding_check <- phrase_sequences %>%
+  rowwise() %>%
+  do({
+    neighbors <- get_neighbors(.$sequence, targets, "preceding")
+    if (is.null(neighbors)) data.frame() else cbind(data.frame(participant=.$participant, phrase=.$phrase), neighbors)
+  }) %>%
+  rename(preceding_interval = context)
+
+df_following_check <- phrase_sequences %>%
+  rowwise() %>%
+  do({
+    neighbors <- get_neighbors(.$sequence, targets, "following")
+    if (is.null(neighbors)) data.frame() else cbind(data.frame(participant=.$participant, phrase=.$phrase), neighbors)
+  }) %>%
+  rename(following_interval = context)
+
+# --- VERIFICATION READOUT ---
+
+cat("--- Summary: Contextual Consistency Check ---\n")
+
+# Check for phrases where different participants have different preceding contexts
+inconsistent_pre <- df_preceding_check %>%
+  group_by(phrase, target) %>%
+  summarise(unique_preceding = paste(unique(na.omit(preceding_interval)), collapse=", "),
+            n_variants = n_distinct(preceding_interval, na.rm = TRUE), .groups = "drop") %>%
+  filter(n_variants > 1)
+
+if(nrow(inconsistent_pre) > 0) {
+  cat("\n[!] WARNING: These phrases have varying PRECEDING intervals across participants:\n")
+  print(inconsistent_pre)
+} else {
+  cat("\n[+] SUCCESS: Preceding contexts are consistent (where they exist).\n")
+}
+
+# Identify rows where the target is the absolute start or end (NA contexts)
+start_of_phrase <- df_preceding_check %>% filter(is.na(preceding_interval))
+end_of_phrase <- df_following_check %>% filter(is.na(following_interval))
+
+cat("\n--- Edge Cases Found ---\n")
+cat("Phrases where target is the FIRST segment (no preceding):", n_distinct(start_of_phrase$phrase), "\n")
+cat("Phrases where target is the LAST segment (no following):", n_distinct(end_of_phrase$phrase), "\n")
+
+# Display the unique context list for your inspection
+cat("\n--- Example: Unique Preceding Contexts per Phrase ---\n")
+print(df_preceding_check %>% distinct(phrase, target, preceding_interval) %>% head(15))
+
+### subsetting laryngeal and pharyngeal segments
+subset_vowels = subset(data, interval == 'ħ' | interval == 'ʕ' | interval == 'h' | interval == 'ʔ')
+
+
 
 
 
@@ -594,3 +672,5 @@ subset_mean_fric <- subset_mean_fric %>% group_by(participant,phrase,interval) %
 # write unfiltered subset_mean
 # write.csv(subset_mean_fric, "/Volumes/circe/alldata/dissertation/vs/output_preproc/pharylary_fricative_subset_mean.csv", row.names=FALSE)
 write.csv(subset_mean_fric, "/Volumes/cassandra/alldata/dissertation/vs/output_preproc/pharylary_fricative_subset_mean.csv", row.names=FALSE)
+
+## VOT
