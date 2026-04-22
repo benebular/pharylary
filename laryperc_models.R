@@ -39,8 +39,8 @@ library(gridExtra)
 library(scales)
 
 #paths
-orig_data_path <- sprintf('/Volumes/circe/alldata/dissertation/2/laryperc_events_behav_merged_allsubs.csv')
-# orig_data_path <- sprintf('/Volumes/cassandra/alldata/dissertation/2/laryperc_events_behav_merged_allsubs.csv')
+# orig_data_path <- sprintf('/Volumes/circe/alldata/dissertation/2/laryperc_events_behav_merged_allsubs.csv')
+orig_data_path <- sprintf('/Volumes/cassandra/alldata/dissertation/2/laryperc_events_behav_merged_allsubs.csv')
 
 orig_data = read.csv(orig_data_path)
 df <- orig_data
@@ -51,8 +51,6 @@ df <- orig_data
 w <- t(apply(df[c("target_word", "distractor_word")], 1, sort))
 
 df$pair <- paste(w[, 1], w[, 2], sep = "-")
-
-
 
 ### outlier removal
 rt <- df$reaction_time_raw
@@ -129,8 +127,8 @@ df_prepared <- df_no_outliers[ok, ]
 # mixed effects
 mod_RT <- lmer(
   formula = reaction_time_log_z ~
-    Condition + CarrierType + Condition*CarrierType +
-    (1|pair),
+    Condition*CarrierType +
+    (1|pair) + (1|subject),
   data = df_prepared
 )
 summary(mod_RT)
@@ -139,9 +137,7 @@ summary(mod_RT)
 # pairs(emms_RT)
 
 emms_RT <- emmeans(
-  mod_RT, ~ Condition * CarrierType,
-  lmerTest.limit = 21744,
-  pbkrtest.limit = 21744
+  mod_RT, ~ Condition * CarrierType
 )
 # pairs(emms_RT)
 
@@ -154,7 +150,7 @@ print(sorted_res_RT)
 
 # accuracy logistic 
 mod_ACC <- glmer(
-  accuracy_num ~ Condition * CarrierType + (1 | pair),
+  accuracy_num ~ Condition * CarrierType + (1 | pair) + (1|subject),
   data = df_prepared,
   family = binomial(link = "logit")
 )

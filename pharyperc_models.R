@@ -39,8 +39,8 @@ library(gridExtra)
 library(scales)
 
 #paths
-orig_data_path <- sprintf('/Volumes/circe/alldata/dissertation/2/pharyperc_events_behav_merged_allsubs.csv')
-# orig_data_path <- sprintf('/Volumes/cassandra/alldata/dissertation/2/pharyperc_events_behav_merged_allsubs.csv')
+# orig_data_path <- sprintf('/Volumes/circe/alldata/dissertation/2/pharyperc_events_behav_merged_allsubs.csv')
+orig_data_path <- sprintf('/Volumes/cassandra/alldata/dissertation/2/pharyperc_events_behav_merged_allsubs.csv')
 
 orig_data = read.csv(orig_data_path)
 df <- orig_data
@@ -127,8 +127,8 @@ df_prepared <- df_no_outliers[ok, ]
 # mixed effects
 mod_RT <- lmer(
   formula = reaction_time_log_z ~
-    TargetSegment + CarrierType + TargetSegment*CarrierType +
-    (1|Pair),
+    TargetSegment*CarrierType +
+    (1|Pair) + (1|subject),
   data = df_prepared
 )
 summary(mod_RT)
@@ -137,9 +137,7 @@ summary(mod_RT)
 # pairs(emms_RT)
 
 emms_RT <- emmeans(
-  mod_RT, ~ TargetSegment * CarrierType,
-  lmerTest.limit = 21744,
-  pbkrtest.limit = 21744
+  mod_RT, ~ TargetSegment * CarrierType
 )
 # pairs(emms_RT)
 
@@ -152,7 +150,7 @@ print(sorted_res_RT)
 
 # accuracy logistic 
 mod_ACC <- glmer(
-  accuracy_num ~ Condition * CarrierType + (1 | pair),
+  accuracy_num ~ Condition * CarrierType + (1 | pair) + (1|subject),
   data = df_prepared,
   family = binomial(link = "logit")
 )
@@ -185,7 +183,7 @@ plot_data_rt <- emms_RT %>%
 plot_data_acc <- emms_ACC %>%
   as.data.frame()
 
-ggplot(plot_data_rt, aes(x = Condition, y = emmean, fill = CarrierType)) +
+ggplot(plot_data_rt, aes(x = TargetSegment, y = emmean, fill = CarrierType)) +
   geom_col(position = position_dodge(width = 0.9), alpha = 0.8) +
   geom_errorbar(aes(ymin = emmean - SE, ymax = emmean + SE), 
                 position = position_dodge(width = 0.9), width = 0.2, color = "black") +
@@ -196,7 +194,7 @@ ggplot(plot_data_rt, aes(x = Condition, y = emmean, fill = CarrierType)) +
   scale_fill_brewer(palette = "Set1")
 
 
-ggplot(plot_data_acc, aes(x = Condition, y = emmean, fill = CarrierType)) +
+ggplot(plot_data_acc, aes(x = TargetSegment, y = emmean, fill = CarrierType)) +
   geom_col(position = position_dodge(width = 0.9), alpha = 0.8) +
   geom_errorbar(aes(ymin = asymp.LCL, ymax = asymp.UCL), 
                 position = position_dodge(width = 0.9), width = 0.2, color = "black") +
