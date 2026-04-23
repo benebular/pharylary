@@ -128,7 +128,7 @@ df_prepared <- df_no_outliers[ok, ]
 mod_RT <- lmer(
   formula = reaction_time_log_z ~
     Condition*CarrierType +
-    (1|pair) + (1|subject),
+    (1|pair),
   data = df_prepared
 )
 summary(mod_RT)
@@ -206,152 +206,209 @@ ggplot(plot_data_acc, aes(x = Condition, y = emmean, fill = CarrierType)) +
 
 # raw
 
-df_sum <- df_prepared %>%
-  group_by(Condition, CarrierType) %>%
-  summarise(
-    mean_rt = mean(reaction_time_log_z, na.rm = TRUE),
-    sd_rt   = sd(reaction_time_log_z, na.rm = TRUE),
-    n       = sum(!is.na(reaction_time_log_z)),
-    SE      = sd_rt / sqrt(n),
-    .groups = "drop"
-  )
+# Define a function to recode consistently for both data frames
+recode_data <- function(d) {
+  d %>%
+    mutate(
+      # 1. Rename and reorder Conditions
+      Condition = factor(Condition, 
+                         levels = c("t", "gs", "none"),
+                         labels = c("[t]", "[ʔ]", "No /t/")),
+      # 2. Rename CarrierType (Yes/No for Creaky?)
+      CarrierType = factor(CarrierType, 
+                           levels = c("creaky", "noncreaky"),
+                           labels = c("Yes", "No"))
+    )
+}
 
-ggplot(df_sum, aes(x = Condition, y = mean_rt, fill = CarrierType)) +
+df_sum_plot <- recode_data(df_sum)
+acc_sum_plot <- recode_data(acc_sum)
+
+library(wesanderson)
+pal1 <- wes_palette("Zissou1", 2)
+pal2 <- wes_palette("Darjeeling1", 2)
+pal3 <- wes_palette("FantasticFox1", 2)
+pal4 <- wes_palette("FrenchDispatch", 2)
+pal5 <- wes_palette("AsteroidCity1", 2)
+
+ggplot(df_sum_plot, aes(x = Condition, y = mean_rt, fill = CarrierType)) +
   geom_col(position = position_dodge(width = 0.9), alpha = 0.8) +
   geom_errorbar(aes(ymin = mean_rt - SE, ymax = mean_rt + SE),
                 position = position_dodge(width = 0.9), width = 0.2, color = "black") +
   labs(title = "Reaction Time (raw mean ± SE)",
-       y = "Reaction Time (log-z score)",
-       x = "Condition") +
+       y = "Reaction Time (log, z-scored)",
+       x = "Condition",
+       fill = "Creaky?") +
   theme_minimal() +
-  scale_fill_brewer(palette = "Set1")
+  # Use manual scale here:
+  scale_fill_manual(values = pal4)
 
-
-acc_sum <- df_prepared %>%
-  group_by(Condition, CarrierType) %>%
-  summarise(
-    p = mean(accuracy_num, na.rm = TRUE),
-    n = sum(!is.na(accuracy_num)),
-    SE = sqrt(p * (1 - p) / n),
-    .groups = "drop"
-  )
-
-ggplot(acc_sum, aes(x = Condition, y = p, fill = CarrierType)) +
+ggplot(acc_sum_plot, aes(x = Condition, y = p, fill = CarrierType)) +
   geom_col(position = position_dodge(width = 0.9), alpha = 0.8) +
   geom_errorbar(aes(ymin = p - SE, ymax = p + SE),
                 position = position_dodge(width = 0.9), width = 0.2, color = "black") +
   scale_y_continuous(labels = scales::percent) +
   labs(title = "Accuracy (raw proportion ± SE)",
        y = "Accuracy (%)",
-       x = "Condition") +
+       x = "Condition",
+       fill = "Creaky?") +
   theme_minimal() +
-  scale_fill_brewer(palette = "Set1")
+  # Use manual scale here:
+  scale_fill_manual(values = pal4)
 
 
+# Function to clean up the contrast labels and fix column names
+clean_contrasts <- function(d) {
+  d %>%
+    # 1. RENAME CI columns safely (handles both lower.CL and asymp.LCL)
+    rename(low = any_of(c("lower.CL", "asymp.LCL")),
+           high = any_of(c("upper.CL", "asymp.UCL"))) %>%
+    # 2. Update labels
+    mutate(
+      contrast = str_replace_all(contrast, "gs", "[ʔ]"),
+      contrast = str_replace_all(contrast, "t", "[t]"),
+      contrast = str_replace_all(contrast, "none", "No /t/"),
+      # Logic for Significance coloring
+      sig = ifelse(p.value < 0.05, "Significant", "Not Significant"),
+      sig = factor(sig, levels = c("Not Significant", "Significant"))
+    )
+}
+
+# Process the data
+rt_plot_data <- pairs(emms_RT, infer = TRUE) %>% as.data.frame() %>% clean_contrasts()
+acc_plot_data <- pairs(emms_ACC, infer = TRUE, type = "response") %>% as.data.frame() %>% clean_contrasts()
+
+# Map pal2 colors
+plot_colors <- c("Not Significant" = pal2[1], "Significant" = pal2[2])
+
+ggplot(rt_plot_data, aes(x = estimate, y = reorder(contrast, estimate))) +
+  geom_vline(xintercept = 0, linetype = "dashed", color = "gray50") +
+  # Now using the standardized 'low' and 'high' names
+  geom_errorbarh(aes(xmin = low, xmax = high, color = sig), height = 0.2) +
+  geom_point(aes(color = sig), size = 2) +
+  scale_color_manual(values = plot_colors) +
+  labs(title = "RT Pairwise Contrasts",
+       x = "Difference in Log-Z Reaction Time",
+       y = NULL,
+       color = "Significance") +
+  theme_minimal()
+
+ggplot(acc_plot_data, aes(x = odds.ratio, y = reorder(contrast, odds.ratio))) +
+  geom_vline(xintercept = 1, linetype = "dashed", color = "gray50") +
+  # Now using the standardized 'low' and 'high' names
+  geom_errorbarh(aes(xmin = low, xmax = high, color = sig), height = 0.2) +
+  geom_point(aes(color = sig), size = 2) +
+  scale_x_log10() +
+  scale_color_manual(values = plot_colors) +
+  labs(title = "Accuracy Pairwise Contrasts",
+       x = "Odds Ratio (Log Scale)",
+       y = NULL,
+       color = "Significance") +
+  theme_minimal()
 
 ## test
 
-cond_levels <- c("t", "gs", "none")
-
-plot_data_rt$Condition <- factor(plot_data_rt$Condition, levels = cond_levels)
-df_sum$Condition       <- factor(df_sum$Condition, levels = cond_levels)
-
-pairs_df <- pairs(emms_RT) %>% as.data.frame()
-
-library(dplyr)
-library(stringr)
-
-pairs_df <- pairs(emms_RT) %>% as.data.frame()
-
-sig_df <- pairs_df %>%
-  # keep only contrasts that are within a CarrierType (creaky vs creaky, noncreaky vs noncreaky)
-  filter(str_detect(contrast, "creaky") | str_detect(contrast, "noncreaky")) %>%
-  mutate(
-    left  = str_trim(str_split_fixed(contrast, "-", 2)[, 1]),
-    right = str_trim(str_split_fixed(contrast, "-", 2)[, 2]),
-    
-    cond1 = word(left,  1),
-    car1  = word(left,  2),
-    cond2 = word(right, 1),
-    car2  = word(right, 2)
-  ) %>%
-  filter(car1 == car2) %>%              # within same CarrierType
-  mutate(
-    CarrierType = car1,
-    
-    # enforce x-axis ordering (so brackets draw correctly left->right)
-    group1 = factor(cond2, levels = cond_levels),
-    group2 = factor(cond1, levels = cond_levels),
-    
-    # asterisk label only when p < .05; otherwise drop it
-    p.label = ifelse(p.value < 0.05, "*", NA_character_)
-  ) %>%
-  filter(!is.na(p.label)) %>%
-  select(CarrierType, group1, group2, p.value, p.label)
-
-# base heights per panel (CarrierType)
-base_y_model <- plot_data_rt %>%
-  group_by(CarrierType) %>%
-  summarise(y0 = max(emmean + SE, na.rm = TRUE), .groups = "drop")
-
-sig_df_model <- sig_df %>%
-  left_join(base_y_model, by = "CarrierType") %>%
-  group_by(CarrierType) %>%
-  arrange(p.value) %>%
-  mutate(y.position = y0 + row_number() * 0.08) %>%   # spacing; adjust if needed
-  ungroup()
-
-base_y_raw <- df_sum %>%
-  group_by(CarrierType) %>%
-  summarise(y0 = max(mean_rt + SE, na.rm = TRUE), .groups = "drop")
-
-sig_df_raw <- sig_df %>%
-  left_join(base_y_raw, by = "CarrierType") %>%
-  group_by(CarrierType) %>%
-  arrange(p.value) %>%
-  mutate(y.position = y0 + row_number() * 0.08) %>%   # spacing; adjust if needed
-  ungroup()
-
-library(ggpubr)
-
-p_model <- ggplot(plot_data_rt, aes(x = Condition, y = emmean, fill = CarrierType)) +
-  geom_col(alpha = 0.8) +
-  geom_errorbar(aes(ymin = emmean - SE, ymax = emmean + SE),
-                width = 0.2, color = "black") +
-  facet_wrap(~ CarrierType) +
-  ggpubr::stat_pvalue_manual(
-    sig_df_model,
-    label = "p.label",
-    xmin = "group1", xmax = "group2",
-    y.position = "y.position",
-    tip.length = 0.01
-  ) +
-  labs(title = "Model-Estimated Reaction Time",
-       y = "Reaction Time (log-z score)",
-       x = "Condition") +
-  theme_minimal() +
-  scale_fill_brewer(palette = "Set1") +
-  theme(legend.position = "none")
-
-p_model
-
-p_raw <- ggplot(df_sum, aes(x = Condition, y = mean_rt, fill = CarrierType)) +
-  geom_col(alpha = 0.8) +
-  geom_errorbar(aes(ymin = mean_rt - SE, ymax = mean_rt + SE),
-                width = 0.2, color = "black") +
-  facet_wrap(~ CarrierType) +
-  ggpubr::stat_pvalue_manual(
-    sig_df_raw,
-    label = "p.label",
-    xmin = "group1", xmax = "group2",
-    y.position = "y.position",
-    tip.length = 0.01
-  ) +
-  labs(title = "Reaction Time (raw mean ± SE)",
-       y = "Reaction Time (log-z score)",
-       x = "Condition") +
-  theme_minimal() +
-  scale_fill_brewer(palette = "Set1") +
-  theme(legend.position = "none")
-
-p_raw
+# cond_levels <- c("t", "gs", "none")
+# 
+# plot_data_rt$Condition <- factor(plot_data_rt$Condition, levels = cond_levels)
+# df_sum$Condition       <- factor(df_sum$Condition, levels = cond_levels)
+# 
+# pairs_df <- pairs(emms_RT) %>% as.data.frame()
+# 
+# library(dplyr)
+# library(stringr)
+# 
+# pairs_df <- pairs(emms_RT) %>% as.data.frame()
+# 
+# sig_df <- pairs_df %>%
+#   # keep only contrasts that are within a CarrierType (creaky vs creaky, noncreaky vs noncreaky)
+#   filter(str_detect(contrast, "creaky") | str_detect(contrast, "noncreaky")) %>%
+#   mutate(
+#     left  = str_trim(str_split_fixed(contrast, "-", 2)[, 1]),
+#     right = str_trim(str_split_fixed(contrast, "-", 2)[, 2]),
+#     
+#     cond1 = word(left,  1),
+#     car1  = word(left,  2),
+#     cond2 = word(right, 1),
+#     car2  = word(right, 2)
+#   ) %>%
+#   filter(car1 == car2) %>%              # within same CarrierType
+#   mutate(
+#     CarrierType = car1,
+#     
+#     # enforce x-axis ordering (so brackets draw correctly left->right)
+#     group1 = factor(cond2, levels = cond_levels),
+#     group2 = factor(cond1, levels = cond_levels),
+#     
+#     # asterisk label only when p < .05; otherwise drop it
+#     p.label = ifelse(p.value < 0.05, "*", NA_character_)
+#   ) %>%
+#   filter(!is.na(p.label)) %>%
+#   select(CarrierType, group1, group2, p.value, p.label)
+# 
+# # base heights per panel (CarrierType)
+# base_y_model <- plot_data_rt %>%
+#   group_by(CarrierType) %>%
+#   summarise(y0 = max(emmean + SE, na.rm = TRUE), .groups = "drop")
+# 
+# sig_df_model <- sig_df %>%
+#   left_join(base_y_model, by = "CarrierType") %>%
+#   group_by(CarrierType) %>%
+#   arrange(p.value) %>%
+#   mutate(y.position = y0 + row_number() * 0.08) %>%   # spacing; adjust if needed
+#   ungroup()
+# 
+# base_y_raw <- df_sum %>%
+#   group_by(CarrierType) %>%
+#   summarise(y0 = max(mean_rt + SE, na.rm = TRUE), .groups = "drop")
+# 
+# sig_df_raw <- sig_df %>%
+#   left_join(base_y_raw, by = "CarrierType") %>%
+#   group_by(CarrierType) %>%
+#   arrange(p.value) %>%
+#   mutate(y.position = y0 + row_number() * 0.08) %>%   # spacing; adjust if needed
+#   ungroup()
+# 
+# library(ggpubr)
+# 
+# p_model <- ggplot(plot_data_rt, aes(x = Condition, y = emmean, fill = CarrierType)) +
+#   geom_col(alpha = 0.8) +
+#   geom_errorbar(aes(ymin = emmean - SE, ymax = emmean + SE),
+#                 width = 0.2, color = "black") +
+#   facet_wrap(~ CarrierType) +
+#   ggpubr::stat_pvalue_manual(
+#     sig_df_model,
+#     label = "p.label",
+#     xmin = "group1", xmax = "group2",
+#     y.position = "y.position",
+#     tip.length = 0.01
+#   ) +
+#   labs(title = "Model-Estimated Reaction Time",
+#        y = "Reaction Time (log-z score)",
+#        x = "Condition") +
+#   theme_minimal() +
+#   scale_fill_brewer(palette = "Set1") +
+#   theme(legend.position = "none")
+# 
+# p_model
+# 
+# p_raw <- ggplot(df_sum, aes(x = Condition, y = mean_rt, fill = CarrierType)) +
+#   geom_col(alpha = 0.8) +
+#   geom_errorbar(aes(ymin = mean_rt - SE, ymax = mean_rt + SE),
+#                 width = 0.2, color = "black") +
+#   facet_wrap(~ CarrierType) +
+#   ggpubr::stat_pvalue_manual(
+#     sig_df_raw,
+#     label = "p.label",
+#     xmin = "group1", xmax = "group2",
+#     y.position = "y.position",
+#     tip.length = 0.01
+#   ) +
+#   labs(title = "Reaction Time (raw mean ± SE)",
+#        y = "Reaction Time (log-z score)",
+#        x = "Condition") +
+#   theme_minimal() +
+#   scale_fill_brewer(palette = "Set1") +
+#   theme(legend.position = "none")
+# 
+# p_raw

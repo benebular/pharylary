@@ -72,8 +72,7 @@ subset_int = subset(data, interval == 'ħ' | interval == 'ʕ' | interval == 'h' 
 # temporarily show any weird rows and then filter for only the phonetic tier
 # show the glottis rows (just to inspect)
 subset_int %>%
-  filter(tier == "glottis") %>%
-  View()   # or print(), head(), etc.
+  filter(tier == "glottis")
 
 # keep only phonetic rows
 subset_int <- subset_int %>%
@@ -528,122 +527,273 @@ write.csv(subset_mean, "/Volumes/cassandra/alldata/dissertation/vs/output_prepro
 
 ### finding the vowel means adjacent to the intervals and preprocessing them
 
-# temporarily show any weird rows and then filter for only the phonetic tier
-# show the glottis rows (just to inspect)
-data %>%
-  filter(tier == "glottis") %>%
-  View()   # or print(), head(), etc.
-
-# keep only phonetic rows
-data_filtered <- data %>%
+# --- 1. INITIAL FILTERING & INSPECTION ---
+# Keep only phonetic rows
+data_filtered <- data %>% 
   filter(tier == "phonetic")
 
-# 1. Get unique intervals and sort them alphabetically
-unique_tokens <- data_filtered %>%
-  pull(interval) %>%
-  unique() %>%
-  sort()
-
-# 2. Print the list
+# Print unique tokens and frequency
+unique_tokens <- data_filtered %>% pull(interval) %>% unique() %>% sort()
 cat("--- Unique Tokens in the Interval Column ---\n")
 print(unique_tokens)
 
-# 3. Optional: See how common each token is (Frequency Table)
-# This helps you know if a token is a typo or a common category
-token_counts <- data_filtered %>%
-  count(interval, sort = TRUE)
-
+token_counts <- data_filtered %>% count(interval, sort = TRUE)
 cat("\n--- Token Frequency (Top 20) ---\n")
 print(head(token_counts, 20))
 
-library(dplyr)
+# --- 2. PREPARING DATA FOR JOINING (PREVENTING ROW INFLATION) ---
+# We create an 'occurrence' ID. If 'ħ' appears twice in a phrase, 
+# the first set of rows gets occurrence=1, the second set gets occurrence=2.
+data_filtered <- data_filtered %>%
+  group_by(participant, phrase) %>%
+  mutate(interval_id = data.table::rleid(interval)) %>%
+  group_by(participant, phrase, interval) %>%
+  mutate(occurrence = as.integer(as.factor(interval_id))) %>%
+  ungroup() %>%
+  select(-interval_id)
 
-# 1. Define target intervals
-targets <- c('ħ', 'ʕ', 'h', 'ʔ', 'w', 'j')
+# --- 3. SEQUENCE EXTRACTION & CONTEXT IDENTIFICATION ---
+targets <- c('ħ', 'ʕ', 'h', 'ʔ', 'w', 'j','t','d','s','tˤ','dˤ','sˤ')
 
-# 2. Collapse the time-series into a sequence of unique labels per trial
-# We use 'rle' (Run Length Encoding) logic to get the sequence of labels 
-# without the thousands of repeated time-series rows.
+# Collapse time-series to sequence
 phrase_sequences <- data_filtered %>%
   group_by(participant, phrase) %>%
   summarise(
-    # This keeps the order of labels but reduces repetitions to 1
     sequence = list(rle(as.character(interval))$values), 
     .groups = "drop"
   )
 
-# 3. Create a helper function to find neighbors in a list
-get_neighbors <- function(seq, targets, direction = "preceding") {
+# Helper function to find neighbors and track which occurrence they are
+get_neighbors_indexed <- function(seq, targets, direction = "preceding") {
   indices <- which(seq %in% targets)
-  
   if (length(indices) == 0) return(NULL)
+  
+  target_tracker <- list()
   
   results <- lapply(indices, function(i) {
     target_val <- seq[i]
+    # Track which occurrence this is (1st, 2nd, etc. of this specific sound)
+    if (is.null(target_tracker[[target_val]])) {
+      target_tracker[[target_val]] <<- 1
+    } else {
+      target_tracker[[target_val]] <<- target_tracker[[target_val]] + 1
+    }
+    
     if (direction == "preceding") {
       context_val <- if (i > 1) seq[i - 1] else NA
     } else {
       context_val <- if (i < length(seq)) seq[i + 1] else NA
     }
-    data.frame(target = target_val, context = context_val)
+    data.frame(interval = target_val, context = context_val, occurrence = target_tracker[[target_val]])
   })
-  
   bind_rows(results)
 }
 
-# 4. Extract context into separate DataFrames
+# Extract contexts
 df_preceding_check <- phrase_sequences %>%
   rowwise() %>%
   do({
-    neighbors <- get_neighbors(.$sequence, targets, "preceding")
+    neighbors <- get_neighbors_indexed(.$sequence, targets, "preceding")
     if (is.null(neighbors)) data.frame() else cbind(data.frame(participant=.$participant, phrase=.$phrase), neighbors)
-  }) %>%
-  rename(preceding_interval = context)
+  }) %>% rename(preceding_interval = context)
 
 df_following_check <- phrase_sequences %>%
   rowwise() %>%
   do({
-    neighbors <- get_neighbors(.$sequence, targets, "following")
+    neighbors <- get_neighbors_indexed(.$sequence, targets, "following")
     if (is.null(neighbors)) data.frame() else cbind(data.frame(participant=.$participant, phrase=.$phrase), neighbors)
-  }) %>%
-  rename(following_interval = context)
+  }) %>% rename(following_interval = context)
 
-# --- VERIFICATION READOUT ---
+# --- 4. VOWEL FILTERING ---
+vowel_pattern <- "^[aeiouyæɑɔəɛɪʊʌɤɯɜɒ\\sː:]+$"
 
-cat("--- Summary: Contextual Consistency Check ---\n")
-
-# Check for phrases where different participants have different preceding contexts
-inconsistent_pre <- df_preceding_check %>%
-  group_by(phrase, target) %>%
-  summarise(unique_preceding = paste(unique(na.omit(preceding_interval)), collapse=", "),
-            n_variants = n_distinct(preceding_interval, na.rm = TRUE), .groups = "drop") %>%
-  filter(n_variants > 1)
-
-if(nrow(inconsistent_pre) > 0) {
-  cat("\n[!] WARNING: These phrases have varying PRECEDING intervals across participants:\n")
-  print(inconsistent_pre)
-} else {
-  cat("\n[+] SUCCESS: Preceding contexts are consistent (where they exist).\n")
+filter_vowel_contexts <- function(df, context_col) {
+  col_name <- sym(context_col)
+  df %>%
+    filter(!is.na(!!col_name)) %>%
+    # Clean tabs and control characters
+    mutate(!!col_name := str_remove_all(!!col_name, "[\t\n\r]")) %>%
+    # Only keep valid vowel patterns
+    filter(str_detect(str_trim(!!col_name), vowel_pattern))
 }
 
-# Identify rows where the target is the absolute start or end (NA contexts)
-start_of_phrase <- df_preceding_check %>% filter(is.na(preceding_interval))
-end_of_phrase <- df_following_check %>% filter(is.na(following_interval))
+df_preceding_vowels <- filter_vowel_contexts(df_preceding_check, "preceding_interval")
+df_following_vowels <- filter_vowel_contexts(df_following_check, "following_interval")
 
-cat("\n--- Edge Cases Found ---\n")
-cat("Phrases where target is the FIRST segment (no preceding):", n_distinct(start_of_phrase$phrase), "\n")
-cat("Phrases where target is the LAST segment (no following):", n_distinct(end_of_phrase$phrase), "\n")
+# --- 5. INTEGRATION INTO FINAL DATASET ---
+# Join on participant, phrase, interval, AND occurrence to ensure a 1-to-1 match
+data_filtered <- data_filtered %>%
+  left_join(df_preceding_vowels, by = c("participant", "phrase", "interval", "occurrence")) %>%
+  left_join(df_following_vowels, by = c("participant", "phrase", "interval", "occurrence"))
 
-# Display the unique context list for your inspection
-cat("\n--- Example: Unique Preceding Contexts per Phrase ---\n")
-print(df_preceding_check %>% distinct(phrase, target, preceding_interval) %>% head(15))
+# --- 6. FINAL READOUTS & VERIFICATION ---
+cat("\n--- Final Integration Summary ---\n")
+cat("Total rows in data_filtered:", nrow(data_filtered), "\n")
+cat("Rows with valid preceding vowel context:", sum(!is.na(data_filtered$preceding_interval)), "\n")
+cat("Rows with valid following vowel context:", sum(!is.na(data_filtered$following_interval)), "\n")
+
+# Target Vowel Verification
+kept_tokens <- unique(c(data_filtered$preceding_interval, data_filtered$following_interval))
+targets_to_check <- c("ɜː", "a:", "ɒː")
+cat("\nTarget Vowel Verification (Should be Kept):\n")
+for(t in targets_to_check) {
+  status <- if(t %in% kept_tokens) "SUCCESS: Kept" else "MISSING"
+  cat(t, "->", status, "\n")
+}
+
+
 
 ### subsetting laryngeal and pharyngeal segments
-subset_vowels = subset(data, interval == 'ħ' | interval == 'ʕ' | interval == 'h' | interval == 'ʔ')
+subset_vowels = subset(data, 
+  interval == 'ħ' | interval == 'ʕ' | interval == 'h' | interval == 'ʔ' |
+  interval == 'w' | interval == 'j' | 
+  interval == 't' | interval == 'd' | interval == 's' | interval == 'tˤ' |interval == 'dˤ' | interval == 'sˤ')
 
 
 
-
+# # 1. Get unique intervals and sort them alphabetically
+# unique_tokens <- data_filtered %>%
+#   pull(interval) %>%
+#   unique() %>%
+#   sort()
+# 
+# # 2. Print the list
+# cat("--- Unique Tokens in the Interval Column ---\n")
+# print(unique_tokens)
+# 
+# # 3. Optional: See how common each token is (Frequency Table)
+# # This helps you know if a token is a typo or a common category
+# token_counts <- data_filtered %>%
+#   count(interval, sort = TRUE)
+# 
+# cat("\n--- Token Frequency (Top 20) ---\n")
+# print(head(token_counts, 20))
+# 
+# # 1. Define target intervals
+# targets <- c('ħ', 'ʕ', 'h', 'ʔ', 'w', 'j','t','d','s','tˤ','dˤ','sˤ')
+# 
+# # 2. Collapse the time-series into a sequence of unique labels per trial
+# # We use 'rle' (Run Length Encoding) logic to get the sequence of labels 
+# # without the thousands of repeated time-series rows.
+# phrase_sequences <- data_filtered %>%
+#   group_by(participant, phrase) %>%
+#   summarise(
+#     # This keeps the order of labels but reduces repetitions to 1
+#     sequence = list(rle(as.character(interval))$values), 
+#     .groups = "drop"
+#   )
+# 
+# # 3. Create a helper function to find neighbors in a list
+# get_neighbors <- function(seq, targets, direction = "preceding") {
+#   indices <- which(seq %in% targets)
+#   
+#   if (length(indices) == 0) return(NULL)
+#   
+#   results <- lapply(indices, function(i) {
+#     target_val <- seq[i]
+#     if (direction == "preceding") {
+#       context_val <- if (i > 1) seq[i - 1] else NA
+#     } else {
+#       context_val <- if (i < length(seq)) seq[i + 1] else NA
+#     }
+#     data.frame(target = target_val, context = context_val)
+#   })
+#   
+#   bind_rows(results)
+# }
+# 
+# # 4. Extract context into separate DataFrames
+# df_preceding_check <- phrase_sequences %>%
+#   rowwise() %>%
+#   do({
+#     neighbors <- get_neighbors(.$sequence, targets, "preceding")
+#     if (is.null(neighbors)) data.frame() else cbind(data.frame(participant=.$participant, phrase=.$phrase), neighbors)
+#   }) %>%
+#   rename(preceding_interval = context)
+# 
+# df_following_check <- phrase_sequences %>%
+#   rowwise() %>%
+#   do({
+#     neighbors <- get_neighbors(.$sequence, targets, "following")
+#     if (is.null(neighbors)) data.frame() else cbind(data.frame(participant=.$participant, phrase=.$phrase), neighbors)
+#   }) %>%
+#   rename(following_interval = context)
+# 
+# # --- VERIFICATION READOUT ---
+# 
+# cat("--- Summary: Contextual Consistency Check ---\n")
+# 
+# # Check for phrases where different participants have different preceding contexts
+# inconsistent_pre <- df_preceding_check %>%
+#   group_by(phrase, target) %>%
+#   summarise(unique_preceding = paste(unique(na.omit(preceding_interval)), collapse=", "),
+#             n_variants = n_distinct(preceding_interval, na.rm = TRUE), .groups = "drop") %>%
+#   filter(n_variants > 1)
+# 
+# if(nrow(inconsistent_pre) > 0) {
+#   cat("\n[!] WARNING: These phrases have varying PRECEDING intervals across participants:\n")
+#   print(inconsistent_pre)
+# } else {
+#   cat("\n[+] SUCCESS: Preceding contexts are consistent (where they exist).\n")
+# }
+# 
+# # Identify rows where the target is the absolute start or end (NA contexts)
+# start_of_phrase <- df_preceding_check %>% filter(is.na(preceding_interval))
+# end_of_phrase <- df_following_check %>% filter(is.na(following_interval))
+# 
+# cat("\n--- Edge Cases Found ---\n")
+# cat("Phrases where target is the FIRST segment (no preceding):", n_distinct(start_of_phrase$phrase), "\n")
+# cat("Phrases where target is the LAST segment (no following):", n_distinct(end_of_phrase$phrase), "\n")
+# 
+# # Display the unique context list for your inspection
+# cat("\n--- Example: Unique Preceding Contexts per Phrase ---\n")
+# print(df_preceding_check %>% distinct(phrase, target, preceding_interval) %>% head(15))
+# 
+# 
+# library(dplyr)
+# library(stringr)
+# 
+# # 1. Update the Vowel Regex
+# # Added: ɜ, ɒ, and the colon ':' (if your data uses a standard colon instead of the IPA ː)
+# # Pattern explained: Start of string, any combination of vowel symbols, length marks, or spaces, end of string.
+# vowel_pattern <- "^[aeiouyæɑɔəɛɪʊʌɤɯɜɒ\\sː:]+$"
+# 
+# # 2. Function to clean and filter
+# filter_vowel_contexts <- function(df, context_col) {
+#   col_name <- sym(context_col)
+#   
+#   df %>%
+#     filter(!is.na(!!col_name)) %>%
+#     # PRE-FILTER CLEANING: Remove tabs (\t) and other control characters
+#     # This effectively turns "a: \t" into "a:" so it can be kept by the vowel pattern
+#     mutate(!!col_name := str_remove_all(!!col_name, "[\t\n\r]")) %>%
+#     # Post-cleaning filter
+#     filter(str_detect(str_trim(!!col_name), vowel_pattern))
+# }
+# 
+# # 3. Apply to your DataFrames
+# df_preceding_vowels <- filter_vowel_contexts(df_preceding_check, "preceding_interval")
+# df_following_vowels <- filter_vowel_contexts(df_following_check, "following_interval")
+# 
+# # --- VERIFICATION ---
+# 
+# cat("--- Updated Vowel Filter Readout ---\n")
+# # Checking for the specific tokens you wanted to ensure are present
+# kept_tokens <- unique(c(df_preceding_vowels$preceding_interval, 
+#                         df_following_vowels$following_interval))
+# 
+# targets_to_check <- c("ɜː", "a:", "ɒː")
+# found <- targets_to_check %in% kept_tokens
+# 
+# cat("Check for specific 'Keep' tokens:\n")
+# for(i in 1:length(targets_to_check)) {
+#   status <- if(found[i]) "SUCCESS: Kept" else "MISSING: Not Found"
+#   cat(targets_to_check[i], "->", status, "\n")
+# }
+# 
+# # Final check for any remaining tabs
+# any_tabs <- any(str_detect(kept_tokens, "\t"))
+# cat("\nAny remaining tokens with tabs:", any_tabs, "\n")
 
 ### cleaning for fricatives
 
