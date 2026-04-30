@@ -206,6 +206,26 @@ ggplot(plot_data_acc, aes(x = Condition, y = emmean, fill = CarrierType)) +
 
 # raw
 
+# 1. Calculate the summaries from df_prepared
+df_sum <- df_prepared %>%
+  group_by(Condition, CarrierType) %>%
+  summarise(
+    mean_rt = mean(reaction_time_log_z, na.rm = TRUE),
+    sd_rt   = sd(reaction_time_log_z, na.rm = TRUE),
+    n       = sum(!is.na(reaction_time_log_z)),
+    SE      = sd_rt / sqrt(n),
+    .groups = "drop"
+  )
+
+acc_sum <- df_prepared %>%
+  group_by(Condition, CarrierType) %>%
+  summarise(
+    p = mean(accuracy_num, na.rm = TRUE),
+    n = sum(!is.na(accuracy_num)),
+    SE = sqrt(p * (1 - p) / n),
+    .groups = "drop"
+  )
+
 # Define a function to recode consistently for both data frames
 recode_data <- function(d) {
   d %>%
@@ -256,19 +276,108 @@ ggplot(acc_sum_plot, aes(x = Condition, y = p, fill = CarrierType)) +
   # Use manual scale here:
   scale_fill_manual(values = pal4)
 
+library(ggpubr)
+
+# Function to prepare significance labels for brackets
+prepare_sig_brackets <- function(emms_obj) {
+  pairs(emms_obj) %>%
+    as.data.frame() %>%
+    filter(p.value < 0.05) %>%
+    mutate(
+      # Split contrast "gs creaky - t creaky" into components
+      left = str_trim(str_split_fixed(contrast, "-", 2)[, 1]),
+      right = str_trim(str_split_fixed(contrast, "-", 2)[, 2]),
+      
+      cond1_raw = word(left, 1),
+      carr1_raw = word(left, 2),
+      cond2_raw = word(right, 1),
+      carr2_raw = word(right, 2)
+    ) %>%
+    # Only keep within-CarrierType comparisons (e.g., gs creaky vs t creaky)
+    # because cross-panel brackets are confusing on bar charts
+    filter(carr1_raw == carr2_raw) %>%
+    mutate(
+      # Map to your final plot labels
+      group1 = factor(cond1_raw, levels = c("t", "gs", "none"), labels = c("[t]", "[ʔ]", "No /t/")),
+      group2 = factor(cond2_raw, levels = c("t", "gs", "none"), labels = c("[t]", "[ʔ]", "No /t/")),
+      CarrierType = factor(carr1_raw, levels = c("creaky", "noncreaky"), labels = c("Yes", "No")),
+      p.label = "*"
+    )
+}
+
+# Generate brackets for RT and Accuracy
+sig_brackets_rt <- prepare_sig_brackets(emms_RT)
+sig_brackets_acc <- prepare_sig_brackets(emms_ACC)
+
+# Calculate y-positions for RT brackets so they sit above the error bars
+sig_brackets_rt <- sig_brackets_rt %>%
+  group_by(CarrierType) %>%
+  mutate(y.pos = max(df_sum_plot$mean_rt + df_sum_plot$SE) + (row_number() * 0.1))
+
+# 1. Ensure the brackets data is a plain data frame
+sig_brackets_rt_final <- sig_brackets_rt %>% ungroup()
+
+# 2. Plot
+ggplot(df_sum_plot, aes(x = Condition, y = mean_rt, fill = CarrierType)) +
+  geom_col(alpha = 0.8) +
+  geom_errorbar(aes(ymin = mean_rt - SE, ymax = mean_rt + SE), width = 0.2) +
+  # Fixed stat_pvalue_manual call
+  stat_pvalue_manual(
+    data = sig_brackets_rt_final, 
+    label = "p.label", 
+    xmin = "group1", 
+    xmax = "group2", 
+    y.position = "y.pos",
+    inherit.aes = FALSE  # This prevents it from looking for 'fill' in the bracket data
+  ) +
+  facet_wrap(~CarrierType) +
+  labs(title = "Reaction Time (raw mean ± SE)",
+       subtitle = "Brackets indicate p < 0.05 per model emmeans",
+       y = "Reaction Time (log, z-scored)", x = "Condition") +
+  theme_minimal() +
+  scale_fill_manual(values = pal4) +
+  theme(legend.position = "none")
+
+sig_brackets_acc_final <- sig_brackets_acc %>% ungroup()
+
+ggplot(acc_sum_plot, aes(x = Condition, y = p, fill = CarrierType)) +
+  geom_col(alpha = 0.8) +
+  geom_errorbar(aes(ymin = p - SE, ymax = p + SE), width = 0.2) +
+  stat_pvalue_manual(
+    data = sig_brackets_acc_final, 
+    label = "p.label", 
+    xmin = "group1", 
+    xmax = "group2", 
+    y.position = "y.pos",
+    inherit.aes = FALSE
+  ) +
+  facet_wrap(~CarrierType) +
+  scale_y_continuous(labels = scales::percent) +
+  labs(title = "Accuracy (raw proportion ± SE)",
+       subtitle = "Brackets indicate p < 0.05 per model emmeans",
+       y = "Accuracy (%)", x = "Condition") +
+  theme_minimal() +
+  scale_fill_manual(values = pal4) +
+  theme(legend.position = "none")
+
 
 # Function to clean up the contrast labels and fix column names
 clean_contrasts <- function(d) {
   d %>%
-    # 1. RENAME CI columns safely (handles both lower.CL and asymp.LCL)
     rename(low = any_of(c("lower.CL", "asymp.LCL")),
            high = any_of(c("upper.CL", "asymp.UCL"))) %>%
-    # 2. Update labels
     mutate(
+      # 1. Handle 'gs'
       contrast = str_replace_all(contrast, "gs", "[ʔ]"),
-      contrast = str_replace_all(contrast, "t", "[t]"),
+      
+      # 2. Handle 't' ONLY when it is a whole word surrounded by spaces or at start/end
+      # This prevents it from matching the 't' in 'creaky' or 'none'
+      contrast = str_replace_all(contrast, "\\bt\\b", "[t]"),
+      
+      # 3. Handle 'none' last. 
+      # Since 'none' doesn't contain the word '[t]', it stays 'No /t/'
       contrast = str_replace_all(contrast, "none", "No /t/"),
-      # Logic for Significance coloring
+      
       sig = ifelse(p.value < 0.05, "Significant", "Not Significant"),
       sig = factor(sig, levels = c("Not Significant", "Significant"))
     )
