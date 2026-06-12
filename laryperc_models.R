@@ -40,8 +40,8 @@ library(scales)
 
 
 #paths
-# orig_data_path <- sprintf('/Volumes/circe/alldata/dissertation/2/laryperc_events_behav_merged_allsubs.csv')
-orig_data_path <- sprintf('/Volumes/cassandra/alldata/dissertation/2/laryperc_events_behav_merged_allsubs.csv')
+orig_data_path <- sprintf('/Volumes/circe/alldata/dissertation/2/laryperc_events_behav_merged_allsubs.csv')
+# orig_data_path <- sprintf('/Volumes/cassandra/alldata/dissertation/2/laryperc_events_behav_merged_allsubs.csv')
 
 orig_data = read.csv(orig_data_path)
 df <- orig_data
@@ -173,6 +173,61 @@ sorted_res_ACC <- pairs(emms_ACC) %>%
   as.data.frame() %>%
   arrange(p.value)
 print(sorted_res_ACC)
+
+library(emmeans)
+library(knitr)
+library(kableExtra)
+library(dplyr)
+
+# --- RT Model Tables ---
+
+# Pairwise comparisons for RT
+pairs_RT_table <- sorted_res_RT %>%
+  mutate(across(where(is.numeric), ~ round(., 3))) %>%
+  rename(
+    "Contrast" = contrast,
+    "Estimate" = estimate,
+    "SE" = SE,
+    "df" = df,
+    "z-ratio" = z.ratio,
+    "p-value" = p.value
+  ) %>%
+  mutate(`p-value` = ifelse(`p-value` < 0.001, "$<$0.001", as.character(`p-value`))) %>%
+  kable(format = "latex",
+        booktabs = TRUE,
+        caption = "Pairwise Comparisons for Reaction Time",
+        label = "tab:laryperc_pairs_rt",
+        linesep = "\\addlinespace",
+        escape = FALSE) %>%
+  kable_styling(latex_options = "hold_position") %>%
+  row_spec(0, bold = TRUE)
+
+save_kable(pairs_RT_table, file = "/Volumes/circe/alldata/dissertation/2/tables/pairs_rt.tex")
+
+# --- Accuracy Model Tables ---
+
+# Pairwise comparisons for accuracy
+pairs_ACC_table <- sorted_res_ACC %>%
+  mutate(across(where(is.numeric), ~ round(., 3))) %>%
+  rename(
+    "Contrast" = contrast,
+    "Estimate" = estimate,
+    "SE" = SE,
+    "df" = df,
+    "z-ratio" = z.ratio,
+    "p-value" = p.value
+  ) %>%
+  mutate(`p-value` = ifelse(`p-value` < 0.001, "$<$0.001", as.character(`p-value`))) %>%
+  kable(format = "latex",
+        booktabs = TRUE,
+        caption = "Pairwise Comparisons for Accuracy",
+        label = "tab:laryperc_pairs_acc",
+        linesep = "\\addlinespace",
+        escape = FALSE) %>%
+  kable_styling(latex_options = "hold_position") %>%
+  row_spec(0, bold = TRUE)
+
+save_kable(pairs_ACC_table, file = "/Volumes/circe/alldata/dissertation/2/tables/pairs_acc.tex")
 
 
 # 1. Extract RT Estimates (on the log-z scale)
@@ -391,26 +446,24 @@ raw_acc_plot <- ggplot(acc_sum_plot, aes(x = Condition, y = p, fill = CarrierTyp
 library(patchwork)
 
 # --- RT Pair ---
-(raw_RT_plot + forest_RT) + 
-  plot_annotation(
-    tag_levels = 'a' # Automatically assigns 'a' to the first plot and 'b' to the second
-  ) +
-  plot_layout(widths = c(1, 1.2)) & 
+rt_combined <- ((raw_RT_plot + forest_RT) + 
+                  plot_annotation(tag_levels = 'a') +
+                  plot_layout(widths = c(1, 1.2))) & 
   theme(
     plot.title = element_text(size = 16, face = "bold", hjust = 0.5),
     plot.subtitle = element_text(size = 12, face = "italic", hjust = 0.5),
-    # Styling the 'a' and 'b' tags
     plot.tag = element_text(size = 18, face = "bold"), 
     axis.title = element_text(size = 14), 
     axis.text = element_text(size = 11)
   )
 
+ggsave("/Volumes/circe/alldata/dissertation/2/figs/laryperc_rt_combined.pdf", plot = rt_combined, 
+       width = 14.6, height = 8.5, units = "in", device = cairo_pdf)
+
 # --- Accuracy Pair ---
-(raw_acc_plot + forest_acc) + 
-  plot_annotation(
-    tag_levels = 'a'
-  ) +
-  plot_layout(widths = c(1, 1.2)) & 
+acc_combined <- ((raw_acc_plot + forest_acc) + 
+                   plot_annotation(tag_levels = 'a') +
+                   plot_layout(widths = c(1, 1.2))) & 
   theme(
     plot.title = element_text(size = 16, face = "bold", hjust = 0.5),
     plot.subtitle = element_text(size = 12, face = "italic", hjust = 0.5),
@@ -418,6 +471,9 @@ library(patchwork)
     axis.title = element_text(size = 14), 
     axis.text = element_text(size = 11)
   )
+
+ggsave("/Volumes/circe/alldata/dissertation/2/figs/laryperc_acc_combined.pdf", plot = acc_combined, 
+       width = 14.6, height = 8.5, units = "in",  device = cairo_pdf)
 
 ## test
 
