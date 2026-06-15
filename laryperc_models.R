@@ -40,8 +40,8 @@ library(scales)
 
 
 #paths
-orig_data_path <- sprintf('/Volumes/circe/alldata/dissertation/2/laryperc_events_behav_merged_allsubs.csv')
-# orig_data_path <- sprintf('/Volumes/cassandra/alldata/dissertation/2/laryperc_events_behav_merged_allsubs.csv')
+# orig_data_path <- sprintf('/Volumes/circe/alldata/dissertation/2/laryperc_events_behav_merged_allsubs.csv')
+orig_data_path <- sprintf('/Volumes/cassandra/alldata/dissertation/2/laryperc_events_behav_merged_allsubs.csv')
 
 orig_data = read.csv(orig_data_path)
 df <- orig_data
@@ -174,6 +174,8 @@ sorted_res_ACC <- pairs(emms_ACC) %>%
   arrange(p.value)
 print(sorted_res_ACC)
 
+
+
 library(emmeans)
 library(knitr)
 library(kableExtra)
@@ -202,7 +204,8 @@ pairs_RT_table <- sorted_res_RT %>%
   kable_styling(latex_options = "hold_position") %>%
   row_spec(0, bold = TRUE)
 
-save_kable(pairs_RT_table, file = "/Volumes/circe/alldata/dissertation/2/tables/pairs_rt.tex")
+# save_kable(pairs_RT_table, file = "/Volumes/circe/alldata/dissertation/2/tables/pairs_rt.tex")
+save_kable(pairs_RT_table, file = "/Volumes/cassandra/alldata/dissertation/2/tables/pairs_rt.tex")
 
 # --- Accuracy Model Tables ---
 
@@ -227,7 +230,8 @@ pairs_ACC_table <- sorted_res_ACC %>%
   kable_styling(latex_options = "hold_position") %>%
   row_spec(0, bold = TRUE)
 
-save_kable(pairs_ACC_table, file = "/Volumes/circe/alldata/dissertation/2/tables/pairs_acc.tex")
+# save_kable(pairs_ACC_table, file = "/Volumes/circe/alldata/dissertation/2/tables/pairs_acc.tex")
+save_kable(pairs_ACC_table, file = "/Volumes/cassandra/alldata/dissertation/2/tables/pairs_acc.tex")
 
 
 # 1. Extract RT Estimates (on the log-z scale)
@@ -457,8 +461,12 @@ rt_combined <- ((raw_RT_plot + forest_RT) +
     axis.text = element_text(size = 11)
   )
 
-ggsave("/Volumes/circe/alldata/dissertation/2/figs/laryperc_rt_combined.pdf", plot = rt_combined, 
+# ggsave("/Volumes/circe/alldata/dissertation/2/figs/laryperc_rt_combined.pdf", plot = rt_combined, 
+#        width = 14.6, height = 8.5, units = "in", device = cairo_pdf)
+
+ggsave("/Volumes/cassandra/alldata/dissertation/2/figs/laryperc_rt_combined.pdf", plot = rt_combined, 
        width = 14.6, height = 8.5, units = "in", device = cairo_pdf)
+
 
 # --- Accuracy Pair ---
 acc_combined <- ((raw_acc_plot + forest_acc) + 
@@ -472,7 +480,10 @@ acc_combined <- ((raw_acc_plot + forest_acc) +
     axis.text = element_text(size = 11)
   )
 
-ggsave("/Volumes/circe/alldata/dissertation/2/figs/laryperc_acc_combined.pdf", plot = acc_combined, 
+# ggsave("/Volumes/circe/alldata/dissertation/2/figs/laryperc_acc_combined.pdf", plot = acc_combined, 
+#        width = 14.6, height = 8.5, units = "in",  device = cairo_pdf)
+
+ggsave("/Volumes/cassandra/alldata/dissertation/2/figs/laryperc_acc_combined.pdf", plot = acc_combined, 
        width = 14.6, height = 8.5, units = "in",  device = cairo_pdf)
 
 ## test
