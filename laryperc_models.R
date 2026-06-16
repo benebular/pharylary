@@ -19,6 +19,9 @@ library(tidyr)
 # library(reshape2)
 library(lme4)
 library(lmerTest)
+library(knitr)
+library(kableExtra)
+# library(lmtest)
 # library(mgcv)
 library(emmeans)
 #library(forcats)
@@ -40,8 +43,8 @@ library(scales)
 
 
 #paths
-# orig_data_path <- sprintf('/Volumes/circe/alldata/dissertation/2/laryperc_events_behav_merged_allsubs.csv')
-orig_data_path <- sprintf('/Volumes/cassandra/alldata/dissertation/2/laryperc_events_behav_merged_allsubs.csv')
+orig_data_path <- sprintf('/Volumes/circe/alldata/dissertation/2/laryperc_events_behav_merged_allsubs.csv')
+# orig_data_path <- sprintf('/Volumes/cassandra/alldata/dissertation/2/laryperc_events_behav_merged_allsubs.csv')
 
 orig_data = read.csv(orig_data_path)
 df <- orig_data
@@ -130,9 +133,130 @@ mod_RT <- lmer(
   formula = reaction_time_log_z ~
     Condition*CarrierType +
     (1|pair),
-  data = df_prepared
+  data = df_prepared,
+  REML = FALSE
 )
 summary(mod_RT)
+
+# log likelihood and AIC tests
+mod_RT_no_int <- lmer(
+  formula = reaction_time_log_z ~
+    Condition + CarrierType +
+    (1|pair),
+  data = df_prepared,
+  REML = FALSE
+)
+summary(mod_RT)
+
+mod_RT_condition_only <- lmer(
+  formula = reaction_time_log_z ~
+    Condition +
+    (1|pair),
+  data = df_prepared,
+  REML = FALSE
+)
+
+mod_RT_carrier_only <- lmer(
+  formula = reaction_time_log_z ~
+    CarrierType +
+    (1|pair),
+  data = df_prepared,
+  REML = FALSE
+)
+
+full_model_rt <- anova(mod_RT, mod_RT_no_int)
+condition_only_model_rt <- anova(mod_RT_no_int, mod_RT_condition_only)
+carrier_only_model_rt <- anova(mod_RT_no_int, mod_RT_carrier_only)
+
+# --- Table 1: Model summary ---------------------------------------------------
+extract_model_table <- function(models, model_names) {
+  rows <- mapply(function(m, name) {
+    s       <- summary(m)
+    fe      <- fixef(m)
+    n_fixed <- length(fe)
+    vc      <- as.data.frame(VarCorr(m))
+    n_rand  <- nrow(vc)
+    loglik  <- round(logLik(m)[1], 2)
+    aic     <- round(AIC(m), 2)
+    nobs    <- nobs(m)
+    
+    data.frame(
+      Model      = name,
+      Fixed      = paste(names(fe), collapse = ", "),
+      N_Fixed    = n_fixed,
+      N_Random   = n_rand,
+      LogLik     = loglik,
+      AIC        = aic,
+      N_Obs      = nobs,
+      stringsAsFactors = FALSE
+    )
+  }, models, model_names, SIMPLIFY = FALSE)
+  
+  do.call(rbind, rows)
+}
+
+model_list  <- list(mod_RT, mod_RT_no_int, mod_RT_condition_only, mod_RT_carrier_only)
+model_names <- c("Full ($Segment \\times Carrier Type$)", "Additive ($Segment + Carrier Type$)",
+                 "Segment only ($Segment$)", "Carrier Type only ($Carrier Type$)")
+
+tbl1 <- extract_model_table(model_list, model_names)
+
+tbl1_out <- tbl1[, c("Model"), drop = FALSE]
+
+colnames(tbl1_out) <- c("Model")
+
+tbl1_tex <- kable(tbl1_out,
+                  format   = "latex",
+                  booktabs = TRUE,
+                  escape   = FALSE,
+                  caption  = "Summary of linear mixed-effects models. All models were fit using maximum likelihood (\\texttt{REML = FALSE}) to allow likelihood-ratio comparison of fixed effects.",
+                  label    = "laryperc_models") %>%
+  kable_styling(latex_options = c("hold_position"))
+
+# --- Table 2: LRT results -----------------------------------------------------
+extract_lrt_row <- function(lrt_obj, comparison_label, effect_label) {
+  r      <- as.data.frame(lrt_obj)
+  chi_sq <- round(r$Chisq[2], 3)
+  df_val <- r$Df[2]                    # was r$`Chi Df`[2]
+  p_val  <- r$`Pr(>Chisq)`[2]
+  
+  p_fmt <- ifelse(p_val < .001, "$< .001$",
+                  paste0("$", format(round(p_val, 3), nsmall = 3), "$"))
+  
+  data.frame(
+    Comparison = comparison_label,
+    Effect     = effect_label,
+    Chi2       = chi_sq,
+    Df         = df_val,
+    p          = p_fmt,
+    stringsAsFactors = FALSE
+  )
+}
+
+tbl2 <- rbind(
+  extract_lrt_row(full_model_rt, "$M_{full}$ vs. $M_{additive}$",      "Interaction ($A \\times B$)"),
+  extract_lrt_row(condition_only_model_rt,   "$M_{additive}$ vs. $M_{Segment\\ only}$",  "Main effect of $Carrier Type$"),
+  extract_lrt_row(carrier_only_model_rt,   "$M_{additive}$ vs. $M_{Carrier Type\\ only}$",  "Main effect of $Segment$")
+)
+
+colnames(tbl2) <- c("Comparison", "Effect tested", "$\\chi^2$", "$df$", "$p$")
+
+tbl2_tex <- kable(tbl2,
+                  format   = "latex",
+                  booktabs = TRUE,
+                  escape   = FALSE,
+                  caption  = "Reaction Time: Likelihood-ratio tests for fixed effects in reaction time models. The interaction was tested against the full model; main effects were tested against the additive model.",
+                  label    = "laryperc_lrt_rt") %>%
+  kable_styling(latex_options = c("hold_position")) # %>%
+  # footnote(general       = "$p$-values based on $\\chi^2$ approximation.",
+  #          escape        = FALSE)
+
+# --- Save out -----------------------------------------------------------------
+# save_kable(tbl1_tex, file = "/Volumes/cassandra/alldata/dissertation/2/tables/model_comp_RT.tex")
+# save_kable(tbl2_tex, file = "/Volumes/cassandra/alldata/dissertation/2/tables/model_comp_outputs_RT.tex")
+
+save_kable(tbl1_tex, file = "/Volumes/circe/alldata/dissertation/2/tables/laryperc_model_comp.tex")
+save_kable(tbl2_tex, file = "/Volumes/circe/alldata/dissertation/2/tables/model_comp_outputs_RT.tex")
 
 # emms_RT <- emmeans(mod_RT, ~ Condition*CarrierType)
 # pairs(emms_RT)
@@ -155,14 +279,72 @@ mod_ACC <- glmer(
   data = df_prepared,
   family = binomial(link = "logit")
 )
-
-# mod_ACC <- lmer(
-#   formula = accuracy_num ~
-#     Condition + CarrierType + Condition*CarrierType +
-#     (1|pair),
-#   data = df
-# )
 summary(mod_ACC)
+
+mod_ACC_no_int <- glmer(
+  accuracy_num ~ Condition + CarrierType + (1 | pair) + (1|subject),
+  data = df_prepared,
+  family = binomial(link = "logit")
+)
+
+mod_ACC_condition_only <- glmer(
+  accuracy_num ~ Condition + (1 | pair) + (1|subject),
+  data = df_prepared,
+  family = binomial(link = "logit")
+)
+
+mod_ACC_carrier_only <- glmer(
+  accuracy_num ~ CarrierType + (1 | pair) + (1|subject),
+  data = df_prepared,
+  family = binomial(link = "logit")
+)
+
+full_model_acc <- anova(mod_ACC, mod_ACC_no_int)
+condition_only_model_acc <- anova(mod_ACC_no_int, mod_ACC_condition_only)
+carrier_only_model_acc <- anova(mod_ACC_no_int, mod_ACC_carrier_only)
+
+# --- Table 2: LRT results -----------------------------------------------------
+extract_lrt_row <- function(lrt_obj, comparison_label, effect_label) {
+  r      <- as.data.frame(lrt_obj)
+  chi_sq <- round(r$Chisq[2], 3)
+  df_val <- r$Df[2]                    # was r$`Chi Df`[2]
+  p_val  <- r$`Pr(>Chisq)`[2]
+  
+  p_fmt <- ifelse(p_val < .001, "$< .001$",
+                  paste0("$", format(round(p_val, 3), nsmall = 3), "$"))
+  
+  data.frame(
+    Comparison = comparison_label,
+    Effect     = effect_label,
+    Chi2       = chi_sq,
+    Df         = df_val,
+    p          = p_fmt,
+    stringsAsFactors = FALSE
+  )
+}
+
+tbl2 <- rbind(
+  extract_lrt_row(full_model_acc, "$M_{full}$ vs. $M_{additive}$",      "Interaction ($A \\times B$)"),
+  extract_lrt_row(condition_only_model_acc,   "$M_{additive}$ vs. $M_{Segment\\ only}$",  "Main effect of $Carrier Type$"),
+  extract_lrt_row(carrier_only_model_acc,   "$M_{additive}$ vs. $M_{Carrier Type\\ only}$",  "Main effect of $Segment$")
+)
+
+colnames(tbl2) <- c("Comparison", "Effect tested", "$\\chi^2$", "$df$", "$p$")
+
+tbl2_tex <- kable(tbl2,
+                  format   = "latex",
+                  booktabs = TRUE,
+                  escape   = FALSE,
+                  caption  = "Accuracy: Likelihood-ratio tests for fixed effects. The interaction was tested against the full model; main effects were tested against the additive model.",
+                  label    = "laryperc_lrt_acc") %>%
+  kable_styling(latex_options = c("hold_position")) # %>%
+# footnote(general       = "$p$-values based on $\\chi^2$ approximation.",
+#          escape        = FALSE)
+
+# --- Save out -----------------------------------------------------------------
+# save_kable(tbl2_tex, file = "/Volumes/cassandra/alldata/dissertation/2/tables/model_comp_outputs_RT.tex")
+save_kable(tbl2_tex, file = "/Volumes/circe/alldata/dissertation/2/tables/model_comp_outputs_acc.tex")
+
 
 emms_ACC <- emmeans(
   mod_ACC, ~ Condition*CarrierType
@@ -175,11 +357,27 @@ sorted_res_ACC <- pairs(emms_ACC) %>%
 print(sorted_res_ACC)
 
 
+# --- Build the newcommand reference table ------------------------------------
+lrt_csv <- rbind(
+  extract_lrt_row(full_model,           "full_vs_additive",    "Interaction"),
+  extract_lrt_row(condition_only_model, "additive_vs_segment", "Segment"),
+  extract_lrt_row(carrier_only_model,   "additive_vs_carrier", "CarrierType")
+) %>%
+  mutate(
+    # strip LaTeX math formatting for the command names
+    cmd_chi = paste0("lrt", gsub("_", "", Comparison), "Chi"),
+    cmd_df  = paste0("lrt", gsub("_", "", Comparison), "Df"),
+    cmd_p   = paste0("lrt", gsub("_", "", Comparison), "P")
+  )
 
-library(emmeans)
-library(knitr)
-library(kableExtra)
-library(dplyr)
+write.csv(lrt_csv, 
+          "/Volumes/circe/alldata/dissertation/2/tables/lrt_RT_values.csv",
+          row.names = FALSE)
+
+# write.csv(lrt_csv, 
+#           "/Volumes/cassandra/alldata/dissertation/2/tables/lrt_RT_values.csv",
+#           row.names = FALSE)
+
 
 # --- RT Model Tables ---
 
@@ -204,8 +402,8 @@ pairs_RT_table <- sorted_res_RT %>%
   kable_styling(latex_options = "hold_position") %>%
   row_spec(0, bold = TRUE)
 
-# save_kable(pairs_RT_table, file = "/Volumes/circe/alldata/dissertation/2/tables/pairs_rt.tex")
-save_kable(pairs_RT_table, file = "/Volumes/cassandra/alldata/dissertation/2/tables/pairs_rt.tex")
+save_kable(pairs_RT_table, file = "/Volumes/circe/alldata/dissertation/2/tables/laryperc_pairs_rt.tex")
+# save_kable(pairs_RT_table, file = "/Volumes/cassandra/alldata/dissertation/2/tables/laryperc_pairs_rt.tex")
 
 # --- Accuracy Model Tables ---
 
@@ -230,8 +428,8 @@ pairs_ACC_table <- sorted_res_ACC %>%
   kable_styling(latex_options = "hold_position") %>%
   row_spec(0, bold = TRUE)
 
-# save_kable(pairs_ACC_table, file = "/Volumes/circe/alldata/dissertation/2/tables/pairs_acc.tex")
-save_kable(pairs_ACC_table, file = "/Volumes/cassandra/alldata/dissertation/2/tables/pairs_acc.tex")
+save_kable(pairs_ACC_table, file = "/Volumes/circe/alldata/dissertation/2/tables/laryperc_pairs_acc.tex")
+# save_kable(pairs_ACC_table, file = "/Volumes/cassandra/alldata/dissertation/2/tables/laryperc_pairs_acc.tex")
 
 
 # 1. Extract RT Estimates (on the log-z scale)
@@ -461,11 +659,11 @@ rt_combined <- ((raw_RT_plot + forest_RT) +
     axis.text = element_text(size = 11)
   )
 
-# ggsave("/Volumes/circe/alldata/dissertation/2/figs/laryperc_rt_combined.pdf", plot = rt_combined, 
-#        width = 14.6, height = 8.5, units = "in", device = cairo_pdf)
-
-ggsave("/Volumes/cassandra/alldata/dissertation/2/figs/laryperc_rt_combined.pdf", plot = rt_combined, 
+ggsave("/Volumes/circe/alldata/dissertation/2/figs/laryperc_rt_combined.pdf", plot = rt_combined,
        width = 14.6, height = 8.5, units = "in", device = cairo_pdf)
+
+# ggsave("/Volumes/cassandra/alldata/dissertation/2/figs/laryperc_rt_combined.pdf", plot = rt_combined, 
+#        width = 14.6, height = 8.5, units = "in", device = cairo_pdf)
 
 
 # --- Accuracy Pair ---
@@ -480,11 +678,11 @@ acc_combined <- ((raw_acc_plot + forest_acc) +
     axis.text = element_text(size = 11)
   )
 
-# ggsave("/Volumes/circe/alldata/dissertation/2/figs/laryperc_acc_combined.pdf", plot = acc_combined, 
-#        width = 14.6, height = 8.5, units = "in",  device = cairo_pdf)
-
-ggsave("/Volumes/cassandra/alldata/dissertation/2/figs/laryperc_acc_combined.pdf", plot = acc_combined, 
+ggsave("/Volumes/circe/alldata/dissertation/2/figs/laryperc_acc_combined.pdf", plot = acc_combined,
        width = 14.6, height = 8.5, units = "in",  device = cairo_pdf)
+
+# ggsave("/Volumes/cassandra/alldata/dissertation/2/figs/laryperc_acc_combined.pdf", plot = acc_combined, 
+#        width = 14.6, height = 8.5, units = "in",  device = cairo_pdf)
 
 ## test
 
