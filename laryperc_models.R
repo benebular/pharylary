@@ -43,8 +43,8 @@ library(scales)
 
 
 #paths
-orig_data_path <- sprintf('/Volumes/circe/alldata/dissertation/2/laryperc_events_behav_merged_allsubs.csv')
-# orig_data_path <- sprintf('/Volumes/cassandra/alldata/dissertation/2/laryperc_events_behav_merged_allsubs.csv')
+# orig_data_path <- sprintf('/Volumes/circe/alldata/dissertation/2/laryperc_events_behav_merged_allsubs.csv')
+orig_data_path <- sprintf('/Volumes/cassandra/alldata/dissertation/2/laryperc_events_behav_merged_allsubs.csv')
 
 orig_data = read.csv(orig_data_path)
 df <- orig_data
@@ -113,20 +113,7 @@ ok <- complete.cases(df_no_outliers[, vars_needed]) &
 
 df_prepared <- df_no_outliers[ok, ]
 
-# simple lm
-# mod_RT_lm <- lm(
-#   formula = reaction_time_log_z ~
-#     Condition + CarrierType + Condition*CarrierType,
-#   data = df_prepared
-# )
-# summary(mod_RT_lm)
-# 
-# emms_RT_lm <- emmeans(mod_RT_lm, ~ Condition*CarrierType)
-# 
-# sorted_res_RT_lm <- pairs(emms_RT_lm) %>%
-#   as.data.frame() %>%
-#   arrange(p.value)
-# print(sorted_res_RT_lm)
+### add a calculation for overall accuracy and overall reaction time here
 
 # mixed effects
 mod_RT <- lmer(
@@ -252,11 +239,11 @@ tbl2_tex <- kable(tbl2,
   #          escape        = FALSE)
 
 # --- Save out -----------------------------------------------------------------
-# save_kable(tbl1_tex, file = "/Volumes/cassandra/alldata/dissertation/2/tables/model_comp_RT.tex")
-# save_kable(tbl2_tex, file = "/Volumes/cassandra/alldata/dissertation/2/tables/model_comp_outputs_RT.tex")
+save_kable(tbl1_tex, file = "/Volumes/cassandra/alldata/dissertation/2/tables/model_comp_RT.tex")
+save_kable(tbl2_tex, file = "/Volumes/cassandra/alldata/dissertation/2/tables/model_comp_outputs_RT.tex")
 
-save_kable(tbl1_tex, file = "/Volumes/circe/alldata/dissertation/2/tables/laryperc_model_comp.tex")
-save_kable(tbl2_tex, file = "/Volumes/circe/alldata/dissertation/2/tables/model_comp_outputs_RT.tex")
+# save_kable(tbl1_tex, file = "/Volumes/circe/alldata/dissertation/2/tables/laryperc_model_comp.tex")
+# save_kable(tbl2_tex, file = "/Volumes/circe/alldata/dissertation/2/tables/model_comp_outputs_RT.tex")
 
 # emms_RT <- emmeans(mod_RT, ~ Condition*CarrierType)
 # pairs(emms_RT)
@@ -342,8 +329,8 @@ tbl2_tex <- kable(tbl2,
 #          escape        = FALSE)
 
 # --- Save out -----------------------------------------------------------------
-# save_kable(tbl2_tex, file = "/Volumes/cassandra/alldata/dissertation/2/tables/model_comp_outputs_RT.tex")
-save_kable(tbl2_tex, file = "/Volumes/circe/alldata/dissertation/2/tables/model_comp_outputs_acc.tex")
+save_kable(tbl2_tex, file = "/Volumes/cassandra/alldata/dissertation/2/tables/model_comp_outputs_RT.tex")
+# save_kable(tbl2_tex, file = "/Volumes/circe/alldata/dissertation/2/tables/model_comp_outputs_acc.tex")
 
 
 emms_ACC <- emmeans(
@@ -357,27 +344,59 @@ sorted_res_ACC <- pairs(emms_ACC) %>%
 print(sorted_res_ACC)
 
 
-# --- Build the newcommand reference table ------------------------------------
-lrt_csv <- rbind(
-  extract_lrt_row(full_model,           "full_vs_additive",    "Interaction"),
-  extract_lrt_row(condition_only_model, "additive_vs_segment", "Segment"),
-  extract_lrt_row(carrier_only_model,   "additive_vs_carrier", "CarrierType")
+# --- RT comparisons -----------------------------------------------------------
+lrt_csv_rt <- rbind(
+  extract_lrt_row(full_model_rt,           "full_vs_additive",    "Interaction"),
+  extract_lrt_row(condition_only_model_rt, "additive_vs_segment", "Segment"),
+  extract_lrt_row(carrier_only_model_rt,   "additive_vs_carrier", "CarrierType")
 ) %>%
   mutate(
-    # strip LaTeX math formatting for the command names
-    cmd_chi = paste0("lrt", gsub("_", "", Comparison), "Chi"),
-    cmd_df  = paste0("lrt", gsub("_", "", Comparison), "Df"),
-    cmd_p   = paste0("lrt", gsub("_", "", Comparison), "P")
+    outcome = "RT",
+    cmd_chi = paste0("lrtRT", gsub("_", "", Comparison), "Chi"),
+    cmd_df  = paste0("lrtRT", gsub("_", "", Comparison), "Df"),
+    cmd_p   = paste0("lrtRT", gsub("_", "", Comparison), "P")
   )
 
-write.csv(lrt_csv, 
-          "/Volumes/circe/alldata/dissertation/2/tables/lrt_RT_values.csv",
+# --- Accuracy comparisons -----------------------------------------------------
+lrt_csv_acc <- rbind(
+  extract_lrt_row(full_model_acc,           "full_vs_additive",    "Interaction"),
+  extract_lrt_row(condition_only_model_acc, "additive_vs_segment", "Segment"),
+  extract_lrt_row(carrier_only_model_acc,   "additive_vs_carrier", "CarrierType")
+) %>%
+  mutate(
+    outcome = "Accuracy",
+    cmd_chi = paste0("lrtAcc", gsub("_", "", Comparison), "Chi"),
+    cmd_df  = paste0("lrtAcc", gsub("_", "", Comparison), "Df"),
+    cmd_p   = paste0("lrtAcc", gsub("_", "", Comparison), "P")
+  )
+
+# --- Combine and save ---------------------------------------------------------
+lrt_csv <- rbind(lrt_csv_rt, lrt_csv_acc)
+
+write.csv(lrt_csv,
+          "/Volumes/cassandra/alldata/dissertation/2/tables/laryperc_lrt_values.csv",
           row.names = FALSE)
 
-# write.csv(lrt_csv, 
-#           "/Volumes/cassandra/alldata/dissertation/2/tables/lrt_RT_values.csv",
-#           row.names = FALSE)
+generate_newcommands <- function(csv_path, tex_path) {
+  d     <- read.csv(csv_path)
+  lines <- c("% Auto-generated LRT values for RT model -- do not edit manually")
+  
+  for (i in seq_len(nrow(d))) {
+    lines <- c(lines,
+               sprintf("\\newcommand{\\%s}{%s}",  d$cmd_chi[i], d$Chi2[i]),
+               sprintf("\\newcommand{\\%s}{%s}",  d$cmd_df[i],  d$Df[i]),
+               sprintf("\\newcommand{\\%s}{%s}",  d$cmd_p[i],   d$p[i])
+    )
+  }
+  
+  writeLines(lines, tex_path)
+  message("Written: ", tex_path)
+}
 
+generate_newcommands(
+  csv_path = "/Volumes/cassandra/alldata/dissertation/2/tables/laryperc_lrt_values.csv",
+  tex_path = "/Volumes/cassandra/alldata/dissertation/2/tables/laryperc_lrt_commands.tex"
+)
 
 # --- RT Model Tables ---
 
@@ -402,8 +421,8 @@ pairs_RT_table <- sorted_res_RT %>%
   kable_styling(latex_options = "hold_position") %>%
   row_spec(0, bold = TRUE)
 
-save_kable(pairs_RT_table, file = "/Volumes/circe/alldata/dissertation/2/tables/laryperc_pairs_rt.tex")
-# save_kable(pairs_RT_table, file = "/Volumes/cassandra/alldata/dissertation/2/tables/laryperc_pairs_rt.tex")
+# save_kable(pairs_RT_table, file = "/Volumes/circe/alldata/dissertation/2/tables/laryperc_pairs_rt.tex")
+save_kable(pairs_RT_table, file = "/Volumes/cassandra/alldata/dissertation/2/tables/laryperc_pairs_rt.tex")
 
 # --- Accuracy Model Tables ---
 
@@ -428,8 +447,8 @@ pairs_ACC_table <- sorted_res_ACC %>%
   kable_styling(latex_options = "hold_position") %>%
   row_spec(0, bold = TRUE)
 
-save_kable(pairs_ACC_table, file = "/Volumes/circe/alldata/dissertation/2/tables/laryperc_pairs_acc.tex")
-# save_kable(pairs_ACC_table, file = "/Volumes/cassandra/alldata/dissertation/2/tables/laryperc_pairs_acc.tex")
+# save_kable(pairs_ACC_table, file = "/Volumes/circe/alldata/dissertation/2/tables/laryperc_pairs_acc.tex")
+save_kable(pairs_ACC_table, file = "/Volumes/cassandra/alldata/dissertation/2/tables/laryperc_pairs_acc.tex")
 
 
 # 1. Extract RT Estimates (on the log-z scale)
@@ -636,14 +655,27 @@ raw_acc_plot <- ggplot(acc_sum_plot, aes(x = Condition, y = p, fill = CarrierTyp
   # Use manual scale here:
   scale_fill_manual(values = pal5) +
   theme(legend.position = "bottom")  +
+  # theme(
+  #   # Axis Titles (labels like "Condition", "Reaction Time")
+  #   axis.title.x = element_text(size = 14),
+  #   axis.title.y = element_text(size = 14),
+  #   
+  #   # Axis Text (tick labels like "[t]", "[ʔ]", "0.5", "1.0")
+  #   axis.text.x = element_text(family = "Doulos SIL", size = 12),
+  #   axis.text.y = element_text(size = 12))
+
   theme(
-    # Axis Titles (labels like "Condition", "Reaction Time")
-    axis.title.x = element_text(size = 14),
-    axis.title.y = element_text(size = 14),
-    
-    # Axis Text (tick labels like "[t]", "[ʔ]", "0.5", "1.0")
-    axis.text.x = element_text(family = "Doulos SIL", size = 12),
-    axis.text.y = element_text(size = 12))
+    axis.title.x = element_text(size = 16),
+    axis.title.y = element_text(size = 16),
+    axis.text.x  = element_text(family = "Doulos SIL", size = 14),
+    axis.text.y  = element_text(size = 14),
+    legend.text  = element_text(size = 13),
+    legend.title = element_text(size = 14),
+    plot.title   = element_text(size = 17, face = "bold", hjust = 0.5)
+  )
+
+ggsave("/Volumes/cassandra/alldata/dissertation/2/figs/laryperc_acc_bar.pdf", plot = raw_acc_plot,
+       width = 14.6, height = 8.5, units = "in", device = cairo_pdf)
 
 library(patchwork)
 
@@ -659,11 +691,11 @@ rt_combined <- ((raw_RT_plot + forest_RT) +
     axis.text = element_text(size = 11)
   )
 
-ggsave("/Volumes/circe/alldata/dissertation/2/figs/laryperc_rt_combined.pdf", plot = rt_combined,
-       width = 14.6, height = 8.5, units = "in", device = cairo_pdf)
-
-# ggsave("/Volumes/cassandra/alldata/dissertation/2/figs/laryperc_rt_combined.pdf", plot = rt_combined, 
+# ggsave("/Volumes/circe/alldata/dissertation/2/figs/laryperc_rt_combined.pdf", plot = rt_combined,
 #        width = 14.6, height = 8.5, units = "in", device = cairo_pdf)
+
+ggsave("/Volumes/cassandra/alldata/dissertation/2/figs/laryperc_rt_combined.pdf", plot = rt_combined,
+       width = 14.6, height = 8.5, units = "in", device = cairo_pdf)
 
 
 # --- Accuracy Pair ---
@@ -678,11 +710,11 @@ acc_combined <- ((raw_acc_plot + forest_acc) +
     axis.text = element_text(size = 11)
   )
 
-ggsave("/Volumes/circe/alldata/dissertation/2/figs/laryperc_acc_combined.pdf", plot = acc_combined,
-       width = 14.6, height = 8.5, units = "in",  device = cairo_pdf)
-
-# ggsave("/Volumes/cassandra/alldata/dissertation/2/figs/laryperc_acc_combined.pdf", plot = acc_combined, 
+# ggsave("/Volumes/circe/alldata/dissertation/2/figs/laryperc_acc_combined.pdf", plot = acc_combined,
 #        width = 14.6, height = 8.5, units = "in",  device = cairo_pdf)
+
+ggsave("/Volumes/cassandra/alldata/dissertation/2/figs/laryperc_acc_combined.pdf", plot = acc_combined,
+       width = 14.6, height = 8.5, units = "in",  device = cairo_pdf)
 
 ## test
 
