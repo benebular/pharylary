@@ -43,8 +43,8 @@ library(scales)
 
 
 #paths
-# orig_data_path <- sprintf('/Volumes/circe/alldata/dissertation/2/laryperc_events_behav_merged_allsubs.csv')
-orig_data_path <- sprintf('/Volumes/cassandra/alldata/dissertation/2/laryperc_events_behav_merged_allsubs.csv')
+orig_data_path <- sprintf('/Volumes/circe/alldata/dissertation/2/laryperc_events_behav_merged_allsubs.csv')
+# orig_data_path <- sprintf('/Volumes/cassandra/alldata/dissertation/2/laryperc_events_behav_merged_allsubs.csv')
 
 orig_data = read.csv(orig_data_path)
 df <- orig_data
@@ -239,11 +239,11 @@ tbl2_tex <- kable(tbl2,
   #          escape        = FALSE)
 
 # --- Save out -----------------------------------------------------------------
-save_kable(tbl1_tex, file = "/Volumes/cassandra/alldata/dissertation/2/tables/model_comp_RT.tex")
-save_kable(tbl2_tex, file = "/Volumes/cassandra/alldata/dissertation/2/tables/model_comp_outputs_RT.tex")
+# save_kable(tbl1_tex, file = "/Volumes/cassandra/alldata/dissertation/2/tables/model_comp_RT.tex")
+# save_kable(tbl2_tex, file = "/Volumes/cassandra/alldata/dissertation/2/tables/model_comp_outputs_RT.tex")
 
-# save_kable(tbl1_tex, file = "/Volumes/circe/alldata/dissertation/2/tables/laryperc_model_comp.tex")
-# save_kable(tbl2_tex, file = "/Volumes/circe/alldata/dissertation/2/tables/model_comp_outputs_RT.tex")
+save_kable(tbl1_tex, file = "/Volumes/circe/alldata/dissertation/2/tables/laryperc_model_comp.tex")
+save_kable(tbl2_tex, file = "/Volumes/circe/alldata/dissertation/2/tables/model_comp_outputs_RT.tex")
 
 # emms_RT <- emmeans(mod_RT, ~ Condition*CarrierType)
 # pairs(emms_RT)
@@ -329,8 +329,8 @@ tbl2_tex <- kable(tbl2,
 #          escape        = FALSE)
 
 # --- Save out -----------------------------------------------------------------
-save_kable(tbl2_tex, file = "/Volumes/cassandra/alldata/dissertation/2/tables/model_comp_outputs_RT.tex")
-# save_kable(tbl2_tex, file = "/Volumes/circe/alldata/dissertation/2/tables/model_comp_outputs_acc.tex")
+# save_kable(tbl2_tex, file = "/Volumes/cassandra/alldata/dissertation/2/tables/model_comp_outputs_RT.tex")
+save_kable(tbl2_tex, file = "/Volumes/circe/alldata/dissertation/2/tables/model_comp_outputs_acc.tex")
 
 
 emms_ACC <- emmeans(
@@ -373,8 +373,12 @@ lrt_csv_acc <- rbind(
 # --- Combine and save ---------------------------------------------------------
 lrt_csv <- rbind(lrt_csv_rt, lrt_csv_acc)
 
+# write.csv(lrt_csv,
+#           "/Volumes/cassandra/alldata/dissertation/2/tables/laryperc_lrt_values.csv",
+#           row.names = FALSE)
+
 write.csv(lrt_csv,
-          "/Volumes/cassandra/alldata/dissertation/2/tables/laryperc_lrt_values.csv",
+          "/Volumes/circe/alldata/dissertation/2/tables/laryperc_lrt_values.csv",
           row.names = FALSE)
 
 generate_newcommands <- function(csv_path, tex_path) {
@@ -393,9 +397,14 @@ generate_newcommands <- function(csv_path, tex_path) {
   message("Written: ", tex_path)
 }
 
+# generate_newcommands(
+#   csv_path = "/Volumes/cassandra/alldata/dissertation/2/tables/laryperc_lrt_values.csv",
+#   tex_path = "/Volumes/cassandra/alldata/dissertation/2/tables/laryperc_lrt_commands.tex"
+# )
+
 generate_newcommands(
-  csv_path = "/Volumes/cassandra/alldata/dissertation/2/tables/laryperc_lrt_values.csv",
-  tex_path = "/Volumes/cassandra/alldata/dissertation/2/tables/laryperc_lrt_commands.tex"
+  csv_path = "/Volumes/circe/alldata/dissertation/2/tables/laryperc_lrt_values.csv",
+  tex_path = "/Volumes/circe/alldata/dissertation/2/tables/laryperc_lrt_commands.tex"
 )
 
 # --- RT Model Tables ---
@@ -421,8 +430,8 @@ pairs_RT_table <- sorted_res_RT %>%
   kable_styling(latex_options = "hold_position") %>%
   row_spec(0, bold = TRUE)
 
-# save_kable(pairs_RT_table, file = "/Volumes/circe/alldata/dissertation/2/tables/laryperc_pairs_rt.tex")
-save_kable(pairs_RT_table, file = "/Volumes/cassandra/alldata/dissertation/2/tables/laryperc_pairs_rt.tex")
+save_kable(pairs_RT_table, file = "/Volumes/circe/alldata/dissertation/2/tables/laryperc_pairs_rt.tex")
+# save_kable(pairs_RT_table, file = "/Volumes/cassandra/alldata/dissertation/2/tables/laryperc_pairs_rt.tex")
 
 # --- Accuracy Model Tables ---
 
@@ -447,8 +456,8 @@ pairs_ACC_table <- sorted_res_ACC %>%
   kable_styling(latex_options = "hold_position") %>%
   row_spec(0, bold = TRUE)
 
-# save_kable(pairs_ACC_table, file = "/Volumes/circe/alldata/dissertation/2/tables/laryperc_pairs_acc.tex")
-save_kable(pairs_ACC_table, file = "/Volumes/cassandra/alldata/dissertation/2/tables/laryperc_pairs_acc.tex")
+save_kable(pairs_ACC_table, file = "/Volumes/circe/alldata/dissertation/2/tables/laryperc_pairs_acc.tex")
+# save_kable(pairs_ACC_table, file = "/Volumes/cassandra/alldata/dissertation/2/tables/laryperc_pairs_acc.tex")
 
 
 # 1. Extract RT Estimates (on the log-z scale)
@@ -498,21 +507,16 @@ library(ggplot2)
 # Function to standardize CI columns and clean up phonetic labels
 clean_contrasts <- function(d) {
   d %>%
-    # 1. Standardize Confidence Interval column names
     rename(low = any_of(c("lower.CL", "asymp.LCL")),
            high = any_of(c("upper.CL", "asymp.UCL"))) %>%
-    # 2. Update phonetic labels
     mutate(
-      # Replace 'gs' with glottal stop symbol
+      # Standardize separator: ratio contrasts use "/", convert to "-"
+      contrast = str_replace_all(contrast, "\\s*/\\s*", " - "),
+      
       contrast = str_replace_all(contrast, "gs", "[ʔ]"),
-      
-      # Replace 't' ONLY when it is a standalone word (avoids breaking 'noncreaky')
       contrast = str_replace_all(contrast, "\\bt\\b", "[t]"),
-      
-      # Replace 'none' with the specific 'No /t/' label
       contrast = str_replace_all(contrast, "none", "No /t/"),
       
-      # Logic for Significance coloring based on p-value
       sig = ifelse(p.value < 0.05, "Significant", "Not Significant"),
       sig = factor(sig, levels = c("Not Significant", "Significant"))
     )
@@ -545,12 +549,11 @@ acc_plot_data$sig <- factor(acc_plot_data$sig, levels = c("Significant", "Not Si
 # 3. Update Forest RT
 forest_RT <- ggplot(rt_plot_data, aes(x = estimate, y = reorder(contrast, estimate))) +
   geom_vline(xintercept = 0, linetype = "dashed", color = "gray50") +
-  geom_errorbarh(aes(xmin = low, xmax = high, color = sig), height = 0.2) +
-  geom_point(aes(color = sig, shape = sig), size = 3) +
+  geom_errorbarh(aes(xmin = low, xmax = high, color = sig), height = 0.5) +
+  geom_point(aes(color = sig, shape = sig), size = 7) +
   scale_color_manual(values = plot_colors) +
   scale_shape_manual(values = c("Significant" = 16, "Not Significant" = 17)) +
   labs(title = "Pairwise Contrasts: Reaction Time",
-       subtitle = "Estimates (Log-Z) with 95% Confidence Intervals",
        x = "Estimated Difference (Log-Z)",
        y = NULL,
        color = "p < 0.05",
@@ -558,19 +561,34 @@ forest_RT <- ggplot(rt_plot_data, aes(x = estimate, y = reorder(contrast, estima
   theme_minimal() +
   theme(panel.grid.minor = element_blank(),
         legend.position = "bottom",
-        axis.title.x = element_text(size = 14),
-        axis.text.x = element_text(size = 12))
+        legend.title = element_text(size = 18),
+        legend.text  = element_text(size = 18),
+        legend.key.width = unit(3, "cm"),    # widens key so line is visible
+        legend.key.size  = unit(1.5, "cm"),  # scales overall key height/width
+        axis.title.x = element_text(size = 20, margin = margin(t = 20)),
+        axis.text.x  = element_text(size = 20),
+        axis.text.y  = element_text(size = 20),
+        plot.title   = element_text(size = 22, face = "bold", hjust = 0.5)) +
+  guides(
+    color = guide_legend(override.aes = list(size = 7, linewidth = 1.2)),
+    shape = guide_legend(override.aes = list(size = 7, linewidth = 1.2))
+  )
+
+# ggsave("/Volumes/cassandra/alldata/dissertation/2/figs/laryperc_rt_forest.pdf", plot = forest_RT,
+#        width = 14.6, height = 8.5, units = "in", device = cairo_pdf)
+
+ggsave("/Volumes/circe/alldata/dissertation/2/figs/laryperc_rt_forest.pdf", plot = forest_RT,
+       width = 14.6, height = 8.5, units = "in", device = cairo_pdf)
 
 # 4. Update Forest Accuracy
 forest_acc <- ggplot(acc_plot_data, aes(x = odds.ratio, y = reorder(contrast, odds.ratio))) +
   geom_vline(xintercept = 1, linetype = "dashed", color = "gray50") +
-  geom_errorbarh(aes(xmin = low, xmax = high, color = sig), height = 0.2) +
-  geom_point(aes(color = sig, shape = sig), size = 3) +
+  geom_errorbarh(aes(xmin = low, xmax = high, color = sig), height = 0.5) +
+  geom_point(aes(color = sig, shape = sig), size = 7) +
   scale_x_log10(breaks = c(0.2, 0.5, 1, 2, 5)) +
   scale_color_manual(values = plot_colors) +
   scale_shape_manual(values = c("Significant" = 16, "Not Significant" = 17)) +
   labs(title = "Pairwise Contrasts: Accuracy",
-       subtitle = "Odds Ratios with 95% Confidence Intervals",
        x = "Odds Ratio (Log Scale)",
        y = NULL,
        color = "p < 0.05",
@@ -578,8 +596,24 @@ forest_acc <- ggplot(acc_plot_data, aes(x = odds.ratio, y = reorder(contrast, od
   theme_minimal() +
   theme(panel.grid.minor = element_blank(),
         legend.position = "bottom",
-        axis.title.x = element_text(size = 14),
-        axis.text.x = element_text(size = 12))
+        legend.title = element_text(size = 18),
+        legend.text  = element_text(size = 18),
+        legend.key.width = unit(3, "cm"),    # widens key so line is visible
+        legend.key.size  = unit(1.5, "cm"),  # scales overall key height/width
+        axis.title.x = element_text(size = 20, margin = margin(t = 20)),
+        axis.text.x  = element_text(size = 20),
+        axis.text.y  = element_text(size = 20),
+        plot.title   = element_text(size = 22, face = "bold", hjust = 0.5)) +
+  guides(
+    color = guide_legend(override.aes = list(size = 7, linewidth = 1.2)),
+    shape = guide_legend(override.aes = list(size = 7, linewidth = 1.2))
+  )
+
+# ggsave("/Volumes/cassandra/alldata/dissertation/2/figs/laryperc_acc_forest.pdf", plot = forest_acc,
+#        width = 14.6, height = 8.5, units = "in", device = cairo_pdf)
+
+ggsave("/Volumes/circe/alldata/dissertation/2/figs/laryperc_acc_forest.pdf", plot = forest_acc,
+       width = 14.6, height = 8.5, units = "in", device = cairo_pdf)
 
 # raw
 
@@ -633,14 +667,29 @@ raw_RT_plot <- ggplot(df_sum_plot, aes(x = Condition, y = mean_rt, fill = Carrie
   # Use manual scale here:
   scale_fill_manual(values = pal5) +
   theme(legend.position = "bottom")  +
+  # theme(
+  #   # Axis Titles (labels like "Condition", "Reaction Time")
+  #   axis.title.x = element_text(size = 14),
+  #   axis.title.y = element_text(size = 14),
+  #   
+  #   # Axis Text (tick labels like "[t]", "[ʔ]", "0.5", "1.0")
+  #   axis.text.x = element_text(family = "Doulos SIL", size = 12),
+  #   axis.text.y = element_text(size = 12))
   theme(
-    # Axis Titles (labels like "Condition", "Reaction Time")
-    axis.title.x = element_text(size = 14),
-    axis.title.y = element_text(size = 14),
-    
-    # Axis Text (tick labels like "[t]", "[ʔ]", "0.5", "1.0")
-    axis.text.x = element_text(family = "Doulos SIL", size = 12),
-    axis.text.y = element_text(size = 12))
+    axis.title.x = element_text(size = 20, margin = margin(t = 20)),
+    axis.title.y = element_text(size = 20),
+    axis.text.x  = element_text(family = "Doulos SIL", size = 20),
+    axis.text.y  = element_text(size = 20),
+    legend.text  = element_text(size = 18),
+    legend.title = element_text(size = 18),
+    plot.title   = element_text(size = 22, face = "bold", hjust = 0.5)
+  )
+
+# ggsave("/Volumes/cassandra/alldata/dissertation/2/figs/laryperc_rt_bar.pdf", plot = raw_RT_plot,
+#        width = 14.6, height = 8.5, units = "in", device = cairo_pdf)
+
+ggsave("/Volumes/circe/alldata/dissertation/2/figs/laryperc_rt_bar.pdf", plot = raw_RT_plot,
+       width = 14.6, height = 8.5, units = "in", device = cairo_pdf)
 
 raw_acc_plot <- ggplot(acc_sum_plot, aes(x = Condition, y = p, fill = CarrierType)) +
   geom_col(position = position_dodge(width = 0.9), alpha = 0.8) +
@@ -663,18 +712,20 @@ raw_acc_plot <- ggplot(acc_sum_plot, aes(x = Condition, y = p, fill = CarrierTyp
   #   # Axis Text (tick labels like "[t]", "[ʔ]", "0.5", "1.0")
   #   axis.text.x = element_text(family = "Doulos SIL", size = 12),
   #   axis.text.y = element_text(size = 12))
-
   theme(
-    axis.title.x = element_text(size = 16),
-    axis.title.y = element_text(size = 16),
-    axis.text.x  = element_text(family = "Doulos SIL", size = 14),
-    axis.text.y  = element_text(size = 14),
-    legend.text  = element_text(size = 13),
-    legend.title = element_text(size = 14),
-    plot.title   = element_text(size = 17, face = "bold", hjust = 0.5)
+    axis.title.x = element_text(size = 20, margin = margin(t = 20)),
+    axis.title.y = element_text(size = 20),
+    axis.text.x  = element_text(family = "Doulos SIL", size = 20),
+    axis.text.y  = element_text(size = 20),
+    legend.text  = element_text(size = 18),
+    legend.title = element_text(size = 18),
+    plot.title   = element_text(size = 22, face = "bold", hjust = 0.5)
   )
 
-ggsave("/Volumes/cassandra/alldata/dissertation/2/figs/laryperc_acc_bar.pdf", plot = raw_acc_plot,
+# ggsave("/Volumes/cassandra/alldata/dissertation/2/figs/laryperc_acc_bar.pdf", plot = raw_acc_plot,
+#        width = 14.6, height = 8.5, units = "in", device = cairo_pdf)
+
+ggsave("/Volumes/circe/alldata/dissertation/2/figs/laryperc_acc_bar.pdf", plot = raw_acc_plot,
        width = 14.6, height = 8.5, units = "in", device = cairo_pdf)
 
 library(patchwork)
@@ -691,11 +742,11 @@ rt_combined <- ((raw_RT_plot + forest_RT) +
     axis.text = element_text(size = 11)
   )
 
-# ggsave("/Volumes/circe/alldata/dissertation/2/figs/laryperc_rt_combined.pdf", plot = rt_combined,
-#        width = 14.6, height = 8.5, units = "in", device = cairo_pdf)
-
-ggsave("/Volumes/cassandra/alldata/dissertation/2/figs/laryperc_rt_combined.pdf", plot = rt_combined,
+ggsave("/Volumes/circe/alldata/dissertation/2/figs/laryperc_rt_combined.pdf", plot = rt_combined,
        width = 14.6, height = 8.5, units = "in", device = cairo_pdf)
+
+# ggsave("/Volumes/cassandra/alldata/dissertation/2/figs/laryperc_rt_combined.pdf", plot = rt_combined,
+#        width = 14.6, height = 8.5, units = "in", device = cairo_pdf)
 
 
 # --- Accuracy Pair ---
@@ -710,11 +761,11 @@ acc_combined <- ((raw_acc_plot + forest_acc) +
     axis.text = element_text(size = 11)
   )
 
-# ggsave("/Volumes/circe/alldata/dissertation/2/figs/laryperc_acc_combined.pdf", plot = acc_combined,
-#        width = 14.6, height = 8.5, units = "in",  device = cairo_pdf)
-
-ggsave("/Volumes/cassandra/alldata/dissertation/2/figs/laryperc_acc_combined.pdf", plot = acc_combined,
+ggsave("/Volumes/circe/alldata/dissertation/2/figs/laryperc_acc_combined.pdf", plot = acc_combined,
        width = 14.6, height = 8.5, units = "in",  device = cairo_pdf)
+
+# ggsave("/Volumes/cassandra/alldata/dissertation/2/figs/laryperc_acc_combined.pdf", plot = acc_combined,
+#        width = 14.6, height = 8.5, units = "in",  device = cairo_pdf)
 
 ## test
 
