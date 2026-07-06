@@ -426,12 +426,15 @@ following_vowels <- following_vowels %>%
 
 subset_glot$CarrierType <- as.factor(subset_glot$CarrierType)
 subset_glot$TargetSegment <- as.factor(subset_glot$TargetSegment)
+subset_glot$IPA <- as.factor(subset_glot$IPA)
 
 preceding_vowels$CarrierType <- as.factor(preceding_vowels$CarrierType)
 preceding_vowels$TargetSegment <- as.factor(preceding_vowels$TargetSegment)
+preceding_vowels$IPA <- as.factor(preceding_vowels$IPA)
 
 following_vowels$CarrierType <- as.factor(following_vowels$CarrierType)
 following_vowels$TargetSegment <- as.factor(following_vowels$TargetSegment)
+following_vowels$IPA <- as.factor(following_vowels$IPA)
 
 # Outer list: your three dataframes
 df_list <- list(
@@ -477,7 +480,7 @@ for (df_name in names(df_list)) {
     outlier_col <- feature_outlier_map[[feature]]
     
     ### --- Filter to complete/finite cases, plus outlier filter if applicable ---
-    vars_needed <- c(feature, "CarrierType", "TargetSegment", "UniquePairIndex")
+    vars_needed <- c(feature, "CarrierType", "TargetSegment", "IPA")
     ok <- complete.cases(df_current[, vars_needed]) &
       is.finite(df_current[[feature]])
     
@@ -491,28 +494,45 @@ for (df_name in names(df_list)) {
     df_prepared <- df_prepared %>%
       distinct(Trial, .keep_all = TRUE)
     
-    ### --- Model formula ---
-    formula_full <- as.formula(
-      paste0(feature, " ~ CarrierType * TargetSegment + (1 | UniquePairIndex)")
-    )
-    formula_no_int <- as.formula(
-      paste0(feature, " ~ CarrierType + TargetSegment + (1 | UniquePairIndex)")
-    )
+    ### --- Guard: skip if any predictor has fewer than 2 levels ---
+    predictors <- c("CarrierType", "TargetSegment")
+    n_levels <- sapply(predictors, function(p) n_distinct(df_prepared[[p]]))
     
-    mod_full   <- lmer(formula_full,   data = df_prepared, REML = FALSE)
-    mod_no_int <- lmer(formula_no_int, data = df_prepared, REML = FALSE)
+    if (any(n_levels < 2)) {
+      cat("  -- Skipping: insufficient levels in",
+          paste(predictors[n_levels < 2], collapse = ", "), "\n")
+      results_list[[df_name]][[feature]] <- list(skipped = TRUE, reason = n_levels)
+      next
+    }
     
-    comp <- anova(mod_full, mod_no_int)
+    ### --- Model formulae ---
+    formula_full         <- as.formula(paste0(feature, " ~ CarrierType * TargetSegment + (1 | IPA)"))
+    formula_no_int       <- as.formula(paste0(feature, " ~ CarrierType + TargetSegment + (1 | IPA)"))
+    formula_carrier_only <- as.formula(paste0(feature, " ~ CarrierType + (1 | IPA)"))
+    formula_segment_only <- as.formula(paste0(feature, " ~ TargetSegment + (1 | IPA)"))
+    
+    mod_full         <- lmer(formula_full,         data = df_prepared, REML = FALSE)
+    mod_no_int       <- lmer(formula_no_int,       data = df_prepared, REML = FALSE)
+    mod_carrier_only <- lmer(formula_carrier_only, data = df_prepared, REML = FALSE)
+    mod_segment_only <- lmer(formula_segment_only, data = df_prepared, REML = FALSE)
+    
+    comp_full_vs_no_int    <- anova(mod_full,   mod_no_int)       # does interaction help?
+    comp_no_int_vs_carrier <- anova(mod_no_int, mod_carrier_only) # does TargetSegment add anything?
+    comp_no_int_vs_segment <- anova(mod_no_int, mod_segment_only) # does CarrierType add anything?
     
     emm <- emmeans(mod_full, ~ CarrierType * TargetSegment)
     emm_pairs <- pairs(emm) %>% as.data.frame() %>% arrange(p.value)
     
     results_list[[df_name]][[feature]] <- list(
-      df_prepared = df_prepared,
-      mod_full    = mod_full,
-      mod_no_int  = mod_no_int,
-      comparison  = comp,
-      emm_pairs   = emm_pairs
+      df_prepared            = df_prepared,
+      mod_full               = mod_full,
+      mod_no_int             = mod_no_int,
+      mod_carrier_only       = mod_carrier_only,
+      mod_segment_only       = mod_segment_only,
+      comp_full_vs_no_int    = comp_full_vs_no_int,
+      comp_no_int_vs_carrier = comp_no_int_vs_carrier,
+      comp_no_int_vs_segment = comp_no_int_vs_segment,
+      emm_pairs              = emm_pairs
     )
   }
 }
@@ -679,3 +699,72 @@ for (df_name in names(desc_inputs)) {
   cat("Saved: tables/desc_", df_name, ".tex\n", sep = "")
 }
 
+# ============================================================
+# 3. MODEL COMPARISON TABLES (one per dataframe x feature)
+# ============================================================
+
+for (df_name in names(results_list)) {
+  for (feature in names(results_list[[df_name]])) {
+    
+    res <- results_list[[df_name]][[feature]]
+    
+    # Skip if this combination was skipped during modeling
+    if (!is.null(res$skipped)) next
+    
+    # Pull the three comparisons into a single tidy table
+    comp_table <- bind_rows(
+      as.data.frame(res$comp_full_vs_no_int)    %>% mutate(Comparison = "Full vs. No Interaction"),
+      as.data.frame(res$comp_no_int_vs_carrier) %>% mutate(Comparison = "Additive vs. CarrierType Only"),
+      as.data.frame(res$comp_no_int_vs_segment) %>% mutate(Comparison = "Additive vs. TargetSegment Only")
+    ) %>%
+      select(Comparison, npar, AIC, BIC, logLik, Chisq, Df, `Pr(>Chisq)`) %>%
+      mutate(`Pr(>Chisq)` = fmt_p(`Pr(>Chisq)`))
+    
+    comp_out <- comp_table %>%
+      kable(format    = "latex",
+            booktabs  = TRUE,
+            escape    = FALSE,
+            caption   = paste0("Model comparisons for ", feature, " --- ", df_name),
+            label     = paste0("tab:comp_", df_name, "_", feature),
+            linesep   = "\\addlinespace") %>%
+      kable_styling(latex_options = c("hold_position", "scale_down")) %>%
+      row_spec(0, bold = TRUE)
+    
+    save_kable(comp_out,
+               file = paste0("tables/comp_", df_name, "_", feature, ".tex"))
+    
+    cat("Saved: tables/comp_", df_name, "_", feature, ".tex\n", sep = "")
+  }
+}
+
+# ============================================================
+# 4. EMMEANS PAIRWISE TABLES (one per dataframe x feature)
+# ============================================================
+
+for (df_name in names(results_list)) {
+  for (feature in names(results_list[[df_name]])) {
+    
+    res <- results_list[[df_name]][[feature]]
+    
+    if (!is.null(res$skipped)) next
+    
+    emm_table <- res$emm_pairs %>%
+      mutate(p.value = fmt_p(p.value)) %>%
+      select(contrast, estimate, SE, df, t.ratio, p.value)
+    
+    emm_out <- emm_table %>%
+      kable(format    = "latex",
+            booktabs  = TRUE,
+            escape    = FALSE,
+            caption   = paste0("Pairwise comparisons (emmeans) for ", feature, " --- ", df_name),
+            label     = paste0("tab:emm_", df_name, "_", feature),
+            linesep   = "\\addlinespace") %>%
+      kable_styling(latex_options = c("hold_position", "scale_down")) %>%
+      row_spec(0, bold = TRUE)
+    
+    save_kable(emm_out,
+               file = paste0("tables/emm_", df_name, "_", feature, ".tex"))
+    
+    cat("Saved: tables/emm_", df_name, "_", feature, ".tex\n", sep = "")
+  }
+}
