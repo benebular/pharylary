@@ -606,6 +606,51 @@ for (df_name in names(df_list)) {
 # print(sorted_res_f0)
 
 # ============================================================
+# DICTIONARIES for clean table labels
+# ============================================================
+
+feature_display <- c(
+  "strF0_mean_z"   = "f0",
+  "H1H2c_mean_z"   = "H1-H2*",
+  "H1res_mean_z"   = "Residual H1*",
+  "CPP_mean_log_z" = "CPP",
+  "soe_mean_log_z" = "Strength of Excitation",
+  "sF1_mean"       = "F1",
+  "sF2_mean"       = "F2"
+)
+
+segment_display <- c(
+  "gs"             = "Allophonic \\ipa{[ʔ]}",
+  "k"              = "[k]",
+  "q"              = "[q]",
+  "t"              = "[t]",
+  "ʔ"   = "Phonemic \\ipa{[ʔ]}"
+)
+
+df_display <- c(
+  "subset_glot"     = "Phonemic and Allophonic \\ipa{[ʔ]}",
+  "preceding_vowels" = "Vowels Preceding Target Segment",
+  "following_vowels" = "Vowels Following Target Segment"
+)
+
+# Column order for preceding and following vowels (segment columns only)
+vowel_col_order <- c(
+  "Feature",
+  "[k]",
+  "[t]",
+  "[q]",
+  "Phonemic \\ipa{[ʔ]}",
+  "Allophonic \\ipa{[ʔ]}"
+)
+
+# Column order for subset_glot
+glot_col_order <- c(
+  "Feature",
+  "Phonemic \\ipa{[ʔ]}",
+  "Allophonic \\ipa{[ʔ]}"
+)
+
+# ============================================================
 # HELPER: format p-values
 # ============================================================
 fmt_p <- function(x) {
@@ -653,13 +698,8 @@ for (df_name in names(desc_inputs)) {
   
   df_current <- desc_inputs[[df_name]]
   
-  # Get TargetSegment levels for column headers
-  seg_levels <- levels(df_current$TargetSegment)
-  
-  # Build one row per feature
   desc_rows <- lapply(features, function(feature) {
     
-    # Mean (SD) per TargetSegment level
     stats <- df_current %>%
       filter(is.finite(.data[[feature]])) %>%
       group_by(TargetSegment) %>%
@@ -671,23 +711,35 @@ for (df_name in names(desc_inputs)) {
       mutate(mean_sd = paste0(mean_val, " (", sd_val, ")")) %>%
       select(TargetSegment, mean_sd)
     
-    # Pivot wide so each segment is a column
     wide <- stats %>%
       tidyr::pivot_wider(names_from  = TargetSegment,
                          values_from = mean_sd)
     
-    bind_cols(data.frame(Feature = feature), wide)
+    bind_cols(data.frame(Feature = feature_display[[feature]]), wide)
     
   }) %>% bind_rows()
   
-  # Rename Feature column; segment columns stay as-is
   colnames(desc_rows)[1] <- "Feature"
+  
+  # Rename segment columns using segment_display dictionary
+  colnames(desc_rows) <- ifelse(
+    colnames(desc_rows) %in% names(segment_display),
+    segment_display[colnames(desc_rows)],
+    colnames(desc_rows)
+  )
+  
+  # Pick the right column order for this dataframe
+  col_order <- if (df_name == "subset_glot") glot_col_order else vowel_col_order
+  
+  # Reorder columns, keeping only those that exist in this table
+  desc_rows <- desc_rows %>%
+    select(any_of(col_order))
   
   desc_table <- desc_rows %>%
     kable(format   = "latex",
           booktabs = TRUE,
           escape   = FALSE,
-          caption  = paste("Mean (SD) by Target Segment —", df_name),
+          caption  = paste(df_display[[df_name]], "- Mean (SD) by Target Segment"),
           label    = paste0("tab:desc_", df_name),
           linesep  = "\\addlinespace") %>%
     kable_styling(latex_options = c("hold_position", "scale_down")) %>%
@@ -724,7 +776,7 @@ for (df_name in names(results_list)) {
       kable(format    = "latex",
             booktabs  = TRUE,
             escape    = FALSE,
-            caption   = paste0("Model comparisons for ", feature, " --- ", df_name),
+            caption   = paste0("Model comparisons for ", feature_display[[feature]], " - ", df_display[[df_name]]),
             label     = paste0("tab:comp_", df_name, "_", feature),
             linesep   = "\\addlinespace") %>%
       kable_styling(latex_options = c("hold_position", "scale_down")) %>%
@@ -749,14 +801,24 @@ for (df_name in names(results_list)) {
     if (!is.null(res$skipped)) next
     
     emm_table <- res$emm_pairs %>%
-      mutate(p.value = fmt_p(p.value)) %>%
+      mutate(
+        p.value  = fmt_p(p.value),
+        contrast = stringr::str_replace_all(
+          contrast,
+          c(
+            "\\bgs\\b"              = "Allophonic [\\\\textipa{P}]",
+            "\\bPhonemic \\[ʔ\\]\\b"   = "Phonemic [\\\\textipa{P}]",
+            "\\bAllophonic \\[ʔ\\]\\b" = "Allophonic [\\\\textipa{P}]"
+          )
+        )
+      ) %>%
       select(contrast, estimate, SE, df, t.ratio, p.value)
     
     emm_out <- emm_table %>%
       kable(format    = "latex",
             booktabs  = TRUE,
             escape    = FALSE,
-            caption   = paste0("Pairwise comparisons (emmeans) for ", feature, " --- ", df_name),
+            caption   = paste0( df_display[[df_name]], " - ", "Pairwise Comparisons (emmeans)", " - ", feature_display[[feature]]),
             label     = paste0("tab:emm_", df_name, "_", feature),
             linesep   = "\\addlinespace") %>%
       kable_styling(latex_options = c("hold_position", "scale_down")) %>%
@@ -766,5 +828,245 @@ for (df_name in names(results_list)) {
                file = paste0("tables/emm_", df_name, "_", feature, ".tex"))
     
     cat("Saved: tables/emm_", df_name, "_", feature, ".tex\n", sep = "")
+  }
+}
+
+# ============================================================
+# 5. CROSS-DATAFRAME SUMMARY TABLES (one per feature)
+# ============================================================
+
+for (feature in features) {
+  
+  cat("Building cross-df table for:", feature, "\n")
+  
+  all_rows <- lapply(names(desc_inputs), function(df_name) {
+    
+    df_current <- desc_inputs[[df_name]]
+    
+    stats <- df_current %>%
+      filter(is.finite(.data[[feature]])) %>%
+      group_by(TargetSegment) %>%
+      summarise(
+        mean_val = round(mean(.data[[feature]], na.rm = TRUE), 3),
+        sd_val   = round(sd(.data[[feature]],   na.rm = TRUE), 3),
+        .groups  = "drop"
+      ) %>%
+      mutate(
+        mean_sd       = paste0(mean_val, " (", sd_val, ")"),
+        TargetSegment = segment_display[as.character(TargetSegment)]
+      ) %>%
+      select(TargetSegment, mean_sd) %>%
+      tidyr::pivot_wider(
+        names_from  = TargetSegment,
+        values_from = mean_sd
+      ) %>%
+      mutate(Context = df_display[[df_name]]) %>%
+      select(Context, everything())
+    
+  }) %>% bind_rows()
+  
+  # Reorder columns: Context first, then segments in display order
+  col_order <- c("Context", vowel_col_order[vowel_col_order != "Feature"])
+  all_rows <- all_rows %>%
+    select(any_of(col_order))
+  
+  # Row that corresponds to subset_glot for the separator
+  glot_row <- which(names(desc_inputs) == "subset_glot")
+  
+  cross_table <- all_rows %>%
+    kable(
+      format    = "latex",
+      booktabs  = TRUE,
+      escape    = FALSE,
+      caption   = paste0("Normalized Mean (SD) for ", feature_display[[feature]], " across segment groups"),
+      label     = paste0("tab:cross_", feature),
+      linesep   = "",
+      row.names = FALSE
+    ) %>%
+    kable_styling(latex_options = c("hold_position", "scale_down")) %>%
+    row_spec(0, bold = TRUE) %>%
+    row_spec(glot_row, hline_after = TRUE)
+  
+  save_kable(cross_table,
+             file = paste0("tables/cross_", feature, ".tex"))
+  
+  cat("Saved: tables/cross_", feature, ".tex\n", sep = "")
+}
+
+library(ggplot2)
+library(gghalves)
+
+library(showtext)
+font_add_google("Charis SIL", "CharisSIL")
+showtext_auto()
+
+dir.create("figures", showWarnings = FALSE)
+
+df_list <- list(
+  preceding_vowels = preceding_vowels,
+  following_vowels = following_vowels,
+  subset_glot = subset_glot
+)
+
+# Define colors for Label levels — extend as needed
+label_colors <- c(
+  "ɑ" = "#1b9e77", "æ" = "#d95f02", "a" = "#7570b3",
+  "i" = "#e7298a", "ɪ" = "#66a61e", "u" = "#e6ab02", "ʊ" = "#a6761d",
+  "ɑː" = "#1b9e77", "æː" = "#d95f02", "aː" = "#7570b3",
+  "iː" = "#e7298a", "ɪː" = "#66a61e", "uː" = "#e6ab02", "ʊː" = "#a6761d"
+)
+
+segment_colors <- c(
+  "Phonemic [ʔ]"   = "#1b9e77",
+  "Allophonic [ʔ]" = "#d95f02",
+  "gs"             = "#7570b3",
+  "k"              = "#e7298a",
+  "q"              = "#66a61e",
+  "t"              = "#e6ab02"
+)
+
+# y axis labels for each feature
+feature_labels <- c(
+  "strF0_mean_z"   = "Normalized F0",
+  "H1H2c_mean_z"   = "Normalized H1-H2c",
+  "H1res_mean_z"   = "Normalized H1 Residual",
+  "CPP_mean_log_z" = "Normalized CPP",
+  "soe_mean_log_z" = "Normalized SoE",
+  "sF1_mean"       = "Normalized F1",
+  "sF2_mean"       = "Normalized F2"
+)
+
+feature_titles <- c(
+  "strF0_mean_z"   = "f0",
+  "H1H2c_mean_z"   = "H1-H2c",
+  "H1res_mean_z"   = "Residual H1",
+  "CPP_mean_log_z" = "Cepstral Peak Prominence",
+  "soe_mean_log_z" = "Strength of Excitation",
+  "sF1_mean"       = "F1",
+  "sF2_mean"       = "F2"
+)
+
+for (df_name in names(df_list)) {
+  
+  cat("=== Plotting dataframe:", df_name, "===\n")
+  df_current <- df_list[[df_name]]
+  
+  for (feature in names(feature_outlier_map)) {
+    
+    cat("  -- Feature:", feature, "\n")
+    
+    outlier_col <- feature_outlier_map[[feature]]
+    
+    ### --- Same filtering as model loop but NO distinct() collapse ---
+    vars_needed <- c(feature, "CarrierType", "TargetSegment", "IPA", "Label")
+    ok <- complete.cases(df_current[, vars_needed]) &
+      is.finite(df_current[[feature]])
+    
+    df_plot <- df_current[ok, ]
+    
+    if (!is.na(outlier_col)) {
+      df_plot <- df_plot %>%
+        filter(.data[[outlier_col]] == "OK")
+    }
+    
+    df_plot <- df_plot %>%
+      mutate(TargetSegment = case_when(
+        TargetSegment == "ʔ" & Condition == "phoneme"   ~ "Phonemic [ʔ]",
+        TargetSegment == "gs" & Condition == "allophone" ~ "Allophonic [ʔ]",
+        TRUE ~ TargetSegment
+      ))
+    
+    # Get Label order from the data
+    label_order <- sort(unique(df_plot$Label))
+    
+    df_plot <- df_plot %>%
+      mutate(Label = factor(Label, levels = label_order))
+    
+    y_label <- feature_labels[[feature]]
+    
+    df_plot <- df_plot %>%
+      mutate(SegmentCarrier = interaction(TargetSegment, CarrierType, sep = " "))
+    
+    segment_order <- c("t", "k", "q", "Phonemic [ʔ]", "Allophonic [ʔ]")
+    
+    df_plot <- df_plot %>%
+      mutate(TargetSegment = factor(TargetSegment, levels = segment_order))
+    
+    p <- ggplot(
+      df_plot,
+      aes(x = TargetSegment, y = .data[[feature]], 
+          fill = TargetSegment, alpha = CarrierType)
+    ) +
+      geom_boxplot(
+        width = 0.5, outlier.shape = NA,
+        position = position_dodge(width = 0.6),
+        show.legend = FALSE
+      ) +
+      geom_point(
+        data = data.frame(TargetSegment = unique(df_plot$TargetSegment)),
+        aes(x = TargetSegment, y = NA_real_, fill = TargetSegment),
+        shape = 22, size = 8,
+        position = position_identity(),
+        inherit.aes = FALSE, show.legend = TRUE, alpha = 0
+      ) +
+      scale_alpha_manual(
+        values = c("creaky" = 0.8, "non-creaky" = 0.3),
+        name   = "Carrier Type",
+        labels = c("creaky" = "Yes", "non-creaky" = "No")
+      ) +
+      scale_fill_manual(
+        values = segment_colors,
+        name   = "Target Segment",
+        labels = c(
+          "k"              = "[k]",
+          "q"              = "[q]",
+          "t"              = "[t]",
+          "Phonemic [ʔ]"   = "Phonemic [ʔ]",
+          "Allophonic [ʔ]" = "Allophonic [ʔ]"
+        )
+      ) +
+      coord_flip(clip = "off") +
+      labs(x = NULL, y = y_label, title = feature_titles[[feature]]) +
+      guides(
+        fill = guide_legend(
+          reverse = TRUE,
+          override.aes = list(shape = 22, size = 8, colour = "black", alpha = 1)
+        ),
+        alpha = guide_legend(
+          title = "Creaky?",
+          override.aes = list(
+            fill   = "grey50",
+            colour = "black",
+            size   = 8,
+            shape  = 22,
+            alpha  = c(0.8, 0.3)
+          )
+        )
+      ) +
+      theme_minimal(base_size = 18, base_family = "CharisSIL") +
+      theme(
+        panel.grid.major.y = element_blank(),
+        legend.position    = "right",
+        legend.direction   = "vertical",
+        legend.background  = element_rect(fill = "white", color = "white"),
+        legend.key.size    = unit(1.2, "cm"),
+        legend.title       = element_text(size = 18),
+        legend.text        = element_text(size = 16),
+        axis.text.y        = element_blank(),
+        axis.ticks.y       = element_blank(),
+        axis.text.x        = element_text(size = 16),
+        axis.title.x       = element_text(size = 20, margin = margin(t = 10)),
+        plot.margin        = margin(20, 20, 20, 20),
+        plot.title         = element_text(hjust = 0.5, size = 30)
+      )
+    
+    ggsave(
+      filename = paste0("figures/", df_name, "_", feature, ".pdf"),
+      plot     = p,
+      width    = 14,
+      height   = 8
+    )
+    
+    cat("  Saved: figures/", df_name, "_", feature, ".pdf\n", sep = "")
   }
 }
