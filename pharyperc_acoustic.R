@@ -19,6 +19,12 @@ library("devtools")
 library(grid)
 library(gridExtra)
 library(scales)
+library(stringr)
+library(stringi)
+
+library(showtext)
+font_add_google("Charis SIL", "CharisSIL")
+showtext_auto()
 
 
 #paths
@@ -388,31 +394,86 @@ subset_glot_unique %>% count(`TargetSegment`)
 #   
 # }
 
-# Visualize the vowel formants
-preceding_vowels %>%
-  # filter(is.na(formant_outlier)) %>%
-  ggplot(aes(x = sF2_mean, y = sF1_mean, label = Trial)) +
-  # geom_point(size = 0.6) +
-  geom_text(size = 2.5)+
-  facet_wrap(.~Label)+
-  #geom_density_2d() +
-  #  scale_color_manual(values=c('#a6611a','#dfc27d','#018571'))+
-  scale_y_reverse(limits = c(2000,0),position = "right") +
-  scale_x_reverse(limits = c(3500,0),position = "top")+
-  theme_bw()
+preceding_vowels_viz <- preceding_vowels %>%
+  mutate(
+    Label_norm = stri_trans_nfc(str_trim(Label)),  # normalize + trim whitespace
+    Label_cat = case_when(
+      Label_norm %in% c("i", "ɪ", "ɪː")                        ~ "i",
+      Label_norm %in% c("u", "uː", "ʊ", "ʊː")                  ~ "u",
+      Label_norm %in% c("a", "aː", "æ", "æː", "ɑ", "ɑː")       ~ "a",
+      TRUE ~ NA_character_
+    )
+  )
+
+following_vowels_viz <- following_vowels %>%
+  mutate(
+    Label_norm = stri_trans_nfc(str_trim(Label)),  # normalize + trim whitespace
+    Label_cat = case_when(
+      Label_norm %in% c("i", "iː", "ɪ", "ɪː")                        ~ "i",
+      Label_norm %in% c("u", "uː", "ʊ", "ʊː")                  ~ "u",
+      Label_norm %in% c("a", "aː", "æ", "æː", "ɑ", "ɑː")       ~ "a",
+      TRUE ~ NA_character_
+    )
+  )
+
+# palettes
+library(wesanderson)
+pal1 <- wes_palette("Zissou1", 3)
+pal2 <- wes_palette("Darjeeling1", 3)
+pal3 <- wes_palette("FantasticFox1", 5)
+pal4 <- wes_palette("FrenchDispatch", 3)
+pal5 <- wes_palette("AsteroidCity1", 3)
 
 # Visualize the vowel formants
-following_vowels %>%
+
+pre_vowel_plot <- 
+# preceding_vowels_viz %>%
   # filter(is.na(formant_outlier)) %>%
-  ggplot(aes(x = sF2_mean, y = sF1_mean, label = Trial)) +
-  # geom_point(size = 0.6) +
-  geom_text(size = 2.5)+
-  facet_wrap(.~Label)+
+  ggplot(preceding_vowels_viz, aes(x = sF2_mean, y = sF1_mean, label = Label_cat, color = Label_cat)) +
+  # geom_point(size = 1.2) +
+  geom_text(size = 6)+
+  # facet_wrap(.~Label_cat)+
   #geom_density_2d() +
-  #  scale_color_manual(values=c('#a6611a','#dfc27d','#018571'))+
-  scale_y_reverse(limits = c(2000,0),position = "right") +
-  scale_x_reverse(limits = c(3500,0),position = "top")+
-  theme_bw()
+  scale_color_manual(values = c('a' = pal3[3], 'i' = pal3[4], 'u' = pal3[5]))+
+  scale_y_reverse(limits = c(1500,0),position = "right") +
+  scale_x_reverse(limits = c(3000,0),position = "top")+
+  labs(x = "F2 (Hz)", y = "F1 (Hz)") +
+  theme_bw() +
+  theme(legend.position = "none", 
+        axis.text = element_text(size = 14),
+        axis.title = element_text(size = 14))
+  # theme(
+  #   strip.background = element_rect(fill = "white", color = "black"),
+  #   strip.text = element_text(color = "black", size = 12)
+  # )
+
+ggsave("/Volumes/cassandra/alldata/dissertation/3/figs/pre_vowel_plot.pdf", plot = pre_vowel_plot,
+       width = 7.5, height = 5.5, units = "in", device = cairo_pdf)
+
+# Visualize the vowel formants
+fol_vowel_plot <-
+# following_vowels_viz %>%
+  # filter(is.na(formant_outlier)) %>%
+  ggplot(following_vowels_viz, aes(x = sF2_mean, y = sF1_mean, label = Label_cat, color = Label_cat)) +
+  # geom_point(size = 5) +
+  geom_text(size = 6)+
+  # facet_wrap(.~Label_cat)+
+  #geom_density_2d() +
+  scale_color_manual(values = c('a' = pal3[3], 'i' = pal3[4], 'u' = pal3[5]))+
+  scale_y_reverse(limits = c(1500,0),position = "right") +
+  scale_x_reverse(limits = c(3000,0),position = "top")+
+  labs(x = "F2 (Hz)", y = "F1 (Hz)") +
+  theme_bw() +
+  theme(legend.position = "none",
+        axis.text = element_text(size = 14),
+        axis.title = element_text(size = 14))
+  # theme(
+  #   strip.background = element_rect(fill = "white", color = "black"),
+  #   strip.text = element_text(color = "black", size = 12)
+  # )
+
+ggsave("/Volumes/cassandra/alldata/dissertation/3/figs/fol_vowel_plot.pdf", plot = fol_vowel_plot,
+       width = 7.5, height = 5.5, units = "in", device = cairo_pdf)
 
 
 ### models
@@ -532,6 +593,7 @@ for (df_name in names(df_list)) {
       comp_full_vs_no_int    = comp_full_vs_no_int,
       comp_no_int_vs_carrier = comp_no_int_vs_carrier,
       comp_no_int_vs_segment = comp_no_int_vs_segment,
+      emm                    = emm,
       emm_pairs              = emm_pairs
     )
   }
@@ -629,8 +691,8 @@ segment_display <- c(
 
 df_display <- c(
   "subset_glot"     = "Phonemic and Allophonic \\ipa{[ʔ]}",
-  "preceding_vowels" = "Vowels Preceding Target Segment",
-  "following_vowels" = "Vowels Following Target Segment"
+  "preceding_vowels" = "Preceding Vowels",
+  "following_vowels" = "Following Vowels"
 )
 
 # Column order for preceding and following vowels (segment columns only)
@@ -657,29 +719,153 @@ fmt_p <- function(x) {
   ifelse(x < 0.001, "$<$0.001", as.character(round(x, 3)))
 }
 
-# Model summary table — predictor structure only
-model_comp_table <- data.frame(
-  Model = c(
-    "Full ($CarrierType \\times TargetSegment$)",
-    "Additive ($CarrierType + TargetSegment$)"
+# ============================================================
+# HELPER: extract one LRT row
+# ============================================================
+
+extract_lrt_row <- function(lrt_obj, comparison_label, effect_label) {
+  r      <- as.data.frame(lrt_obj)
+  chi_sq <- round(r$Chisq[2], 3)
+  df_val <- r$Df[2]
+  p_val  <- r$`Pr(>Chisq)`[2]
+  
+  p_fmt <- ifelse(p_val < .001, "$< .001$",
+                  paste0("$", format(round(p_val, 3), nsmall = 3), "$"))
+  
+  data.frame(
+    Comparison = comparison_label,
+    Effect     = effect_label,
+    Chi2       = chi_sq,
+    Df         = df_val,
+    p          = p_fmt,
+    stringsAsFactors = FALSE
   )
-)
+}
 
-model_comp_out <- model_comp_table %>%
-  kable(format   = "latex",
-        booktabs = TRUE,
-        escape   = FALSE,
-        col.names = "Model",
-        caption  = "Summary of linear mixed-effects models fit to each acoustic feature. 
-                    All models were fit using maximum likelihood (\\texttt{REML = FALSE}) 
-                    to allow likelihood-ratio comparison of fixed effects. 
-                    All models included a random intercept for (1 $|$ UniquePairIndex).",
-        label    = "tab:acoustic_models",
-        linesep  = "\\addlinespace") %>%
-  kable_styling(latex_options = "hold_position") %>%
-  row_spec(0, bold = TRUE)
+# ============================================================
+# 3. MODEL COMPARISON TABLES (one per dataframe x feature)
+# ============================================================
 
-save_kable(model_comp_out, file = "tables/acoustic_model_comp.tex")
+for (df_name in names(results_list)) {
+  for (feature in names(results_list[[df_name]])) {
+    
+    res <- results_list[[df_name]][[feature]]
+    
+    if (!is.null(res$skipped)) next
+    
+    comp_table <- rbind(
+      extract_lrt_row(
+        res$comp_full_vs_no_int,
+        "$M_{full}$ vs. $M_{additive}$",
+        "Interaction ($CarrierType \\times TargetSegment$)"
+      ),
+      extract_lrt_row(
+        res$comp_no_int_vs_carrier,
+        "$M_{additive}$ vs. $M_{CarrierType\\ only}$",
+        "Main effect of $TargetSegment$"
+      ),
+      extract_lrt_row(
+        res$comp_no_int_vs_segment,
+        "$M_{additive}$ vs. $M_{TargetSegment\\ only}$",
+        "Main effect of $CarrierType$"
+      )
+    )
+    
+    colnames(comp_table) <- c("Comparison", "Effect Tested", "$\\chi^2$", "$df$", "$p$")
+    
+    comp_out <- kable(
+      comp_table,
+      format    = "latex",
+      booktabs  = TRUE,
+      escape    = FALSE,
+      caption   = paste0(
+        feature_display[[feature]], " (", df_display[[df_name]], ")",
+        ": Likelihood-ratio tests for fixed effects. "
+      ),
+      label     = paste0("tab:comp_", df_name, "_", feature)
+    ) %>%
+      kable_styling(latex_options = "hold_position")
+    
+    save_kable(comp_out,
+               file = paste0("tables/comp_", df_name, "_", feature, ".tex"))
+    
+    cat("Saved: tables/comp_", df_name, "_", feature, ".tex\n", sep = "")
+  }
+}
+
+# ============================================================
+# 6. SUPERSET LRT TABLE (one per feature, all three dfs)
+# ============================================================
+
+for (feature in features) {
+  
+  cat("Building superset LRT table for:", feature, "\n")
+  
+  all_blocks <- lapply(names(results_list), function(df_name) {
+    
+    res <- results_list[[df_name]][[feature]]
+    if (!is.null(res$skipped)) return(NULL)
+    
+    block <- rbind(
+      extract_lrt_row(
+        res$comp_full_vs_no_int,
+        "$M_{full}$ vs. $M_{additive}$",
+        "Interaction ($CarrierType \\times TargetSegment$)"
+      ),
+      extract_lrt_row(
+        res$comp_no_int_vs_carrier,
+        "$M_{additive}$ vs. $M_{CarrierType\\ only}$",
+        "Main effect of $TargetSegment$"
+      ),
+      extract_lrt_row(
+        res$comp_no_int_vs_segment,
+        "$M_{additive}$ vs. $M_{TargetSegment\\ only}$",
+        "Main effect of $CarrierType$"
+      )
+    )
+    
+    # Context label only on first row of each block
+    block$Context <- c(df_display[[df_name]], "", "")
+    block
+    
+  })
+  
+  # Drop any NULLs from skipped combinations
+  all_blocks <- Filter(Negate(is.null), all_blocks)
+  
+  combined <- bind_rows(all_blocks)
+  
+  # Reorder columns so Context is first
+  combined <- combined %>%
+    select(Context, Comparison, Effect, Chi2, Df, p)
+  
+  colnames(combined) <- c("Target Segment Group", "Comparison", "Effect Tested", "$\\chi^2$", "$df$", "$p$")
+  
+  # Row indices for hline separators — after every 3rd row except the last block
+  n_blocks     <- length(all_blocks)
+  separator_rows <- (1:(n_blocks - 1)) * 3
+  
+  super_out <- kable(
+    combined,
+    format    = "latex",
+    booktabs  = TRUE,
+    escape    = FALSE,
+    caption   = paste0(
+      feature_display[[feature]],
+      ": Likelihood-ratio tests for fixed effects across Target Segment groups. "
+    ),
+    label     = paste0("tab:super_lrt_", feature),
+    linesep   = ""
+  ) %>%
+    kable_styling(latex_options = c("hold_position", "scale_down")) %>%
+    row_spec(0, bold = TRUE) %>%
+    row_spec(separator_rows, hline_after = TRUE)
+  
+  save_kable(super_out,
+             file = paste0("tables/super_lrt_", feature, ".tex"))
+  
+  cat("Saved: tables/super_lrt_", feature, ".tex\n", sep = "")
+}
 
 # ============================================================
 # 2. DESCRIPTIVE STATS TABLES (one per dataframe)
@@ -689,9 +875,9 @@ save_kable(model_comp_out, file = "tables/acoustic_model_comp.tex")
 features <- names(feature_outlier_map)
 
 desc_inputs <- list(
+  subset_glot      = subset_glot,
   preceding_vowels = preceding_vowels,
-  following_vowels = following_vowels,
-  subset_glot      = subset_glot
+  following_vowels = following_vowels
 )
 
 for (df_name in names(desc_inputs)) {
@@ -752,88 +938,17 @@ for (df_name in names(desc_inputs)) {
 }
 
 # ============================================================
-# 3. MODEL COMPARISON TABLES (one per dataframe x feature)
-# ============================================================
-
-for (df_name in names(results_list)) {
-  for (feature in names(results_list[[df_name]])) {
-    
-    res <- results_list[[df_name]][[feature]]
-    
-    # Skip if this combination was skipped during modeling
-    if (!is.null(res$skipped)) next
-    
-    # Pull the three comparisons into a single tidy table
-    comp_table <- bind_rows(
-      as.data.frame(res$comp_full_vs_no_int)    %>% mutate(Comparison = "Full vs. No Interaction"),
-      as.data.frame(res$comp_no_int_vs_carrier) %>% mutate(Comparison = "Additive vs. CarrierType Only"),
-      as.data.frame(res$comp_no_int_vs_segment) %>% mutate(Comparison = "Additive vs. TargetSegment Only")
-    ) %>%
-      select(Comparison, npar, AIC, BIC, logLik, Chisq, Df, `Pr(>Chisq)`) %>%
-      mutate(`Pr(>Chisq)` = fmt_p(`Pr(>Chisq)`))
-    
-    comp_out <- comp_table %>%
-      kable(format    = "latex",
-            booktabs  = TRUE,
-            escape    = FALSE,
-            caption   = paste0("Model comparisons for ", feature_display[[feature]], " - ", df_display[[df_name]]),
-            label     = paste0("tab:comp_", df_name, "_", feature),
-            linesep   = "\\addlinespace") %>%
-      kable_styling(latex_options = c("hold_position", "scale_down")) %>%
-      row_spec(0, bold = TRUE)
-    
-    save_kable(comp_out,
-               file = paste0("tables/comp_", df_name, "_", feature, ".tex"))
-    
-    cat("Saved: tables/comp_", df_name, "_", feature, ".tex\n", sep = "")
-  }
-}
-
-# ============================================================
-# 4. EMMEANS PAIRWISE TABLES (one per dataframe x feature)
-# ============================================================
-
-for (df_name in names(results_list)) {
-  for (feature in names(results_list[[df_name]])) {
-    
-    res <- results_list[[df_name]][[feature]]
-    
-    if (!is.null(res$skipped)) next
-    
-    emm_table <- res$emm_pairs %>%
-      mutate(
-        p.value  = fmt_p(p.value),
-        contrast = stringr::str_replace_all(
-          contrast,
-          c(
-            "\\bgs\\b"              = "Allophonic [\\\\textipa{P}]",
-            "\\bPhonemic \\[ʔ\\]\\b"   = "Phonemic [\\\\textipa{P}]",
-            "\\bAllophonic \\[ʔ\\]\\b" = "Allophonic [\\\\textipa{P}]"
-          )
-        )
-      ) %>%
-      select(contrast, estimate, SE, df, t.ratio, p.value)
-    
-    emm_out <- emm_table %>%
-      kable(format    = "latex",
-            booktabs  = TRUE,
-            escape    = FALSE,
-            caption   = paste0( df_display[[df_name]], " - ", "Pairwise Comparisons (emmeans)", " - ", feature_display[[feature]]),
-            label     = paste0("tab:emm_", df_name, "_", feature),
-            linesep   = "\\addlinespace") %>%
-      kable_styling(latex_options = c("hold_position", "scale_down")) %>%
-      row_spec(0, bold = TRUE)
-    
-    save_kable(emm_out,
-               file = paste0("tables/emm_", df_name, "_", feature, ".tex"))
-    
-    cat("Saved: tables/emm_", df_name, "_", feature, ".tex\n", sep = "")
-  }
-}
-
-# ============================================================
 # 5. CROSS-DATAFRAME SUMMARY TABLES (one per feature)
 # ============================================================
+
+cross_col_order <- c(
+  "Target Segment Group",
+  "[k]",
+  "[t]",
+  "[q]",
+  "Phonemic \\ipa{[ʔ]}",
+  "Allophonic \\ipa{[ʔ]}"
+)
 
 for (feature in features) {
   
@@ -866,9 +981,11 @@ for (feature in features) {
   }) %>% bind_rows()
   
   # Reorder columns: Context first, then segments in display order
+  
   col_order <- c("Context", vowel_col_order[vowel_col_order != "Feature"])
   all_rows <- all_rows %>%
     select(any_of(col_order))
+  colnames(all_rows) <- cross_col_order
   
   # Row that corresponds to subset_glot for the separator
   glot_row <- which(names(desc_inputs) == "subset_glot")
@@ -893,12 +1010,95 @@ for (feature in features) {
   cat("Saved: tables/cross_", feature, ".tex\n", sep = "")
 }
 
-library(ggplot2)
-library(gghalves)
+# ============================================================
+# 3. MODEL COMPARISON TABLES (one per dataframe x feature)
+# ============================================================
 
-library(showtext)
-font_add_google("Charis SIL", "CharisSIL")
-showtext_auto()
+# for (df_name in names(results_list)) {
+#   for (feature in names(results_list[[df_name]])) {
+#     
+#     res <- results_list[[df_name]][[feature]]
+#     
+#     # Skip if this combination was skipped during modeling
+#     if (!is.null(res$skipped)) next
+#     
+#     # Pull the three comparisons into a single tidy table
+#     comp_table <- bind_rows(
+#       as.data.frame(res$comp_full_vs_no_int)    %>% mutate(Comparison = "Full vs. No Interaction"),
+#       as.data.frame(res$comp_no_int_vs_carrier) %>% mutate(Comparison = "Additive vs. CarrierType Only"),
+#       as.data.frame(res$comp_no_int_vs_segment) %>% mutate(Comparison = "Additive vs. TargetSegment Only")
+#     ) %>%
+#       select(Comparison, npar, AIC, BIC, logLik, Chisq, Df, `Pr(>Chisq)`) %>%
+#       mutate(`Pr(>Chisq)` = fmt_p(`Pr(>Chisq)`))
+#     
+#     comp_out <- comp_table %>%
+#       kable(format    = "latex",
+#             booktabs  = TRUE,
+#             escape    = FALSE,
+#             caption   = paste0("Model comparisons for ", feature_display[[feature]], " - ", df_display[[df_name]]),
+#             label     = paste0("tab:comp_", df_name, "_", feature),
+#             linesep   = "\\addlinespace") %>%
+#       kable_styling(latex_options = c("hold_position", "scale_down")) %>%
+#       row_spec(0, bold = TRUE)
+#     
+#     save_kable(comp_out,
+#                file = paste0("tables/comp_", df_name, "_", feature, ".tex"))
+#     
+#     cat("Saved: tables/comp_", df_name, "_", feature, ".tex\n", sep = "")
+#   }
+# }
+
+# ============================================================
+# 4. EMMEANS PAIRWISE TABLES (one per dataframe x feature)
+# ============================================================
+
+for (df_name in names(results_list)) {
+  for (feature in names(results_list[[df_name]])) {
+    
+    res <- results_list[[df_name]][[feature]]
+    
+    if (!is.null(res$skipped)) next
+    
+    emm_table <- res$emm_pairs %>%
+      mutate(
+        p.value  = fmt_p(p.value),
+        contrast = stringr::str_replace_all(
+          contrast,
+          c(
+            "non-creaky"= "Non-Creaky",
+            "(?<!Non-)creak(y)?" = "Creaky",
+            "\\(([^()]+)\\)" = "\\1",
+            "\\bʔ\\b"   = "Phonemic [\\\\ipa{ʔ}]",
+            "\\bgs\\b"              = "Allophonic [\\\\ipa{ʔ}]",
+            "(?<=\\s)k(?=\\s|$)" =    "[\\\\ipa{k}]",
+            "(?<=\\s)t(?=\\s|$)" =    "[\\\\ipa{t}]",
+            "(?<=\\s)q(?=\\s|$)" =    "[\\\\ipa{q}]"
+            # "\\bAllophonic \\[ʔ\\]\\b" = "Allophonic [\\\\ipa{ʔ}]"
+          )
+        )
+      ) %>%
+      select(contrast, estimate, SE, df, t.ratio, p.value)
+    
+    emm_out <- emm_table %>%
+      kable(format    = "latex",
+            booktabs  = TRUE,
+            escape    = FALSE,
+            longtable = TRUE,
+            caption   = paste0(df_display[[df_name]], " - ", "Pairwise Comparisons (emmeans)", " - ", feature_display[[feature]]),
+            label     = paste0("tab:emm_", df_name, "_", feature),
+            linesep   = "\\addlinespace") %>%
+      kable_styling(latex_options = c("repeat_header"),
+                    font_size = 9) %>%
+      row_spec(0, bold = TRUE)
+    
+    save_kable(emm_out,
+               file = paste0("tables/emm_", df_name, "_", feature, ".tex"))
+    
+    cat("Saved: tables/emm_", df_name, "_", feature, ".tex\n", sep = "")
+  }
+}
+
+#### figures
 
 dir.create("figures", showWarnings = FALSE)
 
@@ -929,7 +1129,7 @@ segment_colors <- c(
 feature_labels <- c(
   "strF0_mean_z"   = "Normalized F0",
   "H1H2c_mean_z"   = "Normalized H1-H2c",
-  "H1res_mean_z"   = "Normalized H1 Residual",
+  "H1res_mean_z"   = "Normalized Residual H1*",
   "CPP_mean_log_z" = "Normalized CPP",
   "soe_mean_log_z" = "Normalized SoE",
   "sF1_mean"       = "Normalized F1",
@@ -939,11 +1139,17 @@ feature_labels <- c(
 feature_titles <- c(
   "strF0_mean_z"   = "f0",
   "H1H2c_mean_z"   = "H1-H2c",
-  "H1res_mean_z"   = "Residual H1",
+  "H1res_mean_z"   = "Residual H1*",
   "CPP_mean_log_z" = "Cepstral Peak Prominence",
   "soe_mean_log_z" = "Strength of Excitation",
   "sF1_mean"       = "F1",
   "sF2_mean"       = "F2"
+)
+
+df_display_figs <- c(
+  "subset_glot"     = "Phonemic and Allophonic [ʔ]",
+  "preceding_vowels" = "Preceding Vowels",
+  "following_vowels" = "Following Vowels"
 )
 
 for (df_name in names(df_list)) {
@@ -1026,7 +1232,7 @@ for (df_name in names(df_list)) {
         )
       ) +
       coord_flip(clip = "off") +
-      labs(x = NULL, y = y_label, title = feature_titles[[feature]]) +
+      labs(x = NULL, y = y_label, title = paste0(df_display_figs[[df_name]], " - ", feature_titles[[feature]])) +
       guides(
         fill = guide_legend(
           reverse = TRUE,
@@ -1068,5 +1274,95 @@ for (df_name in names(df_list)) {
     )
     
     cat("  Saved: figures/", df_name, "_", feature, ".pdf\n", sep = "")
+  }
+}
+
+# ============================================================
+# FOREST PLOTS: emmeans pairwise comparisons
+# ============================================================
+
+plot_colors <- c("Not Significant" = "#d01c8b", "Significant" = "#4dac26")
+
+clean_contrasts_acoustic <- function(d) {
+  d %>%
+    mutate(
+      contrast = str_replace_all(contrast, "non-creaky", "Non-Creaky"),
+      contrast = str_replace_all(contrast, "(?<!Non-)creak(y)?", "Creaky"),
+      contrast = str_replace_all(contrast, "\\(([^()]+)\\)", "\\1"),
+      contrast = str_replace_all(contrast, "\\bʔ\\b",   "Phonemic [ʔ]"),
+      contrast = str_replace_all(contrast, "\\bgs\\b",              "Allophonic [ʔ]"),
+      # contrast = str_replace_all(contrast, "\\bAllophonic \\[ʔ\\]\\b", "Allophonic [ʔ]"),
+      contrast = str_replace_all(contrast, "(?<=\\s)k(?=\\s|$)",    "[k]"),
+      contrast = str_replace_all(contrast, "(?<=\\s)q(?=\\s|$)",    "[q]"),
+      contrast = str_replace_all(contrast, "(?<=\\s)t(?=\\s|$)",    "[t]"),
+      sig = factor(
+        ifelse(p.value < 0.05, "Significant", "Not Significant"),
+        levels = c("Significant", "Not Significant")
+      )
+    )
+}
+
+for (df_name in names(results_list)) {
+  for (feature in names(results_list[[df_name]])) {
+    
+    res <- results_list[[df_name]][[feature]]
+    
+    if (!is.null(res$skipped)) next
+    
+    # Pull emmeans with confidence intervals
+    emm_plot_data <- pairs(
+      res$emm, 
+      infer = TRUE
+    ) %>%
+      as.data.frame() %>%
+      clean_contrasts_acoustic()
+    
+    forest_p <- ggplot(
+      emm_plot_data,
+      aes(x = estimate, y = reorder(contrast, estimate))
+    ) +
+      geom_vline(xintercept = 0, linetype = "dashed", color = "gray50") +
+      geom_errorbarh(
+        aes(xmin = lower.CL, xmax = upper.CL, color = sig),
+        height = 0.5
+      ) +
+      geom_point(aes(color = sig, shape = sig), size = 7) +
+      scale_color_manual(values = plot_colors) +
+      scale_shape_manual(values = c("Significant" = 16, "Not Significant" = 17)) +
+      labs(
+        title = paste0(df_display_figs[[df_name]], " - ", feature_titles[[feature]]),
+        x     = paste0("Estimated Difference (", feature_display[[feature]], ")"),
+        y     = NULL,
+        color = "p < 0.05",
+        shape = "p < 0.05"
+      ) +
+      theme_minimal(base_family = "CharisSIL") +
+      theme(
+        panel.grid.minor   = element_blank(),
+        legend.position    = "bottom",
+        legend.title       = element_text(size = 18),
+        legend.text        = element_text(size = 18),
+        legend.key.width   = unit(3, "cm"),
+        legend.key.size    = unit(1.5, "cm"),
+        axis.title.x       = element_text(size = 20, margin = margin(t = 20)),
+        axis.text.x        = element_text(size = 20),
+        axis.text.y        = element_text(size = 20),
+        plot.title         = element_text(size = 22, face = "bold", hjust = 0.5)
+      ) +
+      guides(
+        color = guide_legend(override.aes = list(size = 7, linewidth = 1.2)),
+        shape = guide_legend(override.aes = list(size = 7, linewidth = 1.2))
+      )
+    
+    ggsave(
+      filename = paste0("figures/forest_", df_name, "_", feature, ".pdf"),
+      plot     = forest_p,
+      width    = 14.6,
+      height   = 16.5,
+      units    = "in",
+      device   = cairo_pdf
+    )
+    
+    cat("Saved: figures/forest_", df_name, "_", feature, ".pdf\n", sep = "")
   }
 }
