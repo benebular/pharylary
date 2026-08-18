@@ -28,16 +28,20 @@ showtext_auto()
 
 
 #paths
-# orig_data_path <- sprintf('/Volumes/circe/alldata/dissertation/3/raw_data/pharyperc/stims/grids/vs/pharyperc_acoustic_output.csv')
-orig_data_path <- sprintf('/Volumes/cassandra/alldata/dissertation/3/raw_data/pharyperc/stims/grids/vs/pharyperc_acoustic_output.csv')
+
+sync_paths <- c('/Volumes/circe/',
+                 '/Volumes/cassandra/')
+
+base_path <- sync_paths[dir.exists(sync_paths)][1]
+
+orig_data_path <- file.path(base_path, 'alldata/dissertation/3/raw_data/pharyperc/stims/grids/vs/pharyperc_acoustic_output.csv')
 
 orig_data = read.csv(orig_data_path)
 df <- orig_data
 
 # merge metadata onto df
 
-# metadata_path <- sprintf('/Volumes/cassandra/alldata/dissertation/3/arabic_perception_stimuli - trials_reduced.csv')
-metadata_path <- sprintf('/Volumes/cassandra/alldata/dissertation/3/arabic_perception_stimuli - trials_reduced.csv')
+metadata_path <- file.path(base_path, 'alldata/dissertation/3/arabic_perception_stimuli - trials_reduced.csv')
 
 metadata = read.csv(metadata_path)
 df_meta <- metadata
@@ -447,8 +451,14 @@ pre_vowel_plot <-
   #   strip.text = element_text(color = "black", size = 12)
   # )
 
-ggsave("/Volumes/cassandra/alldata/dissertation/3/figs/pre_vowel_plot.pdf", plot = pre_vowel_plot,
+ggsave(file.path(base_path,"alldata/dissertation/3/figs/pre_vowel_plot.pdf"), plot = pre_vowel_plot,
        width = 7.5, height = 5.5, units = "in", device = cairo_pdf)
+# 
+# ggsave("/Volumes/circe/alldata/dissertation/3/figs/pre_vowel_plot.pdf", plot = pre_vowel_plot,
+#        width = 7.5, height = 5.5, units = "in", device = cairo_pdf)
+
+# ggsave("/Volumes/cassandra/alldata/dissertation/3/figs/pre_vowel_plot.pdf", plot = pre_vowel_plot,
+#        width = 7.5, height = 5.5, units = "in", device = cairo_pdf)
 
 # Visualize the vowel formants
 fol_vowel_plot <-
@@ -472,8 +482,11 @@ fol_vowel_plot <-
   #   strip.text = element_text(color = "black", size = 12)
   # )
 
-ggsave("/Volumes/cassandra/alldata/dissertation/3/figs/fol_vowel_plot.pdf", plot = fol_vowel_plot,
+ggsave(file.path(base_path,"/alldata/dissertation/3/figs/fol_vowel_plot.pdf"), plot = fol_vowel_plot,
        width = 7.5, height = 5.5, units = "in", device = cairo_pdf)
+
+# ggsave("/Volumes/cassandra/alldata/dissertation/3/figs/fol_vowel_plot.pdf", plot = fol_vowel_plot,
+#        width = 7.5, height = 5.5, units = "in", device = cairo_pdf)
 
 
 ### models
@@ -787,9 +800,9 @@ for (df_name in names(results_list)) {
       kable_styling(latex_options = "hold_position")
     
     save_kable(comp_out,
-               file = paste0("tables/comp_", df_name, "_", feature, ".tex"))
+               file = paste0(base_path, "alldata/dissertation/3/tables/comp_", df_name, "_", feature, ".tex"))
     
-    cat("Saved: tables/comp_", df_name, "_", feature, ".tex\n", sep = "")
+    cat("Saved: alldata/dissertation/3/tables/comp_", df_name, "_", feature, ".tex\n", sep = "")
   }
 }
 
@@ -862,9 +875,9 @@ for (feature in features) {
     row_spec(separator_rows, hline_after = TRUE)
   
   save_kable(super_out,
-             file = paste0("tables/super_lrt_", feature, ".tex"))
+             file = paste0(base_path, "alldata/dissertation/3/tables/super_lrt_", feature, ".tex"))
   
-  cat("Saved: tables/super_lrt_", feature, ".tex\n", sep = "")
+  cat("Saved: alldata/dissertation/3/tables/super_lrt_", feature, ".tex\n", sep = "")
 }
 
 # ============================================================
@@ -932,9 +945,9 @@ for (df_name in names(desc_inputs)) {
     row_spec(0, bold = TRUE)
   
   save_kable(desc_table,
-             file = paste0("tables/desc_", df_name, ".tex"))
+             file = paste0(base_path, "alldata/dissertation/3/tables/desc_", df_name, ".tex"))
   
-  cat("Saved: tables/desc_", df_name, ".tex\n", sep = "")
+  cat("Saved: alldata/dissertation/3/tables/desc_", df_name, ".tex\n", sep = "")
 }
 
 # ============================================================
@@ -1005,9 +1018,9 @@ for (feature in features) {
     row_spec(glot_row, hline_after = TRUE)
   
   save_kable(cross_table,
-             file = paste0("tables/cross_", feature, ".tex"))
+             file = paste0(base_path, "alldata/dissertation/3/tables/cross_", feature, ".tex"))
   
-  cat("Saved: tables/cross_", feature, ".tex\n", sep = "")
+  cat("Saved: alldata/dissertation/3/tables/cross_", feature, ".tex\n", sep = "")
 }
 
 # ============================================================
@@ -1092,9 +1105,9 @@ for (df_name in names(results_list)) {
       row_spec(0, bold = TRUE)
     
     save_kable(emm_out,
-               file = paste0("tables/emm_", df_name, "_", feature, ".tex"))
+               file = paste0(base_path, "alldata/dissertation/3/tables/emm_", df_name, "_", feature, ".tex"))
     
-    cat("Saved: tables/emm_", df_name, "_", feature, ".tex\n", sep = "")
+    cat("Saved: alldata/dissertation/3/tables/emm_", df_name, "_", feature, ".tex\n", sep = "")
   }
 }
 
@@ -1267,13 +1280,13 @@ for (df_name in names(df_list)) {
       )
     
     ggsave(
-      filename = paste0("figures/", df_name, "_", feature, ".pdf"),
+      filename = paste0(base_path, "alldata/dissertation/3/figs/", df_name, "_", feature, ".pdf"),
       plot     = p,
       width    = 14,
       height   = 8
     )
     
-    cat("  Saved: figures/", df_name, "_", feature, ".pdf\n", sep = "")
+    cat("  Saved: alldata/dissertation/3/figs/", df_name, "_", feature, ".pdf\n", sep = "")
   }
 }
 
@@ -1355,7 +1368,7 @@ for (df_name in names(results_list)) {
       )
     
     ggsave(
-      filename = paste0("figures/forest_", df_name, "_", feature, ".pdf"),
+      filename = paste0(base_path, "alldata/dissertation/3/figs/forest_", df_name, "_", feature, ".pdf"),
       plot     = forest_p,
       width    = 14.6,
       height   = 16.5,
@@ -1363,6 +1376,6 @@ for (df_name in names(results_list)) {
       device   = cairo_pdf
     )
     
-    cat("Saved: figures/forest_", df_name, "_", feature, ".pdf\n", sep = "")
+    cat("Saved: alldata/dissertation/3/figs/forest_", df_name, "_", feature, ".pdf\n", sep = "")
   }
 }
