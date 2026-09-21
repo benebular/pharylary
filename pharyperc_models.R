@@ -37,13 +37,24 @@ library("devtools")
 library(grid)
 library(gridExtra)
 library(scales)
+library(kableExtra)
 
 #paths
-# orig_data_path <- sprintf('/Volumes/circe/alldata/dissertation/2/laryperc_events_behav_merged_allsubs.csv')
-orig_data_path <- sprintf('/Volumes/cassandra/alldata/dissertation/2/pharyperc_events_behav_merged_allsubs.csv')
+
+sync_paths <- c('/Volumes/circe/',
+                '/Volumes/cassandra/')
+
+base_path <- sync_paths[dir.exists(sync_paths)][1]
+
+orig_data_path <- file.path(base_path, 'alldata/dissertation/2/pharyperc_events_behav_merged_allsubs.csv')
 
 orig_data = read.csv(orig_data_path)
 df <- orig_data
+
+# subject counts and list
+n_distinct(df$subject)
+table(df$subject)
+
 
 # df <- df %>%
 #   dplyr::filter(subject != "nbl_063")
@@ -117,6 +128,33 @@ ok <- complete.cases(df_no_outliers[, vars_needed]) &
   is.finite(df_no_outliers$reaction_time_log_z)
 
 df_prepared <- df_no_outliers[ok, ]
+
+# control accuracy
+# Per-subject accuracy for control trials, split by CarrierType
+subject_accuracy <- df_prepared %>%
+  filter(TrialType == "test") %>%
+  group_by(subject, CarrierType) %>%
+  summarise(
+    n_correct = sum(accuracy_num == 1),
+    n_total   = n(),
+    accuracy  = n_correct / n_total,
+    .groups = "drop"
+  )
+
+print(subject_accuracy)
+
+# Overall accuracy across all subjects (pooled), for creaky vs noncreaky
+overall_accuracy <- df %>%
+  filter(TrialType == "control") %>%
+  group_by(CarrierType) %>%
+  summarise(
+    n_correct = sum(accuracy_num == 1),
+    n_total   = n(),
+    accuracy  = n_correct / n_total,
+    .groups = "drop"
+  )
+
+print(overall_accuracy)
 
 # simple lm
 # mod_RT_lm <- lm(
@@ -265,8 +303,8 @@ tbl2_tex <- kable(tbl2,
 #          escape        = FALSE)
 
 # --- Save out -----------------------------------------------------------------
-save_kable(tbl1_tex, file = "/Volumes/cassandra/alldata/dissertation/3/tables/pharyperc_model_comp.tex")
-save_kable(tbl2_tex, file = "/Volumes/cassandra/alldata/dissertation/3/tables/pharyperc_model_comp_outputs_RT.tex")
+save_kable(tbl1_tex, file = paste0(base_path, "alldata/dissertation/3/tables/pharyperc_model_comp.tex"))
+save_kable(tbl2_tex, file = paste0(base_path, "alldata/dissertation/3/tables/pharyperc_model_comp_outputs_RT.tex"))
 
 # save_kable(tbl1_tex, file = "/Volumes/circe/alldata/dissertation/3/tables/pharyperc_model_comp.tex")
 # save_kable(tbl2_tex, file = "/Volumes/circe/alldata/dissertation/3/tables/pharyperc_model_comp_outputs_RT.tex")
@@ -359,7 +397,7 @@ tbl2_tex <- kable(tbl2,
 #          escape        = FALSE)
 
 # --- Save out -----------------------------------------------------------------
-save_kable(tbl2_tex, file = "/Volumes/cassandra/alldata/dissertation/3/tables/pharyperc_model_comp_outputs_acc.tex")
+save_kable(tbl2_tex, file = paste0(base_path, "alldata/dissertation/3/tables/pharyperc_model_comp_outputs_acc.tex"))
 # save_kable(tbl2_tex, file = "/Volumes/circe/alldata/dissertation/3/tables/pharyperc_model_comp_outputs_acc.tex")
 
 
@@ -404,7 +442,7 @@ lrt_csv_acc <- rbind(
 lrt_csv <- rbind(lrt_csv_rt, lrt_csv_acc)
 
 write.csv(lrt_csv,
-          "/Volumes/cassandra/alldata/dissertation/3/tables/pharyperc_lrt_values.csv",
+          paste0(base_path, "alldata/dissertation/3/tables/pharyperc_lrt_values.csv"),
           row.names = FALSE)
 
 # write.csv(lrt_csv,
@@ -428,8 +466,8 @@ generate_newcommands <- function(csv_path, tex_path) {
 }
 
 generate_newcommands(
-  csv_path = "/Volumes/cassandra/alldata/dissertation/3/tables/pharyperc_lrt_values.csv",
-  tex_path = "/Volumes/cassandra/alldata/dissertation/3/tables/pharyperc_lrt_commands.tex"
+  csv_path = paste0(base_path, "alldata/dissertation/3/tables/pharyperc_lrt_values.csv"),
+  tex_path = paste0(base_path, "alldata/dissertation/3/tables/pharyperc_lrt_commands.tex")
 )
 
 # generate_newcommands(
@@ -461,7 +499,7 @@ pairs_RT_table <- sorted_res_RT %>%
   row_spec(0, bold = TRUE)
 
 # save_kable(pairs_RT_table, file = "/Volumes/circe/alldata/dissertation/3/tables/pharyperc_pairs_rt.tex")
-save_kable(pairs_RT_table, file = "/Volumes/cassandra/alldata/dissertation/3/tables/pharyperc_pairs_rt.tex")
+save_kable(pairs_RT_table, file = paste0(base_path, "alldata/dissertation/3/tables/pharyperc_pairs_rt.tex"))
 
 # --- Accuracy Model Tables ---
 
@@ -487,7 +525,7 @@ pairs_ACC_table <- sorted_res_ACC %>%
   row_spec(0, bold = TRUE)
 
 # save_kable(pairs_ACC_table, file = "/Volumes/circe/alldata/dissertation/3/tables/pharyperc_pairs_acc.tex")
-save_kable(pairs_ACC_table, file = "/Volumes/cassandra/alldata/dissertation/3/tables/pharyperc_pairs_acc.tex")
+save_kable(pairs_ACC_table, file = paste0(base_path, "alldata/dissertation/3/tables/pharyperc_pairs_acc.tex"))
 
 
 
@@ -584,7 +622,7 @@ acc_plot_data$sig <- factor(acc_plot_data$sig, levels = c("Significant", "Not Si
 forest_RT <- ggplot(rt_plot_data, aes(x = estimate, y = reorder(contrast, estimate))) +
   geom_vline(xintercept = 0, linetype = "dashed", color = "gray50") +
   geom_errorbarh(aes(xmin = low, xmax = high, color = sig), height = 0.3) +
-  geom_point(aes(color = sig, shape = sig), size = 5) +
+  geom_point(aes(color = sig, shape = sig), size = 7) +
   scale_color_manual(values = plot_colors) +
   scale_shape_manual(values = c("Significant" = 17, "Not Significant" = 18)) +
   labs(title = "Pairwise Contrasts: Reaction Time",
@@ -599,7 +637,7 @@ forest_RT <- ggplot(rt_plot_data, aes(x = estimate, y = reorder(contrast, estima
         axis.title.x = element_text(size = 18),
         axis.text.x = element_text(size = 16))
 
-ggsave("/Volumes/cassandra/alldata/dissertation/3/figs/pharyperc_rt_forest.pdf", plot = forest_RT,
+ggsave(paste0(base_path, "alldata/dissertation/3/figs/pharyperc_rt_forest.pdf"), plot = forest_RT,
        width = 14.6, height = 16.5, units = "in", device = cairo_pdf)
 
 # ggsave("/Volumes/circe/alldata/dissertation/3/figs/pharyperc_rt_forest.pdf", plot = forest_RT,
@@ -626,11 +664,148 @@ forest_acc <- ggplot(acc_plot_data, aes(x = odds.ratio, y = reorder(contrast, od
         axis.title.x = element_text(size = 14),
         axis.text.x = element_text(size = 12))
 
-ggsave("/Volumes/cassandra/alldata/dissertation/3/figs/pharyperc_acc_forest.pdf", plot = forest_acc,
+ggsave(paste0(base_path, "alldata/dissertation/3/figs/pharyperc_acc_forest.pdf"), plot = forest_acc,
        width = 14.6, height = 8.5, units = "in", device = cairo_pdf)
 
 # ggsave("/Volumes/circe/alldata/dissertation/3/figs/pharyperc_acc_forest.pdf", plot = forest_acc,
 #        width = 14.6, height = 8.5, units = "in", device = cairo_pdf)
+
+# ============================================================
+# FOREST PLOTS: RT & Accuracy (emmeans pairwise comparisons)
+# ============================================================
+
+library(dplyr)
+library(stringr)
+library(ggplot2)
+
+plot_colors <- c("Not Significant" = "#d01c8b", "Significant" = "#4dac26")
+
+# Function to standardize CI columns and clean up phonetic labels
+clean_contrasts <- function(d) {
+  d %>%
+    # 1. Standardize Confidence Interval column names
+    rename(low = any_of(c("lower.CL", "asymp.LCL")),
+           high = any_of(c("upper.CL", "asymp.UCL"))) %>%
+    # 2. Update phonetic labels
+    mutate(
+      contrast = str_replace_all(contrast, "\\s*/\\s*", " - "),
+      contrast = str_replace_all(contrast, "\\(([^()]+)\\)", "\\1"),
+      contrast = str_replace_all(contrast, "non-creaky", "Non-Creaky"),
+      contrast = str_replace_all(contrast, "(?<!Non-)creaky", "Creaky"),
+      contrast = str_replace_all(contrast, "gs-allo", "Allophonic [ʔ]"),
+      contrast = str_replace_all(contrast, "gs-phon", "Phonemic [ʔ]"),
+      contrast = str_replace_all(contrast, "\\bt\\b", "[t]"),
+      contrast = str_replace_all(contrast, "\\bk\\b", "[k]"),
+      contrast = str_replace_all(contrast, "\\bq\\b", "[q]"),
+      sig = factor(
+        ifelse(p.value < 0.05, "Significant", "Not Significant"),
+        levels = c("Significant", "Not Significant")
+      )
+    )
+}
+
+# ------------------------------------------------------------
+# Process model outputs
+# ------------------------------------------------------------
+
+# RT (Linear scale)
+rt_plot_data <- pairs(emms_RT, infer = TRUE) %>%
+  as.data.frame() %>%
+  clean_contrasts()
+
+# Accuracy (Odds Ratio scale)
+acc_plot_data <- pairs(emms_ACC, infer = TRUE, type = "response") %>%
+  as.data.frame() %>%
+  clean_contrasts()
+
+# ------------------------------------------------------------
+# Forest plot: RT
+# ------------------------------------------------------------
+forest_RT <- ggplot(rt_plot_data, aes(x = estimate, y = reorder(contrast, estimate))) +
+  geom_vline(xintercept = 0, linetype = "dashed", color = "gray50") +
+  geom_errorbarh(aes(xmin = low, xmax = high, color = sig), height = 0.5) +
+  geom_point(aes(color = sig, shape = sig), size = 7) +
+  scale_color_manual(values = plot_colors) +
+  scale_shape_manual(values = c("Significant" = 16, "Not Significant" = 17)) +
+  labs(
+    title    = "Pairwise Contrasts: Reaction Time",
+    # subtitle = "Estimates (Log-Z) with 95% Confidence Intervals",
+    x        = "Estimated Difference (Log-Z)",
+    y        = NULL,
+    color    = "p < 0.05",
+    shape    = "p < 0.05"
+  ) +
+  theme_minimal(base_family = "CharisSIL") +
+  theme(
+    panel.grid.minor   = element_blank(),
+    legend.position    = "bottom",
+    legend.title       = element_text(size = 18),
+    legend.text        = element_text(size = 18),
+    legend.key.width   = unit(3, "cm"),
+    legend.key.size    = unit(1.5, "cm"),
+    axis.title.x       = element_text(size = 20, margin = margin(t = 20)),
+    axis.text.x        = element_text(size = 20),
+    axis.text.y        = element_text(size = 20),
+    plot.title         = element_text(size = 22, face = "bold", hjust = 0.5)
+  ) +
+  guides(
+    color = guide_legend(override.aes = list(size = 7, linewidth = 1.2)),
+    shape = guide_legend(override.aes = list(size = 7, linewidth = 1.2))
+  )
+
+ggsave(
+  paste0(base_path, "alldata/dissertation/3/figs/pharyperc_rt_forest.pdf"),
+  plot   = forest_RT,
+  width  = 14.6,
+  height = 16.5,
+  units  = "in",
+  device = cairo_pdf
+)
+
+# ------------------------------------------------------------
+# Forest plot: Accuracy
+# ------------------------------------------------------------
+forest_acc <- ggplot(acc_plot_data, aes(x = odds.ratio, y = reorder(contrast, odds.ratio))) +
+  geom_vline(xintercept = 1, linetype = "dashed", color = "gray50") +
+  geom_errorbarh(aes(xmin = low, xmax = high, color = sig), height = 0.5) +
+  geom_point(aes(color = sig, shape = sig), size = 7) +
+  scale_x_log10(breaks = c(0.2, 0.5, 1, 2, 5)) +
+  scale_color_manual(values = plot_colors) +
+  scale_shape_manual(values = c("Significant" = 16, "Not Significant" = 17)) +
+  labs(
+    title    = "Pairwise Contrasts: Accuracy",
+    # subtitle = "Odds Ratios with 95% Confidence Intervals",
+    x        = "Odds Ratio (Log Scale)",
+    y        = NULL,
+    color    = "p < 0.05",
+    shape    = "p < 0.05"
+  ) +
+  theme_minimal(base_family = "CharisSIL") +
+  theme(
+    panel.grid.minor   = element_blank(),
+    legend.position    = "bottom",
+    legend.title       = element_text(size = 18),
+    legend.text        = element_text(size = 18),
+    legend.key.width   = unit(3, "cm"),
+    legend.key.size    = unit(1.5, "cm"),
+    axis.title.x       = element_text(size = 20, margin = margin(t = 20)),
+    axis.text.x        = element_text(size = 20),
+    axis.text.y        = element_text(size = 20),
+    plot.title         = element_text(size = 22, face = "bold", hjust = 0.5)
+  ) +
+  guides(
+    color = guide_legend(override.aes = list(size = 7, linewidth = 1.2)),
+    shape = guide_legend(override.aes = list(size = 7, linewidth = 1.2))
+  )
+
+ggsave(
+  paste0(base_path, "alldata/dissertation/3/figs/pharyperc_acc_forest.pdf"),
+  plot   = forest_acc,
+  width  = 14.6,
+  height = 16.5,
+  units  = "in",
+  device = cairo_pdf
+)
 
 # raw
 
@@ -702,7 +877,7 @@ raw_RT_plot <- ggplot(df_sum_plot, aes(x = TargetSegment, y = mean_rt, fill = Ca
     plot.title   = element_text(size = 22, face = "bold", hjust = 0.5)
     )
 
-ggsave("/Volumes/cassandra/alldata/dissertation/3/figs/pharyperc_rt_bar.pdf", plot = raw_RT_plot,
+ggsave(paste0(base_path, "alldata/dissertation/3/figs/pharyperc_rt_bar.pdf"), plot = raw_RT_plot,
        width = 14.6, height = 8.5, units = "in", device = cairo_pdf)
 
 # ggsave("/Volumes/circe/alldata/dissertation/3/figs/pharyperc_rt_bar.pdf", plot = raw_RT_plot,
@@ -739,7 +914,7 @@ raw_acc_plot <- ggplot(acc_sum_plot, aes(x = TargetSegment, y = p, fill = Carrie
     plot.title   = element_text(size = 22, face = "bold", hjust = 0.5)
   )
 
-ggsave("/Volumes/cassandra/alldata/dissertation/3/figs/pharyperc_acc_bar.pdf", plot = raw_acc_plot,
+ggsave(paste0(base_path, "alldata/dissertation/3/figs/pharyperc_acc_bar.pdf"), plot = raw_acc_plot,
        width = 14.6, height = 8.5, units = "in", device = cairo_pdf)
 
 # ggsave("/Volumes/circe/alldata/dissertation/3/figs/pharyperc_acc_bar.pdf", plot = raw_acc_plot,
@@ -762,7 +937,7 @@ rt_combined <- ((raw_RT_plot + forest_RT) +
 # ggsave("/Volumes/circe/alldata/dissertation/3/figs/pharyperc_rt_combined.pdf", plot = rt_combined,
 #        width = 14.6, height = 8.5, units = "in", device = cairo_pdf)
 
-ggsave("/Volumes/cassandra/alldata/dissertation/3/figs/pharyperc_rt_combined.pdf", plot = rt_combined,
+ggsave(paste0(base_path, "alldata/dissertation/3/figs/pharyperc_rt_combined.pdf"), plot = rt_combined,
        width = 14.6, height = 8.5, units = "in", device = cairo_pdf)
 
 
@@ -781,5 +956,5 @@ acc_combined <- ((raw_acc_plot + forest_acc) +
 # ggsave("/Volumes/circe/alldata/dissertation/3/figs/pharyperc_acc_combined.pdf", plot = acc_combined,
 #        width = 14.6, height = 8.5, units = "in",  device = cairo_pdf)
 
-ggsave("/Volumes/cassandra/alldata/dissertation/3/figs/pharyperc_acc_combined.pdf", plot = acc_combined,
+ggsave(paste0(base_path, "alldata/dissertation/3/figs/pharyperc_acc_combined.pdf"), plot = acc_combined,
        width = 14.6, height = 8.5, units = "in",  device = cairo_pdf)

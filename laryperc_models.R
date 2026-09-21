@@ -43,11 +43,43 @@ library(scales)
 
 
 #paths
-orig_data_path <- sprintf('/Volumes/circe/alldata/dissertation/2/laryperc_events_behav_merged_allsubs.csv')
-# orig_data_path <- sprintf('/Volumes/cassandra/alldata/dissertation/2/laryperc_events_behav_merged_allsubs.csv')
+# orig_data_path <- sprintf('/Volumes/circe/alldata/dissertation/2/laryperc_events_behav_merged_allsubs.csv')
+orig_data_path <- sprintf('/Volumes/cassandra/alldata/dissertation/2/laryperc_events_behav_merged_allsubs.csv')
 
 orig_data = read.csv(orig_data_path)
 df <- orig_data
+
+# subject counts and list
+n_distinct(df$subject)
+table(df$subject)
+
+# control accuracy
+# Per-subject accuracy for control trials, split by CarrierType
+subject_accuracy <- df %>%
+  filter(TrialType == "control") %>%
+  group_by(subject, CarrierType) %>%
+  summarise(
+    n_correct = sum(accuracy_num == 1),
+    n_total   = n(),
+    accuracy  = n_correct / n_total,
+    .groups = "drop"
+  )
+
+print(subject_accuracy)
+
+# Overall accuracy across all subjects (pooled), for creaky vs noncreaky
+overall_accuracy <- df %>%
+  filter(TrialType == "control") %>%
+  group_by(CarrierType) %>%
+  summarise(
+    n_correct = sum(accuracy_num == 1),
+    n_total   = n(),
+    accuracy  = n_correct / n_total,
+    .groups = "drop"
+  )
+
+print(overall_accuracy)
+
 
 # Standardize pairs by sorting the two words alphabetically within each row
 # so target="cat", distractor="dog" and target="dog", distractor="cat" both become "cat-dog"
@@ -67,6 +99,31 @@ df_no_outliers <- df %>%
     !is.na(reaction_time_raw),
     abs(reaction_time_raw - mu) <= 2 * sd_
   )
+
+# control RT
+# Per-subject mean reaction time for control trials, split by CarrierType
+subject_rt <- df_no_outliers %>%
+  filter(TrialType == "control") %>%
+  group_by(subject, CarrierType) %>%
+  summarise(
+    mean_rt = mean(reaction_time_raw),
+    n_total = n(),
+    .groups = "drop"
+  )
+
+print(subject_rt)
+
+# Overall mean RT across all subjects (pooled), for creaky vs noncreaky
+overall_rt <- df_no_outliers %>%
+  filter(TrialType == "control") %>%
+  group_by(CarrierType) %>%
+  summarise(
+    mean_rt = mean(reaction_time_raw),
+    n_total = n(),
+    .groups = "drop"
+  )
+
+print(overall_rt)
 
 
 ### data inspection

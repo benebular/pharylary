@@ -413,7 +413,7 @@ following_vowels_viz <- following_vowels %>%
   mutate(
     Label_norm = stri_trans_nfc(str_trim(Label)),  # normalize + trim whitespace
     Label_cat = case_when(
-      Label_norm %in% c("i", "iː", "ɪ", "ɪː")                        ~ "i",
+      Label_norm %in% c("i", "iː", "ɪ", "ɪː")                  ~ "i",
       Label_norm %in% c("u", "uː", "ʊ", "ʊː")                  ~ "u",
       Label_norm %in% c("a", "aː", "æ", "æː", "ɑ", "ɑː")       ~ "a",
       TRUE ~ NA_character_
@@ -453,12 +453,6 @@ pre_vowel_plot <-
 
 ggsave(file.path(base_path,"alldata/dissertation/3/figs/pre_vowel_plot.pdf"), plot = pre_vowel_plot,
        width = 7.5, height = 5.5, units = "in", device = cairo_pdf)
-# 
-# ggsave("/Volumes/circe/alldata/dissertation/3/figs/pre_vowel_plot.pdf", plot = pre_vowel_plot,
-#        width = 7.5, height = 5.5, units = "in", device = cairo_pdf)
-
-# ggsave("/Volumes/cassandra/alldata/dissertation/3/figs/pre_vowel_plot.pdf", plot = pre_vowel_plot,
-#        width = 7.5, height = 5.5, units = "in", device = cairo_pdf)
 
 # Visualize the vowel formants
 fol_vowel_plot <-
@@ -484,10 +478,6 @@ fol_vowel_plot <-
 
 ggsave(file.path(base_path,"/alldata/dissertation/3/figs/fol_vowel_plot.pdf"), plot = fol_vowel_plot,
        width = 7.5, height = 5.5, units = "in", device = cairo_pdf)
-
-# ggsave("/Volumes/cassandra/alldata/dissertation/3/figs/fol_vowel_plot.pdf", plot = fol_vowel_plot,
-#        width = 7.5, height = 5.5, units = "in", device = cairo_pdf)
-
 
 ### models
 

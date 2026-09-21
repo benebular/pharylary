@@ -57,10 +57,14 @@ for file in voicesauce_files:
 # voicesauce_data = voicesauce_data[~voicesauce_data['Filename'].str.contains('SD0015', na=False)]
 # voicesauce_data = voicesauce_data[~voicesauce_data['Filename'].str.contains('SD0024', na=False)]
 
+print('There are %s subjects in this VS output.'%(len(voicesauce_data['Filename'].str.split('_').str[0].unique())))
+
 # Save the concatenated data as a CSV
 print("Saving voicesauce_data.csv...")
 output_csv = os.path.join(output_dir, 'voicesauce_data.csv')
 voicesauce_data.to_csv(output_csv, index=False)
+
+
 
 
 ### LOOP ####
