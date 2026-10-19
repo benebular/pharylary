@@ -22,8 +22,8 @@ library(tidyverse)
 # ---------------------------------------------------------------------------
 
 # Define data paths - check which volume is available
-sync_paths <- c('/Volumes/circe/',
-                '/Volumes/cassandra/')
+sync_paths <- c('/Volumes/circe',
+                '/Volumes/cassandra')
 
 base_path <- sync_paths[dir.exists(sync_paths)][1]
 
@@ -566,8 +566,8 @@ subset_mean_fric <- subset_fric_data %>%
 # ---------------------------------------------------------------------------
 
 # Write results to CSV
-output_path_cassandra <- file.path(base_path, 'alldata/dissertation/vs/output_preproc/pharylary_subset_mean_truncated.csv')
-write.csv(subset_mean, output_path_cassandra, row.names = FALSE)
+output_path <- file.path(base_path, 'alldata/dissertation/vs/output_preproc/pharylary_subset_mean_truncated.csv')
+write.csv(subset_mean, output_path, row.names = FALSE)
 
 cat("\n--- Pipeline Complete ---\n")
 cat("Output written to:", output_path_cassandra, "\n")
