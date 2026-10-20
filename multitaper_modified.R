@@ -22,8 +22,18 @@
 #################
 ### CHANGE ME ###
 #################
-mydir <- '/Volumes/cassandra/alldata/dissertation/vs/output_preproc/fricatives/ðˤ/' # main directory with sub-folders of sound extracts
-outdir <- '/Volumes/cassandra/alldata/dissertation/vs/output_preproc/fricatives/' # output directory for text file
+
+# Define data paths - check which volume is available
+sync_paths <- c('/Volumes/circe',
+                '/Volumes/cassandra')
+
+base_path <- sync_paths[dir.exists(sync_paths)][1]
+
+
+mydir <- file.path(base_path, 'alldata/dissertation/vs/output_preproc/fricatives/ðˤ/') # main directory with sub-folders of sound extracts
+outdir <- file.path(base_path, 'alldata/dissertation/vs/output_preproc/fricatives/') # output directory for text file
+outfile <- 'ðˤ.csv' # extension to add to the output file (if you change csv, you'll need to change code below)
+
 SAMPLE_RATE <- 44100 # sampling rate of extracts
 
 NW_TIME_BANDWIDTH <- 4 # time-bandwidth parameter for multitaper spectrum (nw)
@@ -34,7 +44,6 @@ extract_what <- "duration" # can be "duration" or "proportion"
 extract_duration <- 0.02
 extract_proportion <- 0.5 # number from 0 to 1 indicating the proportional width of the analysed interval (0.5 = 50% of the fricative duration)
 
-outfile <- 'ðˤ.csv' # extension to add to the output file (if you change csv, you'll need to change code below)
 ################
 ### LET'S GO ###
 ################
