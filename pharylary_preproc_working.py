@@ -562,6 +562,353 @@
 # print(f"Total clips written: {total_written}")
 # print(f"Output root: {out_root}")
 
+#################################################
+#                                               #
+#       GO TO MULTITAPER MODIFIED SCRIPT        #
+#                                               #
+#################################################
+
+# ---- CONFIG ----
+csv_dir = os.path.join(output_dir, "fricatives")  # <- folder containing the per-TextGrid CSVs
+# If your CSVs are in output_dir directly, set: csv_dir = output_dir
+
+# ---- Helper: robust parser for stim filenames ----
+def parse_stim(stim: str):
+    """
+    Expected format: SD0001_expt_1_100_1_ð.wav
+      - participant = first token before first '_':           'SD0001'
+      - phrase      = 4th token (index 3):                    '100'
+      - Segment     = last token before extension:            'ð'
+    Returns (participant, phrase, Segment) as strings, or (None, None, None) if malformed.
+    """
+    if not isinstance(stim, str):
+        return None, None, None
+    base = os.path.basename(stim)
+    if base.lower().endswith(".wav"):
+        base = base[:-4]  # drop .wav
+    parts = base.split("_")
+    if len(parts) < 5:
+        return None, None, None
+    participant = parts[0]
+    phrase = parts[3]                 # 0:part, 1:expt, 2:1, 3:phrase, 4:trial, -1:Segment
+    segment = parts[-1]
+    return str(participant), str(phrase), str(segment)
+
+# ---- Build one metadata table from all CSVs ----
+meta_rows = []
+csv_files = glob.glob(os.path.join(csv_dir, "*.csv"))
+print(f"Found {len(csv_files)} CSV(s) in {csv_dir}")
+
+for fpath in csv_files:
+    try:
+        df = pd.read_csv(fpath)
+    except Exception as e:
+        print(f"Skipping {fpath}: {e}")
+        continue
+
+    if "stim" not in df.columns:
+        print(f"Skipping {fpath}: missing 'stim' column")
+        continue
+
+    # Iterate rows in this CSV and extract keys + payload
+    for _, row in df.iterrows():
+        participant, phrase, segment = parse_stim(row["stim"])
+        if participant is None:
+            continue
+
+        # Carry all other columns from this row (except 'stim') into the payload
+        payload = row.drop(labels=["stim"]).to_dict()
+
+        meta_rows.append({
+            "participant": participant,
+            "phrase": phrase,
+            "interval": segment,
+            **payload
+        })
+
+# Assemble metadata DataFrame; ensure one row per (participant, phrase, Segment)
+metadata = pd.DataFrame(meta_rows)
+if metadata.empty:
+    print("No metadata rows parsed; leaving all_data unchanged.")
+else:
+    # If any duplicates slipped in, keep last
+    metadata = metadata.drop_duplicates(subset=["participant", "phrase", "interval"], keep="last")
+
+    # ---- Align dtypes to match all_data for a clean merge ----
+    # Convert keys to string on both sides (adjust if you prefer ints for 'phrase')
+    for col in ["participant", "phrase", "interval"]:
+        if col in metadata:
+            metadata[col] = metadata[col].astype(str)
+        if col in all_data:
+            all_data[col] = all_data[col].astype(str)
+
+    # ---- Merge onto all_data ----
+    # Left-merge so every row in all_data is retained; metadata columns are appended
+    all_data = all_data.merge(metadata, on=["participant", "phrase", "interval"], how="left")
+
+    print(f"Merged metadata onto all_data. New shape: {all_data.shape}")
+
+# Flag rows where "comments" contains "ignore" (case-insensitive)
+all_data['ignore_flag'] = (
+    all_data['comments']
+    .astype(str)                     # ensure it's string
+    .str.contains('ignore', case=False, na=False)
+    .astype(int)                     # convert True/False → 1/0
+)
+
+print(f"Flagged {all_data['ignore_flag'].sum()} rows containing 'ignore'.")
+
+
+# Output the final DataFrame
+# print(all_data)
+# Optionally, save to a file
+print('Saving as .csv in %s.'%(output_dir))
+all_data.to_csv('preproc_output.csv', index=False)
+
+
+# Make sure phrase values are numeric
+all_data['phrase'] = pd.to_numeric(all_data['phrase'], errors='coerce')
+
+# Build report of missing phrases per participant
+missing_report = []
+
+for participant, df_part in all_data.groupby('participant'):
+    phrases = sorted(df_part['phrase'].dropna().unique())
+    if len(phrases) == 0:
+        continue  # skip participants with no phrase data
+    
+    # Find the range of possible phrases for this participant
+    min_phrase = int(np.nanmin(phrases))
+    max_phrase = int(np.nanmax(phrases))
+    expected = set(range(min_phrase, max_phrase + 1))
+    actual = set(phrases)
+    
+    missing = sorted(expected - actual)
+    
+    missing_report.append({
+        'participant': participant,
+        'min_phrase': min_phrase,
+        'max_phrase': max_phrase,
+        'total_expected': len(expected),
+        'total_present': len(actual),
+        'total_missing': len(missing),
+        'missing_phrases': missing
+    })
+
+# Convert report to DataFrame
+missing_report_df = pd.DataFrame(missing_report)
+
+# Save the report to CSV
+output_csv = os.path.join(report_dir, 'missing_phrases_by_participant.csv')
+missing_report_df.to_csv(output_csv, index=False)
+
+print(f"Saved missing-phrase report to: {output_csv}")
+
+## requires having all_data loaded from preproc
+
+# Filter for phonetic-tier rows and keep only relevant columns
+phonetic_df = all_data.loc[
+    all_data['tier'] == 'phonetic',
+    ['participant', 'phrase', 'interval', 'Segment']
+].dropna()
+
+# Group by interval, phrase, and Segment, collecting unique participants
+interval_participants = (
+    phonetic_df
+    .groupby(['interval', 'phrase', 'Segment'])['participant']
+    .unique()
+    .reset_index()
+)
+
+# Sort for readability
+interval_participants = (
+    interval_participants
+    .sort_values(['interval', 'phrase', 'Segment'])
+    .reset_index(drop=True)
+)
+
+# Define output path
+output_csv = os.path.join(report_dir, 'phonetic_intervals_by_phrase_segment_participant.csv')
+
+# Save to CSV
+interval_participants.to_csv(output_csv, index=False)
+
+print(f"Saved phonetic interval labels by phrase, segment, and participant to: {output_csv}")
+
+
+
+# ### old code using the extractions from the dicanio script
+# # Step 1: Locate all text files in the fricative_output_dir ending with '_logfile_s'
+# fricative_files = glob.glob(os.path.join(fricative_output_dir, '*.txt'))
+
+# # Step 2: Read and concatenate these files into a single DataFrame
+# fricative_data = pd.DataFrame()  # Initialize an empty DataFrame
+
+# for file in fricative_files:
+#     # Read each file
+#     temp_df = pd.read_csv(file, sep='\t')  # Assuming tab-separated files
+#     fricative_data = pd.concat([fricative_data, temp_df], ignore_index=False)
+
+# # Step 3: Output the concatenated DataFrame for verification
+# print(f"Concatenated fricative data contains {len(fricative_data)} rows and {len(fricative_data.columns)} columns.")
+
+# # Subset the data based on matching phrasenum values
+# phrasenum_values = [1, 3, 4, 6, 7, 8, 9, 10, 11, 13, 14, 17, 18, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 37, 39, 41, 43, 45, 47, 49, 50, 53, 55, 57, 59, 60, 62, 71, 73, 75, 77, 79, 81, 83, 85, 87, 89, 91, 93, 95, 97, 99, 101, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 134, 135, 136, 137, 138, 139, 141, 142, 143, 145, 146, 149, 150, 156, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172]
+
+# # Convert phrasenum_values to string to match the object type in fricative_data
+# phrasenum_values = list(map(str, phrasenum_values))
+
+# # Filter rows based on phrasenum_values
+# fricative_data = fricative_data[fricative_data['phrasenum'].astype(str).isin(phrasenum_values)]
+
+# # Output the subset DataFrame for verification
+# print(f"Subset fricative data contains {len(fricative_data)} rows after filtering by phrasenum.")
+
+# # Print the count of total phrasenum values by label
+# label_phrasenum_counts = fricative_data.groupby('label')['phrasenum'].nunique()
+# print("Counts of unique phrasenum values by label:")
+# print(label_phrasenum_counts)
+
+# #### ADD HERE SECTION for matching the above fricatives with the metadata.
+# ### each row in the fricative thing should already be a target phoneme, then export
+
+# # Load the metadata CSV file
+# metadata_path = os.path.join('/Users/bcl/GitHub/pharylary/PharyLary Stimuli - pharylary2.csv')  # Update the path to your metadata file
+# metadata = pd.read_csv(metadata_path)
+# metadata = metadata[['Phrasenum','IPA','Gloss','Gloss_2','Syllable','Segment','Type','Position','Position_2','Contrast_(IPA)','Contrast','Experiment']]
+
+# # Ensure the Phrasenum column in metadata is of the same type as the phrasenum column in fricative_data
+# metadata['Phrasenum'] = metadata['Phrasenum'].astype(str)
+# fricative_data['phrasenum'] = fricative_data['phrasenum'].astype(str)
+
+# # Merge fricative_data with metadata on phrasenum/Phrasenum
+# fricative_data = pd.merge(
+#     fricative_data,
+#     metadata,
+#     how='left',  # Use 'left' join to preserve the shape of fricative_data
+#     left_on='phrasenum',
+#     right_on='Phrasenum'
+# )
+
+# # Output the resulting DataFrame for verification
+# print(f"fricative_data now contains {len(fricative_data)} rows and {len(fricative_data.columns)} columns after merging with metadata.")
+
+# ### Save the final subset data ###
+# fricative_data.to_csv(os.path.join(output_dir, 'subset_fricative_data.csv'), index=False)
+
+
+#### matches for means ####
+##### data for the intervals as extracted from overlap with tier 3 because there's no unique labels in tier 1.
+##### this makes it so the data is just the target phonemes, not all of them
+
+### new method
+
+t0 = time.time()
+
+# Ensure comparable dtypes (same as your snippet)
+all_data = all_data.copy()
+all_data['phrase'] = all_data['phrase'].astype(str)
+all_data['t_ms']   = pd.to_numeric(all_data['t_ms'], errors='coerce')
+
+# Build the set of (phrase, t_ms) pairs from V-sequence
+vseq_idx = pd.MultiIndex.from_frame(
+    all_data.loc[all_data['tier'].eq('V-sequence'), ['phrase', 't_ms']].drop_duplicates()
+)
+
+# Identify phonetic rows and their (phrase, t_ms)
+mask_phonetic = all_data['tier'].eq('phonetic')
+phon_idx = pd.MultiIndex.from_frame(all_data.loc[mask_phonetic, ['phrase', 't_ms']])
+
+# Compute match mask for phonetic rows
+match_mask = phon_idx.isin(vseq_idx)
+
+# Create/assign the dummy column (0/1) across the full DataFrame
+all_data['target_match'] = 0
+all_data.loc[mask_phonetic, 'target_match'] = match_mask.astype(int)
+
+print(f"Done in {(time.time()-t0):.2f}s — matches: {all_data['target_match'].sum():,}")
+
+print('Saving matches for means as .csv in %s.'%(output_dir))
+# all_data.to_csv('/Volumes/circe/vs/output_preproc/preproc_matchesformeans.csv', index=False)
+all_data.to_csv(os.path.join(output_dir, "preproc_matchesformeans.csv"), index=False)
+# matching_data = pd.read_csv('/Volumes/circe/vs/output_preproc/preproc_matchesformeans.csv', encoding='utf8')
+
+## slicing the data below takes about 5 minutes to run because iterrows() is slow ####
+#Initialize an empty DataFrame to store matching rows
+# time_start = time.ctime()
+# print("Start time:", time_start)
+# seconds_start = time.time()
+
+# print('Getting matching data for means...')
+# matching_data = pd.DataFrame()
+
+# # Iterate through each unique phrase
+# for phrase in all_data['phrase'].unique():
+
+#     # Filter data for the current phrase
+#     phrase_data = all_data[all_data['phrase'] == phrase]
+
+#     # Separate interval and V-sequence data within this phrase
+#     interval_data = phrase_data[phrase_data['tier'] == 'phonetic']
+#     v_sequence_data = phrase_data[phrase_data['tier'] == 'V-sequence']
+
+#     # Iterate through the interval data
+#     for index, interval_row in interval_data.iterrows():
+#         # Check if this interval t_ms matches any V-sequence t_ms in the same phrase
+#         if any(interval_row['t_ms'] == v_sequence_row.t_ms for v_sequence_row in v_sequence_data.itertuples()):
+#             # Append matching row to the matching_data DataFrame
+#             print('Appending match for %s phrase %s...'%(interval_row['participant'], phrase))
+#             matching_data = matching_data.append(interval_row)
+
+
+# time_start = time.ctime()
+# print("Start time:", time_start)
+# seconds_start = time.time()
+
+# print('Getting matching data for means...')
+# matching_data = pd.DataFrame()
+
+# # Initialize a list to collect matching rows
+# matching_rows = []
+
+# # Iterate through each unique phrase
+# for phrase in all_data['phrase'].unique():
+#     print('Appending match for %s phrase %s...' % (interval_row['participant'], phrase))
+#     # Filter data for the current phrase
+#     phrase_data = all_data[all_data['phrase'] == phrase]
+
+#     # Separate interval and V-sequence data within this phrase
+#     interval_data = phrase_data[phrase_data['tier'] == 'phonetic']
+#     v_sequence_data = phrase_data[phrase_data['tier'] == 'V-sequence']
+
+#     # Create a set of t_ms values from V-sequence data for faster lookup
+#     v_sequence_t_ms_set = set(v_sequence_data['t_ms'])
+
+#     # Iterate through the interval data
+#     for index, interval_row in interval_data.iterrows():
+#         # Check if this interval t_ms matches any V-sequence t_ms in the same phrase
+#         if interval_row['t_ms'] in v_sequence_t_ms_set:
+#             # Collect the matching row
+#             matching_rows.append(interval_row)
+
+# # Convert the list of matching rows to a DataFrame
+# matching_rows_df = pd.DataFrame(matching_rows)
+
+# # Use pd.concat to append all matching rows to the matching_data DataFrame at once
+# matching_data = pd.concat([matching_data, matching_rows_df], ignore_index=True)
+
+
+# time_end = time.ctime()
+# print("End time:", time_end)
+# seconds_end = time.time()
+# print("Time elapsed (minutes): ", (seconds_end-seconds_start)/60)
+
+# print('Saving matches for means as .csv in %s.'%(output_dir))
+# # all_data.to_csv('/Volumes/circe/vs/output_preproc/preproc_matchesformeans.csv', index=False)
+# all_data.to_csv(os.path.join(output_dir, "preproc_matchesformeans.csv"), index=False)
+# # matching_data = pd.read_csv('/Volumes/circe/vs/output_preproc/preproc_matchesformeans.csv', encoding='utf8')
+
+
 ### pharylary preprocessing script (flat version, parallel)
 # Same pipeline as the original, top to bottom, as flat as possible. The only functions are the two
 # per-TextGrid workers (cells 3 and 8), which exist so joblib can run them in parallel. Each "# %%" block is a cell you can run and inspect on its own.
@@ -1083,6 +1430,14 @@ print('Most common non-target labels in the fricative tier (look for sˤ vs sʕ 
 for lab, n in unmatched.most_common(25):
     print(f'  {lab!r:12} x{n:<5} {[f"U+{ord(c):04X}" for c in lab]}')
 
+### pharylary preprocessing: BACK HALF (fricative metadata, target flags, reports)
+# Runs on its own, in a fresh session (new terminal). Cell 9 does the imports, config and loads:
+#   - preproc_output<SUFFIX>.csv   written by cell 6 of the main script (all_data, before fricative metadata)
+#   - fricatives/*.csv             written by multitaper.R (read in cell 9c)
+# Run order: main script cells 1-6 and 8 -> multitaper.R -> this file.
+# Lines marked "# FIX" are where this differs from your previous back half.
+# The long commented-out "old code using the extractions from the dicanio script" block is left out;
+# paste it back at the end if you want to keep it.
 
 #################################################
 #                                               #
@@ -1090,124 +1445,190 @@ for lab, n in unmatched.most_common(25):
 #                                               #
 #################################################
 
+# %% 9. SETUP + LOAD (everything this half needs, so it can run in a new terminal)
+import os
+import re
+import glob
+import time
+import unicodedata
 
-# ---- CONFIG ----
-csv_dir = os.path.join(output_dir, "fricatives")  # <- folder containing the per-TextGrid CSVs
-# If your CSVs are in output_dir directly, set: csv_dir = output_dir
+import numpy as np
+import pandas as pd
 
-# ---- Helper: robust parser for stim filenames ----
-def parse_stim(stim: str):
-    """
-    Expected format: SD0001_expt_1_100_1_ð.wav
-      - participant = first token before first '_':           'SD0001'
-      - phrase      = 4th token (index 3):                    '100'
-      - Segment     = last token before extension:            'ð'
-    Returns (participant, phrase, Segment) as strings, or (None, None, None) if malformed.
-    """
-    if not isinstance(stim, str):
-        return None, None, None
-    base = os.path.basename(stim)
-    if base.lower().endswith(".wav"):
-        base = base[:-4]  # drop .wav
-    parts = base.split("_")
-    if len(parts) < 5:
-        return None, None, None
-    participant = parts[0]
-    phrase = parts[3]                 # 0:part, 1:expt, 2:1, 3:phrase, 4:trial, -1:Segment
-    segment = parts[-1]
-    return str(participant), str(phrase), str(segment)
+# keep these identical to the main script's config
+base_dir = '/Volumes/circe/alldata/dissertation/vs'
+# base_dir = '/Volumes/cassandra/alldata/dissertation/vs'
+SUFFIX = '_v2'
 
-# ---- Build one metadata table from all CSVs ----
-meta_rows = []
-csv_files = glob.glob(os.path.join(csv_dir, "*.csv"))
-print(f"Found {len(csv_files)} CSV(s) in {csv_dir}")
+output_dir = base_dir + '/output_preproc'
+report_dir = os.path.join(output_dir, 'reports')
+csv_dir = os.path.join(output_dir, 'fricatives')   # folder with the multitaper.R CSVs (one row per clip, 'stim' column)
+os.makedirs(report_dir, exist_ok=True)
 
+# A phonetic token counts as THE TARGET if at least this fraction of its frames lie inside a labelled
+# V-sequence interval of the same file. 1.0 = must be fully inside; 0.5 = majority inside.
+TARGET_MIN_FRAC = 0.5
+
+# one-line helper (same as the main script)
+nfc = lambda s: unicodedata.normalize('NFC', (s or '').strip())
+
+# --- load all_data as saved by cell 6 of the main script ---
+all_data_path = os.path.join(output_dir, f'preproc_output{SUFFIX}.csv')
+assert os.path.exists(all_data_path), f'{all_data_path} not found - run cells 1-6 of the main script first'
+# keep_default_na=False: only empty cells become NaN, so a phone/word label like 'NA' or 'null' is not turned into NaN
+all_data = pd.read_csv(all_data_path, low_memory=False, keep_default_na=False, na_values=[''])
+print(f'Loaded {all_data_path}: {all_data.shape}')
+
+needed = ['stem', 'participant', 'phrase', 'tier', 'interval', 'interval_idx', 'token_id', 'comments', 't_ms', 'Segment']
+missing_cols = [c for c in needed if c not in all_data.columns]
+assert not missing_cols, f'all_data is missing columns {missing_cols} - was it made by the current main script?'
+# this file must be the PRE-fricative one; this half never overwrites it (see 9d/9e)
+assert 'fric_stim' not in all_data.columns and 'target_token' not in all_data.columns, (
+    f'{all_data_path} already contains back-half columns (an older back half overwrote it). '
+    'Rerun cell 6 of the main script to regenerate it.')
+
+
+# %% 9a. FLAG THE TARGET SEGMENT (phonetic tokens that sit inside a labelled V-sequence interval)
+t0 = time.time()
+all_data = all_data.copy()
+all_data['t_ms'] = pd.to_numeric(all_data['t_ms'], errors='coerce')
+
+# FIX: frames inside the V-sequence tier are keyed by FILE (stem) + time. The old key was (phrase, t_ms),
+# which let one participant's V-sequence frames mark another participant's phonetic frames as targets.
+# (V-sequence rows only exist for labelled intervals, because empty intervals are skipped in cell 3.)
+vseq_idx = pd.MultiIndex.from_frame(
+    all_data.loc[all_data['tier'].eq('V-sequence'), ['stem', 't_ms']].drop_duplicates())
+
+mask_phonetic = all_data['tier'].eq('phonetic')
+phon_idx = pd.MultiIndex.from_frame(all_data.loc[mask_phonetic, ['stem', 't_ms']])
+
+# frame level (same meaning as your old target_match, now within a file)
+all_data['target_match'] = 0
+all_data.loc[mask_phonetic, 'target_match'] = phon_idx.isin(vseq_idx).astype(int)
+
+# FIX: token level. A repeated segment gets its own token_id, so the copy outside the V-sequence
+# interval is excluded and the copy inside it is kept.
+all_data['target_frac'] = np.nan
+all_data.loc[mask_phonetic, 'target_frac'] = (
+    all_data.loc[mask_phonetic].groupby('token_id')['target_match'].transform('mean'))
+all_data['target_token'] = (all_data['target_frac'] >= TARGET_MIN_FRAC).astype(int)   # NaN (non-phonetic) -> 0
+
+# checks
+ph_tok = all_data[all_data['tier'].eq('phonetic')].drop_duplicates('token_id')
+f = ph_tok['target_frac']
+print(f"Done in {time.time() - t0:.1f}s. Phonetic tokens: {len(ph_tok):,}")
+print(f"  fully inside a V-sequence interval: {(f == 1).sum():,} | partly inside: {((f > 0) & (f < 1)).sum():,} "
+      f"| outside: {(f == 0).sum():,}")
+print(f"  flagged as target (frac >= {TARGET_MIN_FRAC}): {int((ph_tok['target_token'] == 1).sum()):,}")
+print('Examples of partly-inside tokens (check boundaries / TARGET_MIN_FRAC):')
+print(ph_tok.loc[(f > 0) & (f < 1), ['token_id', 'interval', 'target_frac']].head(10))
+rep = ph_tok[ph_tok['target_token'] == 1].groupby(['stem', 'interval']).size()
+print(f'Files where the same label is a target more than once: {(rep > 1).sum()}')
+
+
+# %% 9b. NUMBER REPEATED SEGMENTS WITHIN A FILE (needed to match clips like '..._s-02.wav')
+# nfc on the unique labels only (fast); labels are compared in NFC, like the clip file names are.
+nfc_map = {v: nfc(v) for v in all_data['interval'].astype(str).unique()}
+all_data['interval_nfc'] = all_data['interval'].astype(str).map(nfc_map)
+
+# occurrence = 1, 2, ... for the same label within one file's phonetic tier, in TextGrid order
+occ = (all_data.loc[all_data['tier'].eq('phonetic'), ['stem', 'interval_nfc', 'interval_idx']]
+       .drop_duplicates().sort_values('interval_idx'))
+occ['occurrence'] = occ.groupby(['stem', 'interval_nfc']).cumcount() + 1
+occ['occurrence'] = occ['occurrence'].astype(float)
+all_data = all_data.merge(occ, on=['stem', 'interval_nfc', 'interval_idx'], how='left', validate='m:1')
+print(all_data.loc[all_data['tier'].eq('phonetic'), 'occurrence'].value_counts().sort_index())
+
+
+# %% 9c. MERGE THE MULTITAPER (FRICATIVE) MEASUREMENTS ONTO THE MATCHING PHONETIC TOKEN
+csv_files = sorted(glob.glob(os.path.join(csv_dir, '*.csv')))
+print(f'Found {len(csv_files)} CSV(s) in {csv_dir}')
+fric_list = []
 for fpath in csv_files:
     try:
         df = pd.read_csv(fpath)
     except Exception as e:
-        print(f"Skipping {fpath}: {e}")
+        print(f'Skipping {fpath}: {e}')
         continue
-
-    if "stim" not in df.columns:
+    if 'stim' not in df.columns:
         print(f"Skipping {fpath}: missing 'stim' column")
         continue
+    fric_list.append(df)
+assert fric_list, 'No multitaper CSVs loaded - run multitaper.R first (or skip this cell).'
+fric = pd.concat(fric_list, ignore_index=True)
 
-    # Iterate rows in this CSV and extract keys + payload
-    for _, row in df.iterrows():
-        participant, phrase, segment = parse_stim(row["stim"])
-        if participant is None:
-            continue
+# stim looks like SD0001_expt_1_100_1_ð.wav (stem = SD0001_expt_1_100_1), or SD0001_expt_1_100_1_ð-02.wav when the label occurs
+# more than once in that TextGrid (cell 8 numbers those clips -01, -02, ...)
+stim_base = fric['stim'].astype(str).map(os.path.basename).str.replace(r'\.wav$', '', regex=True, flags=re.I)
+parts = stim_base.str.split('_')
+ok = parts.str.len() >= 5
+print(f'{int((~ok).sum())} rows with malformed stim names dropped')
+fric, parts = fric[ok].copy(), parts[ok]
 
-        # Carry all other columns from this row (except 'stim') into the payload
-        payload = row.drop(labels=["stim"]).to_dict()
+# FIX: join on the FILE (stem = everything before the segment) instead of (participant, phrase).
+# Two files with the same participant and phrase (e.g. ..._1_100_1 and ..._1_100_2) used to collide.
+fric['stem'] = parts.str[:-1].str.join('_')
+seg = parts.str[-1].str.extract(r'^(.*?)(?:-(\d+))?$')                  # 'ð-02' -> label 'ð', occurrence '02'
+fric['interval_nfc'] = seg[0].map(nfc)                                    # FIX: compare labels in NFC
+fric['occurrence'] = pd.to_numeric(seg[1], errors='coerce').fillna(1).astype(float)   # FIX: '-02' no longer breaks the label
 
-        meta_rows.append({
-            "participant": participant,
-            "phrase": phrase,
-            "interval": segment,
-            **payload
-        })
+keys = ['stem', 'interval_nfc', 'occurrence']
+dups = fric.duplicated(keys, keep=False)
+print(f'{int(dups.sum())} clip rows share a (stem, segment, occurrence) key; keeping the last of each')
+metadata = fric.rename(columns={'stim': 'fric_stim'}).drop_duplicates(subset=keys, keep='last')
 
-# Assemble metadata DataFrame; ensure one row per (participant, phrase, Segment)
-metadata = pd.DataFrame(meta_rows)
-if metadata.empty:
-    print("No metadata rows parsed; leaving all_data unchanged.")
-else:
-    # If any duplicates slipped in, keep last
-    metadata = metadata.drop_duplicates(subset=["participant", "phrase", "interval"], keep="last")
+# FIX: columns present in both tables (e.g. 'duration') keep the all_data version; the multitaper copy gets '_fric'
+shared = [c for c in metadata.columns if c in all_data.columns and c not in keys]
+print('Columns in both tables (multitaper copies get a _fric suffix):', shared)
 
-    # ---- Align dtypes to match all_data for a clean merge ----
-    # Convert keys to string on both sides (adjust if you prefer ints for 'phrase')
-    for col in ["participant", "phrase", "interval"]:
-        if col in metadata:
-            metadata[col] = metadata[col].astype(str)
-        if col in all_data:
-            all_data[col] = all_data[col].astype(str)
+n_rows = len(all_data)
+all_data = all_data.merge(metadata, on=keys, how='left', suffixes=('', '_fric'), validate='m:1')
+assert len(all_data) == n_rows, 'merge changed the number of rows'
+print(f'Merged metadata onto all_data. New shape: {all_data.shape}')
 
-    # ---- Merge onto all_data ----
-    # Left-merge so every row in all_data is retained; metadata columns are appended
-    all_data = all_data.merge(metadata, on=["participant", "phrase", "interval"], how="left")
+# checks: where did the clips land?
+tok = all_data[all_data['tier'].eq('phonetic')].drop_duplicates('token_id')
+has_fric = tok['fric_stim'].notna()
+is_target = tok['target_token'] == 1
+print(f'Target tokens: {int(is_target.sum()):,} | with a multitaper row: {int((is_target & has_fric).sum()):,} '
+      f'| WITHOUT one: {int((is_target & ~has_fric).sum()):,}')
+print(f'Multitaper rows attached to a NON-target repeat (kept in all_data, excluded from the targets-only file): '
+      f'{int((~is_target & has_fric).sum()):,}')
+chk = metadata.merge(tok[keys].drop_duplicates(), on=keys, how='left', indicator=True)
+print(f"Multitaper rows that match no phonetic token at all: {int((chk['_merge'] == 'left_only').sum()):,}")
+print(chk.loc[chk['_merge'] == 'left_only', 'fric_stim'].head(10).tolist())
+print('Target tokens without a multitaper row (first 10):')
+print(tok.loc[is_target & ~has_fric, 'token_id'].head(10).tolist())
 
-    print(f"Merged metadata onto all_data. New shape: {all_data.shape}")
 
+# %% 9d. IGNORE FLAG + SAVE + REPORTS
 # Flag rows where "comments" contains "ignore" (case-insensitive)
 all_data['ignore_flag'] = (
     all_data['comments']
-    .astype(str)                     # ensure it's string
+    .astype(str)
     .str.contains('ignore', case=False, na=False)
-    .astype(int)                     # convert True/False → 1/0
+    .astype(int)
 )
-
 print(f"Flagged {all_data['ignore_flag'].sum()} rows containing 'ignore'.")
 
-
-# Output the final DataFrame
-# print(all_data)
-# Optionally, save to a file
-print('Saving as .csv in %s.'%(output_dir))
-all_data.to_csv('preproc_output.csv', index=False)
-
+# FIX: the old 'preproc_output.csv' save is gone. It wrote to the working directory (os.chdir(output_dir) no longer
+# exists), and writing preproc_output<SUFFIX>.csv here would overwrite the file cell 9 reloads. Everything is
+# saved in 9e instead (preproc_matchesformeans = all rows incl. ignore_flag; preproc_targets_only = targets).
 
 # Make sure phrase values are numeric
 all_data['phrase'] = pd.to_numeric(all_data['phrase'], errors='coerce')
 
 # Build report of missing phrases per participant
 missing_report = []
-
 for participant, df_part in all_data.groupby('participant'):
     phrases = sorted(df_part['phrase'].dropna().unique())
     if len(phrases) == 0:
-        continue  # skip participants with no phrase data
-    
-    # Find the range of possible phrases for this participant
+        continue
     min_phrase = int(np.nanmin(phrases))
     max_phrase = int(np.nanmax(phrases))
     expected = set(range(min_phrase, max_phrase + 1))
     actual = set(phrases)
-    
     missing = sorted(expected - actual)
-    
     missing_report.append({
         'participant': participant,
         'min_phrase': min_phrase,
@@ -1217,17 +1638,10 @@ for participant, df_part in all_data.groupby('participant'):
         'total_missing': len(missing),
         'missing_phrases': missing
     })
-
-# Convert report to DataFrame
 missing_report_df = pd.DataFrame(missing_report)
-
-# Save the report to CSV
 output_csv = os.path.join(report_dir, 'missing_phrases_by_participant.csv')
 missing_report_df.to_csv(output_csv, index=False)
-
 print(f"Saved missing-phrase report to: {output_csv}")
-
-## requires having all_data loaded from preproc
 
 # Filter for phonetic-tier rows and keep only relevant columns
 phonetic_df = all_data.loc[
@@ -1241,192 +1655,18 @@ interval_participants = (
     .groupby(['interval', 'phrase', 'Segment'])['participant']
     .unique()
     .reset_index()
-)
-
-# Sort for readability
-interval_participants = (
-    interval_participants
     .sort_values(['interval', 'phrase', 'Segment'])
     .reset_index(drop=True)
 )
-
-# Define output path
 output_csv = os.path.join(report_dir, 'phonetic_intervals_by_phrase_segment_participant.csv')
-
-# Save to CSV
 interval_participants.to_csv(output_csv, index=False)
-
 print(f"Saved phonetic interval labels by phrase, segment, and participant to: {output_csv}")
 
 
+# %% 9e. SAVE: everything (flagged) and target segments only
+print('Saving matches for means as .csv in %s.' % output_dir)
+all_data.to_csv(os.path.join(output_dir, f'preproc_matchesformeans{SUFFIX}.csv'), index=False)
 
-# ### old code using the extractions from the dicanio script
-# # Step 1: Locate all text files in the fricative_output_dir ending with '_logfile_s'
-# fricative_files = glob.glob(os.path.join(fricative_output_dir, '*.txt'))
-
-# # Step 2: Read and concatenate these files into a single DataFrame
-# fricative_data = pd.DataFrame()  # Initialize an empty DataFrame
-
-# for file in fricative_files:
-#     # Read each file
-#     temp_df = pd.read_csv(file, sep='\t')  # Assuming tab-separated files
-#     fricative_data = pd.concat([fricative_data, temp_df], ignore_index=False)
-
-# # Step 3: Output the concatenated DataFrame for verification
-# print(f"Concatenated fricative data contains {len(fricative_data)} rows and {len(fricative_data.columns)} columns.")
-
-# # Subset the data based on matching phrasenum values
-# phrasenum_values = [1, 3, 4, 6, 7, 8, 9, 10, 11, 13, 14, 17, 18, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 37, 39, 41, 43, 45, 47, 49, 50, 53, 55, 57, 59, 60, 62, 71, 73, 75, 77, 79, 81, 83, 85, 87, 89, 91, 93, 95, 97, 99, 101, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 134, 135, 136, 137, 138, 139, 141, 142, 143, 145, 146, 149, 150, 156, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172]
-
-# # Convert phrasenum_values to string to match the object type in fricative_data
-# phrasenum_values = list(map(str, phrasenum_values))
-
-# # Filter rows based on phrasenum_values
-# fricative_data = fricative_data[fricative_data['phrasenum'].astype(str).isin(phrasenum_values)]
-
-# # Output the subset DataFrame for verification
-# print(f"Subset fricative data contains {len(fricative_data)} rows after filtering by phrasenum.")
-
-# # Print the count of total phrasenum values by label
-# label_phrasenum_counts = fricative_data.groupby('label')['phrasenum'].nunique()
-# print("Counts of unique phrasenum values by label:")
-# print(label_phrasenum_counts)
-
-# #### ADD HERE SECTION for matching the above fricatives with the metadata.
-# ### each row in the fricative thing should already be a target phoneme, then export
-
-# # Load the metadata CSV file
-# metadata_path = os.path.join('/Users/bcl/GitHub/pharylary/PharyLary Stimuli - pharylary2.csv')  # Update the path to your metadata file
-# metadata = pd.read_csv(metadata_path)
-# metadata = metadata[['Phrasenum','IPA','Gloss','Gloss_2','Syllable','Segment','Type','Position','Position_2','Contrast_(IPA)','Contrast','Experiment']]
-
-# # Ensure the Phrasenum column in metadata is of the same type as the phrasenum column in fricative_data
-# metadata['Phrasenum'] = metadata['Phrasenum'].astype(str)
-# fricative_data['phrasenum'] = fricative_data['phrasenum'].astype(str)
-
-# # Merge fricative_data with metadata on phrasenum/Phrasenum
-# fricative_data = pd.merge(
-#     fricative_data,
-#     metadata,
-#     how='left',  # Use 'left' join to preserve the shape of fricative_data
-#     left_on='phrasenum',
-#     right_on='Phrasenum'
-# )
-
-# # Output the resulting DataFrame for verification
-# print(f"fricative_data now contains {len(fricative_data)} rows and {len(fricative_data.columns)} columns after merging with metadata.")
-
-# ### Save the final subset data ###
-# fricative_data.to_csv(os.path.join(output_dir, 'subset_fricative_data.csv'), index=False)
-
-
-#### matches for means ####
-##### data for the intervals as extracted from overlap with tier 3 because there's no unique labels in tier 1.
-##### this makes it so the data is just the target phonemes, not all of them
-
-### new method
-
-t0 = time.time()
-
-# Ensure comparable dtypes (same as your snippet)
-all_data = all_data.copy()
-all_data['phrase'] = all_data['phrase'].astype(str)
-all_data['t_ms']   = pd.to_numeric(all_data['t_ms'], errors='coerce')
-
-# Build the set of (phrase, t_ms) pairs from V-sequence
-vseq_idx = pd.MultiIndex.from_frame(
-    all_data.loc[all_data['tier'].eq('V-sequence'), ['phrase', 't_ms']].drop_duplicates()
-)
-
-# Identify phonetic rows and their (phrase, t_ms)
-mask_phonetic = all_data['tier'].eq('phonetic')
-phon_idx = pd.MultiIndex.from_frame(all_data.loc[mask_phonetic, ['phrase', 't_ms']])
-
-# Compute match mask for phonetic rows
-match_mask = phon_idx.isin(vseq_idx)
-
-# Create/assign the dummy column (0/1) across the full DataFrame
-all_data['target_match'] = 0
-all_data.loc[mask_phonetic, 'target_match'] = match_mask.astype(int)
-
-print(f"Done in {(time.time()-t0):.2f}s — matches: {all_data['target_match'].sum():,}")
-
-print('Saving matches for means as .csv in %s.'%(output_dir))
-# all_data.to_csv('/Volumes/circe/vs/output_preproc/preproc_matchesformeans.csv', index=False)
-all_data.to_csv(os.path.join(output_dir, "preproc_matchesformeans.csv"), index=False)
-# matching_data = pd.read_csv('/Volumes/circe/vs/output_preproc/preproc_matchesformeans.csv', encoding='utf8')
-
-## slicing the data below takes about 5 minutes to run because iterrows() is slow ####
-#Initialize an empty DataFrame to store matching rows
-# time_start = time.ctime()
-# print("Start time:", time_start)
-# seconds_start = time.time()
-
-# print('Getting matching data for means...')
-# matching_data = pd.DataFrame()
-
-# # Iterate through each unique phrase
-# for phrase in all_data['phrase'].unique():
-
-#     # Filter data for the current phrase
-#     phrase_data = all_data[all_data['phrase'] == phrase]
-
-#     # Separate interval and V-sequence data within this phrase
-#     interval_data = phrase_data[phrase_data['tier'] == 'phonetic']
-#     v_sequence_data = phrase_data[phrase_data['tier'] == 'V-sequence']
-
-#     # Iterate through the interval data
-#     for index, interval_row in interval_data.iterrows():
-#         # Check if this interval t_ms matches any V-sequence t_ms in the same phrase
-#         if any(interval_row['t_ms'] == v_sequence_row.t_ms for v_sequence_row in v_sequence_data.itertuples()):
-#             # Append matching row to the matching_data DataFrame
-#             print('Appending match for %s phrase %s...'%(interval_row['participant'], phrase))
-#             matching_data = matching_data.append(interval_row)
-
-
-# time_start = time.ctime()
-# print("Start time:", time_start)
-# seconds_start = time.time()
-
-# print('Getting matching data for means...')
-# matching_data = pd.DataFrame()
-
-# # Initialize a list to collect matching rows
-# matching_rows = []
-
-# # Iterate through each unique phrase
-# for phrase in all_data['phrase'].unique():
-#     print('Appending match for %s phrase %s...' % (interval_row['participant'], phrase))
-#     # Filter data for the current phrase
-#     phrase_data = all_data[all_data['phrase'] == phrase]
-
-#     # Separate interval and V-sequence data within this phrase
-#     interval_data = phrase_data[phrase_data['tier'] == 'phonetic']
-#     v_sequence_data = phrase_data[phrase_data['tier'] == 'V-sequence']
-
-#     # Create a set of t_ms values from V-sequence data for faster lookup
-#     v_sequence_t_ms_set = set(v_sequence_data['t_ms'])
-
-#     # Iterate through the interval data
-#     for index, interval_row in interval_data.iterrows():
-#         # Check if this interval t_ms matches any V-sequence t_ms in the same phrase
-#         if interval_row['t_ms'] in v_sequence_t_ms_set:
-#             # Collect the matching row
-#             matching_rows.append(interval_row)
-
-# # Convert the list of matching rows to a DataFrame
-# matching_rows_df = pd.DataFrame(matching_rows)
-
-# # Use pd.concat to append all matching rows to the matching_data DataFrame at once
-# matching_data = pd.concat([matching_data, matching_rows_df], ignore_index=True)
-
-
-# time_end = time.ctime()
-# print("End time:", time_end)
-# seconds_end = time.time()
-# print("Time elapsed (minutes): ", (seconds_end-seconds_start)/60)
-
-# print('Saving matches for means as .csv in %s.'%(output_dir))
-# # all_data.to_csv('/Volumes/circe/vs/output_preproc/preproc_matchesformeans.csv', index=False)
-# all_data.to_csv(os.path.join(output_dir, "preproc_matchesformeans.csv"), index=False)
-# # matching_data = pd.read_csv('/Volumes/circe/vs/output_preproc/preproc_matchesformeans.csv', encoding='utf8')
+targets = all_data[all_data['target_token'] == 1]
+targets.to_csv(os.path.join(output_dir, f'preproc_targets_only{SUFFIX}.csv'), index=False)
+print(f'Targets only: {len(targets):,} rows, {targets["token_id"].nunique():,} tokens')

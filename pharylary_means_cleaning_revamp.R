@@ -28,7 +28,7 @@ sync_paths <- c('/Volumes/circe',
 base_path <- sync_paths[dir.exists(sync_paths)][1]
 
 # Path to preprocessed data (matches from VS analysis)
-data_path <- file.path(base_path, 'alldata/dissertation/vs/output_preproc/preproc_matchesformeans.csv')
+data_path <- file.path(base_path, 'alldata/dissertation/vs/output_preproc/preproc_matchesformeans_v2.csv')
 data <- read.csv(data_path)
 
 n_distinct(data$participant)
@@ -84,25 +84,25 @@ if (nrow(mismatched_data) > 0) {
     distinct(participant, phrase, interval) %>%
     group_by(participant, interval) %>%
     summarise(unique_intervals_removed = n(), .groups = "drop")
-  
+
   cat("\n--- Unique Interval Units REMOVED per Participant ---\n")
   print(interval_removal_summary)
-  
+
   # B. Unique intervals remaining
   interval_remaining_summary <- subset_int %>%
     distinct(participant, phrase, interval) %>%
     group_by(participant, interval) %>%
     summarise(unique_intervals_remaining = n(), .groups = "drop")
-  
+
   cat("\n--- Unique Interval Units REMAINING in subset_int ---\n")
   cat("(Count of unique participant-phrase trials after filtering)\n")
   print(interval_remaining_summary)
-  
+
   # C. Detailed mismatch breakdown
   mismatch_summary <- mismatched_data %>%
     distinct(participant, phrase, interval, Segment) %>%
     arrange(participant, phrase)
-  
+
   cat("\n--- Detailed Breakdown: Mismatched Trial Units ---\n")
   print(mismatch_summary)
 } else {
@@ -188,39 +188,64 @@ subset_mean <- subset_int %>%
 # Larger distances indicate more unusual formant combinations
 # Cutoff = 4 (smaller values = more outliers; paper uses 4)
 
-## Mahalanobis distance function
-vmahalanobis <- function(dat) {
-  # Skip if too few observations (< 25)
+### flagging formant outliers
+### Calculate Mahalanobis distance for formants
+
+vmahalanobis = function (dat) {
   if (nrow(dat) < 25) {
-    dat$zF1F2 <- NA
+    dat$zF1F2 = NA
     return(dat)
   }
+  means = c(mean(dat$sF1_mean, na.rm=T), mean(dat$sF2_mean, na.rm=T))
+  cov = cov(cbind(dat$sF1_mean, dat$sF2_mean))
   
-  # Calculate mean vector and covariance for F1/F2
-  means <- c(mean(dat$sF1_mean, na.rm = TRUE), mean(dat$sF2_mean, na.rm = TRUE))
-  cov_matrix <- cov(cbind(dat$sF1_mean, dat$sF2_mean))
-  
-  # Calculate Mahalanobis distance
-  dat$zF1F2 <- mahalanobis(cbind(dat$sF1_mean, dat$sF2_mean),
-                           center = means, cov = cov_matrix)
+  dat$zF1F2 = mahalanobis(cbind(dat$sF1_mean, dat$sF2_mean),
+                          center=means, cov=cov)
   dat
 }
 
-## Apply Mahalanobis distance function
-subset_mean <- subset_mean %>%
-  group_by(participant, interval) %>%
+# Distance larger than 6 is considered as outlier    #MG: smaller numbers = more outliers. The paper I linked to uses 4.
+distance_cutoff = 6
+
+# Perform Mahalanobis on dataset
+subset_mean =  subset_mean %>%                 #MG: this was cut from a dataset called "tot_fin"
+  group_by(participant,interval) %>%
   do(vmahalanobis(.)) %>%
   ungroup() %>%
   mutate(formant_outlier = NA)
 
-## Flag outliers (distance > 4)
+# Visualize the formants with flagged values
+subset_mean %>%
+  filter(is.na(formant_outlier)) %>%
+  ggplot(aes(x = sF2_mean, y = sF1_mean, color = zF1F2 > distance_cutoff)) +       #MG: sF2 and sF1 = Snack values from VS
+  geom_point(size = 0.6) +
+  facet_wrap(.~interval)+
+  scale_y_reverse(limits = c(2000,0),position = "right") +
+  scale_x_reverse(limits = c(3500,0),position = "top")+
+  theme_bw()
+
+# Tag flagged values
 for (i in 1:nrow(subset_mean)) {
   if (!is.na(subset_mean$zF1F2[i])) {
-    if (subset_mean$zF1F2[i] > 4) {
-      subset_mean$formant_outlier[i] <- "outlier"
+    if (subset_mean$zF1F2[i] > distance_cutoff){
+      subset_mean$formant_outlier[i] = "outlier"
     }
   }
+  
 }
+
+# Visualize the vowel formant after exclusion
+subset_mean %>%
+  filter(is.na(formant_outlier)) %>%
+  ggplot(aes(x = sF2_mean, y = sF1_mean)) +
+  geom_point(size = 0.6) +
+  #geom_text()+
+  facet_wrap(.~interval)+
+  #geom_density_2d() +
+  #  scale_color_manual(values=c('#a6611a','#dfc27d','#018571'))+
+  scale_y_reverse(limits = c(2000,0),position = "right") +
+  scale_x_reverse(limits = c(3500,0),position = "top")+
+  theme_bw()
 
 # ---------------------------------------------------------------------------
 # FORMANT NORMALIZATION (Delta-F Method)
@@ -570,4 +595,4 @@ output_path <- file.path(base_path, 'alldata/dissertation/vs/output_preproc/phar
 write.csv(subset_mean, output_path, row.names = FALSE)
 
 cat("\n--- Pipeline Complete ---\n")
-cat("Output written to:", output_path_cassandra, "\n")
+cat("Output written to:", output_path, "\n")

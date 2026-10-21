@@ -23,26 +23,26 @@
 ### CHANGE ME ###
 #################
 
-# Define data paths - check which volume is available
 sync_paths <- c('/Volumes/circe',
                 '/Volumes/cassandra')
 
 base_path <- sync_paths[dir.exists(sync_paths)][1]
 
+# list of fricatives to process (each must match a sub-folder name)
+fricatives <- c('h','ħ','s','ʕ','sˤ','ʁ','ðˤ','ð','ðħ','sʕ')   # <- edit this
 
-mydir <- file.path(base_path, 'alldata/dissertation/vs/output_preproc/fricatives/ðˤ/') # main directory with sub-folders of sound extracts
-outdir <- file.path(base_path, 'alldata/dissertation/vs/output_preproc/fricatives/') # output directory for text file
-outfile <- 'ðˤ.csv' # extension to add to the output file (if you change csv, you'll need to change code below)
+fric_dir <- file.path(base_path, 'alldata/dissertation/vs/output_preproc/fricatives')
+outdir   <- fric_dir   # output directory for the csv files
 
-SAMPLE_RATE <- 44100 # sampling rate of extracts
+SAMPLE_RATE <- 44100
 
-NW_TIME_BANDWIDTH <- 4 # time-bandwidth parameter for multitaper spectrum (nw)
-K_TAPERS <- 8 # number of tapers for multitaper spectrum (k)
+NW_TIME_BANDWIDTH <- 4
+K_TAPERS <- 8
 
-extract_location <- "mid" # can be "beg", "mid", or "end"
-extract_what <- "duration" # can be "duration" or "proportion"
+extract_location <- "mid"
+extract_what <- "duration"
 extract_duration <- 0.02
-extract_proportion <- 0.5 # number from 0 to 1 indicating the proportional width of the analysed interval (0.5 = 50% of the fricative duration)
+extract_proportion <- 0.5
 
 ################
 ### LET'S GO ###
@@ -163,80 +163,83 @@ getMinBandMinAmp <-function(mti, lowFreq, highFreq) {
   return(peakamp)
 }
 
-##################
-### FILE LOOPS ###
-##################
-# create list of files and create empty vectors for each measure
-files <- list.files(mydir, pattern = "*.wav")
-cogs <- rep(NA, length(files))
+##########################
+### PER-FRICATIVE LOOP ###
+##########################
 
-peaks <- rep(NA, length(files))
-peakamps <- rep(NA, length(files))
-
-midbandpeaks <- rep(NA, length(files))
-midbandpeakamps <- rep(NA, length(files))
-
-minbandpeaks <- rep(NA, length(files))
-minbandpeakamps <- rep(NA, length(files))
-
-minbandmins <- rep(NA, length(files))
-minbandminamps <- rep(NA, length(files))
-
-degsibilances <- rep(NA, length(files))
-
-specvars <- rep(NA, length(files))
-skews <- rep(NA, length(files))
-kurts <- rep(NA, length(files))
-
-for (i in 1:length(files)) {
-  fi <- files[i]
-  frici <- readWave(paste(mydir,fi,sep = "/"))
-  frici <- normalize(frici)
-  n_samples <- length(frici)
+process_fricative <- function(fric) {
+  mydir   <- file.path(fric_dir, fric)
+  outfile <- paste0(fric, ".csv")
   
-  if (extract_what == "proportion") {
-    extract_samples <- extract_proportion * n_samples
-    frici <- getPortion(frici, n_samples, extract_samples, extract_location) # get middle 50% of fricative
-  } else {
-    extract_samples <- extract_duration * SAMPLE_RATE
-    if (extract_samples > n_samples) {
-      extract_samples <- n_samples
-    }
-    frici <- getPortion(frici, n_samples, extract_samples, extract_location) # get middle 50% of fricative
+  if (!dir.exists(mydir)) {
+    warning("Folder not found, skipping: ", mydir)
+    return(invisible(NULL))
   }
-  mti <- getSpectrum(frici) # get spectrum
   
-  spectralMomentsi <- getSpectralMoments(mti)
-  cogs[i] <- spectralMomentsi[1] # get spectral COG
-  specvars[i] <- spectralMomentsi[2] # get spectral variance
-  skews[i] <- spectralMomentsi[3] # get spectral skewness
-  kurts[i] <- spectralMomentsi[4] # get spectral kurtosis
+  files <- list.files(mydir, pattern = "\\.wav$")
+  if (length(files) == 0) {
+    warning("No .wav files found, skipping: ", mydir)
+    return(invisible(NULL))
+  }
   
-  peaks[i] <- getSpectralPeak(mti) # get spectral peak
-  peakamps[i] <- getSpectralPeakAmp(mti) # get amplitude of spectral peak
+  n <- length(files)
+  cogs <- peaks <- peakamps <- rep(NA_real_, n)
+  midbandpeaks <- midbandpeakamps <- rep(NA_real_, n)
+  minbandpeaks <- minbandpeakamps <- rep(NA_real_, n)
+  minbandmins <- minbandminamps <- rep(NA_real_, n)
+  degsibilances <- specvars <- skews <- kurts <- rep(NA_real_, n)
   
-  midbandpeaks[i] <- getMidBandPeak(mti, 3000, 7000) # get mid spectral peak between range
-  midbandpeakamps[i] <- getMidBandPeakAmp(mti, 3000, 7000) # get mid amplitude of spectral peak between range
+  for (i in seq_len(n)) {
+    frici <- readWave(file.path(mydir, files[i]))
+    frici <- normalize(frici)
+    n_samples <- length(frici)
+    
+    if (extract_what == "proportion") {
+      extract_samples <- extract_proportion * n_samples
+    } else {
+      extract_samples <- min(extract_duration * SAMPLE_RATE, n_samples)
+    }
+    frici <- getPortion(frici, n_samples, extract_samples, extract_location)
+    
+    mti <- getSpectrum(frici)
+    
+    spectralMomentsi <- getSpectralMoments(mti)
+    cogs[i]     <- spectralMomentsi[1]
+    specvars[i] <- spectralMomentsi[2]
+    skews[i]    <- spectralMomentsi[3]
+    kurts[i]    <- spectralMomentsi[4]
+    
+    peaks[i]    <- getSpectralPeak(mti)
+    peakamps[i] <- getSpectralPeakAmp(mti)
+    
+    midbandpeaks[i]    <- getMidBandPeak(mti, 3000, 7000)
+    midbandpeakamps[i] <- getMidBandPeakAmp(mti, 3000, 7000)
+    
+    minbandpeaks[i]    <- getMinBandPeak(mti, 550, 3000)
+    minbandpeakamps[i] <- getMinBandPeakAmp(mti, 550, 3000)
+    
+    minbandmins[i]    <- getMinBandMin(mti, 550, 3000)
+    minbandminamps[i] <- getMinBandMinAmp(mti, 550, 3000)
+    
+    degsibilances[i] <- midbandpeakamps[i] - minbandminamps[i]
+  }
   
-  minbandpeaks[i] <- getMinBandPeak(mti, 550, 3000) # get mid spectral peak between range
-  minbandpeakamps[i] <- getMinBandPeakAmp(mti, 550, 3000) # get mid amplitude of spectral peak between range
+  measures <- data.frame(stim = files, cog = cogs, peak = peaks, peakamp = peakamps,
+                         midbandpeak = midbandpeaks, midbandpeakamp = midbandpeakamps,
+                         minbandpeak = minbandpeaks, minbandpeakamp = minbandpeakamps,
+                         minbandmin = minbandmins, minbandminamp = minbandminamps,
+                         degsibilance = degsibilances, spectral.var = specvars,
+                         skew = skews, kurtosis = kurts)
   
-  minbandmins[i] <- getMinBandMin(mti, 550, 3000) # get mid spectral peak between range
-  minbandminamps[i] <- getMinBandMinAmp(mti, 550, 3000) # get mid amplitude of spectral peak between range
-  
-  degsibilances[i] <- midbandpeakamps[i] - minbandminamps[i]
+  write.csv(measures, file.path(outdir, outfile), row.names = FALSE, quote = FALSE)
+  message("Done: ", fric, " (", n, " files) -> ", file.path(outdir, outfile))
+  invisible(measures)
 }
 
-# set up output file
-measures <- data.frame(stim = files, cog = cogs, peak = peaks, peakamp = peakamps, 
-                       midbandpeak = midbandpeaks, midbandpeakamp = midbandpeakamps, 
-                       minbandpeak = minbandpeaks, minbandpeakamp = minbandpeakamps,
-                       minbandmin = minbandmins, minbandminamp = minbandminamps,
-                       degsibilance = degsibilances, spectral.var = specvars, 
-                       skew = skews, kurtosis = kurts)
-
-# save output
-write.csv(measures, paste0(outdir, outfile), row.names = F, quote = F)
+# run for every fricative in the list
+for (fric in fricatives) {
+  process_fricative(fric)
+}
 
 ###########
 ### END ###
