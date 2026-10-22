@@ -1,7 +1,7 @@
 ## Modeling for PharyLary
 ## author: ben lang, blang@ucsd.edu
 
-# library(lmerTest)
+library(lmerTest)
 library(plyr)
 library(dplyr) # this checks for normality
 # library(ggpubr) # this plots normality
@@ -33,10 +33,11 @@ library("devtools")
 library(grid)
 library(gridExtra)
 library(scales)
+emm_options(pbkrtest.limit = 20000, lmerTest.limit = 20000)
 
 #paths
-# orig_data_path <- sprintf('/Volumes/circe/alldata/dissertation/vs/output_preproc/pharylary_subset_mean.csv')
-orig_data_path <- sprintf('/Volumes/cassandra/alldata/dissertation/vs/output_preproc/pharylary_subset_mean.csv')
+orig_data_path <- sprintf('/Volumes/circe/alldata/dissertation/vs/output_preproc/pharylary_subset_mean_truncated.csv')
+# orig_data_path <- sprintf('/Volumes/cassandra/alldata/dissertation/vs/output_preproc/pharylary_subset_mean.csv')
 
 subset_mean = read.csv(orig_data_path)
 
@@ -450,55 +451,87 @@ subset_mean$interval <- str_replace(subset_mean$interval, "j|w", "j/w")
 subset_mean <- subset_mean %>%
   mutate(interval = relevel(factor(interval), ref = "j/w"))
 
+carrier_ids <- c(
+  "Y0409", "Y0395", "Y0388", "Y0401", "Y0396",
+  "SD0001", "Y0410", "SD0002", "SD0003", "SD0004", "SD0005",
+  "Y0415", "A0249", "Y0208",
+  "SD0006", "SD0007", "SD0008", "SD0009", "SD0010",
+  "SD0011", "SD0012", "SD0013", "SD0014", "SD0015"
+)
+
+subset_mean <- subset_mean %>%
+  mutate(carrierphrase = factor(if_else(participant %in% carrier_ids, 1, 2)))
+
+varies <- subset_mean %>%
+  group_by(participant, phrase, interval) %>%
+  summarise(across(everything(), ~ n_distinct(.x) > 1), .groups = "drop") %>%
+  summarise(across(-c(participant, phrase, interval), any)) %>%
+  unlist()
+
+names(varies)[varies]   # columns that differ within a cell: these are your ms-level columns
+
+ms_cols <- names(varies)[varies]
+
+subset_mean_collapsed <- subset_mean %>%
+  select(-all_of(ms_cols)) %>%
+  distinct()
+
+# run models and pairwise comparisons
+
 mod_f0 <- lmer(
   formula = strF0_mean ~
-    interval + (1|participant) + (1|phrase) + (1|Experiment),
-  data = subset_mean %>% filter(strF0_mean_z_outlier=="OK")
+    interval + (1|participant) + (1|phrase) + (1|carrierphrase),
+  data = subset_mean_collapsed %>% filter(strF0_mean_z_outlier=="OK")
 )
 summary(mod_f0)
 
-emms_f0 <- emmeans(mod_f0, ~ interval)
-pairs(emms_f0)
+emms_f0 <- emmeans(mod_f0, ~ interval, lmer.df = "satterthwaite")
+pairs_f0 <- pairs(emms_f0) %>% as.data.frame() %>% arrange(p.value)
+pairs_f0
 
 mod_CPP <- lmer(
   formula = CPP_mean_log ~
-    interval + (1|participant) + (1|phrase),
-  data = subset_mean %>% filter(CPP_mean_log_z_outlier=="OK")
+    interval + (1|participant) + (1|phrase) + (1|carrierphrase),
+  data = subset_mean_collapsed %>% filter(CPP_mean_log_z_outlier=="OK")
 )
 summary(mod_CPP)
 
-emms_CPP <- emmeans(mod_CPP, ~ interval)
-pairs(emms_CPP)
+emms_CPP <- emmeans(mod_CPP, ~ interval, lmer.df = "satterthwaite")
+pairs_CPP <- pairs(emms_CPP) %>% as.data.frame() %>% arrange(p.value)
+pairs_CPP
 
 mod_soe <- lmer(
   formula = soe_mean_log ~
-    interval + (1|participant) + (1|phrase),
-  data = subset_mean %>% filter(soe_mean_log_z_outlier=="OK")
+    interval + (1|participant) + (1|phrase) + (1|carrierphrase),
+  data = subset_mean_collapsed %>% filter(soe_mean_log_z_outlier=="OK")
 )
 summary(mod_soe)
 
-emms_soe <- emmeans(mod_soe, ~ interval)
-pairs(emms_soe)
+emms_soe <- emmeans(mod_soe, ~ interval, lmer.df = "satterthwaite")
+pairs_soe <- pairs(emms_soe) %>% as.data.frame() %>% arrange(p.value)
+pairs_soe
 
 mod_F1 <- lmer(
   formula = F1n_mean ~
-    interval + (1|participant) + (1|phrase),
-  data = subset_mean %>% filter(formant_outlier != "outlier" | is.na(formant_outlier)) # filter out the outliers from mahalanobis
+    interval + (1|participant) + (1|phrase) + (1|carrierphrase),
+  data = subset_mean_collapsed %>% filter(formant_outlier != "outlier" | is.na(formant_outlier)) # filter out the outliers from mahalanobis
 )
 summary(mod_F1)
 
-emms_F1 <- emmeans(mod_F1, ~ interval)
-pairs(emms_F1)
+emms_F1 <- emmeans(mod_F1, ~ interval, lmer.df = "satterthwaite")
+pairs_F1 <- pairs(emms_F1) %>% as.data.frame() %>% arrange(p.value)
+pairs_F1
 
 ### run harmonic model
 mod_H1res <- lmer(
-  formula = H1res_mean ~ interval  + (1|participant) + (1|phrase),
-  data = subset_mean %>% filter(H1res_mean_z_outlier=="OK")
+  formula = H1res_mean ~ interval  + (1|participant) + (1|phrase) + (1|carrierphrase),
+  data = subset_mean_collapsed %>% filter(H1res_mean_z_outlier=="OK")
 )
 summary(mod_H1res)
 
-emms_H1res <- emmeans(mod_H1res, ~ interval)
-pairs(emms_H1res)  # all pairwise comparisons
+emms_H1res <- emmeans(mod_H1res, ~ interval, lmer.df = "satterthwaite")
+pairs_H1res <- pairs(emms_H1res) %>% as.data.frame() %>% arrange(p.value)
+pairs_H1res
 
 
 #### rain clouds

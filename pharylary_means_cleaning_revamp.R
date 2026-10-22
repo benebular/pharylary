@@ -561,7 +561,234 @@ for (t in targets_to_check) {
 }
 
 # ---------------------------------------------------------------------------
-# FRICTIVE DATA EXCACTION
+# VOWEL CONTEXT DATAFRAME: PRECEDING / FOLLOWING VOWELS OF THE TARGET SEGMENTS
+# ---------------------------------------------------------------------------
+# PASTE THIS SECTION after the "H1res" section and before "FRICTIVE DATA EXCACTION".
+#
+# Builds a dataframe like subset_mean (one row per frame, with the same means, DF-normalised
+# formants, logs, z-scores and outlier flags) but for the VOWELS next to each target token.
+# vowel_position says whether that vowel PRECEDES or FOLLOWS the target token in target_*.
+#
+# Every acoustic measure here is computed from the vowel rows themselves, with the same steps and
+# settings as the target segments. Nothing is taken from the consonant measurements (not even the
+# H1res coefficient, which is refit on the vowel rows).
+#
+# Needs from the sections above: data, subset_int, features, cols_to_log, cols_to_z,
+# cols_to_z_h1res, thresh, distance_cutoff, vowel_pattern, base_path
+# (plus the lme4 / lmerTest libraries loaded at the top).
+
+## 0. Settings ---------------------------------------------------------------
+# TRUE : the vowel must be the IMMEDIATELY neighbouring phonetic interval.
+#        If there is an empty interval (a pause) between target and vowel, that vowel is not used.
+# FALSE: use the nearest labelled vowel even across a pause (like the sequence method above).
+require_adjacent <- TRUE
+
+## 1. Target tokens: the same tokens that are in subset_int / subset_mean ------
+# one row per token (an interval in one file), not per frame
+target_tokens <- subset_int %>%
+  distinct(participant, phrase, stem, token_id, interval, interval_idx)
+
+## 2. Order of the labelled intervals in each file's phonetic tier -------------
+# interval_idx is the interval's position in its tier, so a jump of more than 1 means an empty
+# interval (pause) sits in between.
+phon_seq <- data %>%
+  filter(tier == "phonetic") %>%
+  distinct(stem, interval_idx, token_id, interval) %>%
+  arrange(stem, interval_idx) %>%
+  group_by(stem) %>%
+  mutate(prev_token_id = lag(token_id), prev_label = lag(interval), prev_idx = lag(interval_idx),
+         next_token_id = lead(token_id), next_label = lead(interval), next_idx = lead(interval_idx)) %>%
+  ungroup()
+
+## 3. Neighbours of each target token (long format: one row per target x position) -----
+nb_all <- target_tokens %>%
+  left_join(phon_seq %>% select(token_id, prev_token_id, prev_label, prev_idx,
+                                next_token_id, next_label, next_idx),
+            by = "token_id")
+
+nb_long <- bind_rows(
+  nb_all %>% transmute(target_token_id = token_id, target_interval = interval,
+                       target_interval_idx = interval_idx,
+                       vowel_position = "preceding",
+                       vowel_token_id = prev_token_id, vowel_label = prev_label, vowel_idx = prev_idx),
+  nb_all %>% transmute(target_token_id = token_id, target_interval = interval,
+                       target_interval_idx = interval_idx,
+                       vowel_position = "following",
+                       vowel_token_id = next_token_id, vowel_label = next_label, vowel_idx = next_idx)
+) %>%
+  mutate(
+    vowel_label_clean = str_trim(str_remove_all(vowel_label, "[\t\n\r]")),
+    is_vowel = !is.na(vowel_label_clean) & str_detect(vowel_label_clean, vowel_pattern),
+    adjacent = !is.na(vowel_idx) & abs(vowel_idx - target_interval_idx) == 1
+  )
+
+## 4. Keep the vowels ----------------------------------------------------------
+vowel_links <- nb_long %>%
+  filter(is_vowel, adjacent | !require_adjacent)
+
+cat("\n--- Vowel context: neighbour check ---\n")
+cat("Target tokens:", nrow(target_tokens), "\n")
+cat("Neighbours that exist (label present):", sum(!is.na(nb_long$vowel_label_clean)), "\n")
+cat("Neighbours that are vowels:", sum(nb_long$is_vowel), "\n")
+cat("Vowels dropped because a pause sits between them and the target:",
+    if (require_adjacent) sum(nb_long$is_vowel & !nb_long$adjacent) else 0, "\n")
+cat("Kept vowel links:\n")
+print(table(vowel_links$vowel_position))
+cat("Vowel tokens used (a vowel between two targets is used twice, once per role):",
+    n_distinct(vowel_links$vowel_token_id), "unique,", nrow(vowel_links), "links\n")
+
+# Neighbouring labels rejected as 'not a vowel': look here for vowel symbols missing from vowel_pattern
+# (diphthongs with a tie bar, other IPA vowels, diacritics ...)
+cat("\nMost common neighbour labels REJECTED as non-vowels (check for missing vowel symbols):\n")
+print(head(nb_long %>%
+             filter(!is.na(vowel_label_clean), !is_vowel) %>%
+             count(vowel_label_clean, sort = TRUE), 30))
+
+## 5. Select the vowel rows for each (target interval, position) -----------------
+# One block of rows per vowel interval x the target it precedes/follows. context_id names that
+# pairing. Everything below is measured across each block's own rows.
+vowel_frames <- data %>%
+  filter(token_id %in% unique(vowel_links$vowel_token_id))
+
+vowel_context_df <- vowel_links %>%
+  select(token_id = vowel_token_id, vowel_position,
+         target_token_id, target_interval, target_interval_idx) %>%
+  inner_join(vowel_frames, by = "token_id", relationship = "many-to-many") %>%
+  mutate(context_id = paste(target_token_id, vowel_position, sep = "|")) %>%
+  relocate(vowel_position, target_interval, target_interval_idx, target_token_id, context_id,
+           .after = interval)
+
+## 6. Same processing as the target segments (mirrors the sections above) --------
+## 6a. Feature means, across the rows of each vowel interval (context_id)
+vowel_context_df <- vowel_context_df %>%
+  group_by(context_id) %>%
+  mutate(across(all_of(features), ~ mean(.x, na.rm = TRUE), .names = "{.col}_mean")) %>%
+  ungroup()
+
+## 6b. Formant outliers (Mahalanobis), same cutoff, grouped by participant and vowel label
+# Same calculation as vmahalanobis(), but rows with missing F1/F2 get NA instead of making the
+# whole group fail. The numbers are identical when no formants are missing.
+vmahalanobis_safe <- function(dat) {
+  dat$zF1F2 <- NA_real_
+  ok <- is.finite(dat$sF1_mean) & is.finite(dat$sF2_mean)
+  if (sum(ok) < 25) return(dat)
+  m <- cbind(dat$sF1_mean[ok], dat$sF2_mean[ok])
+  dat$zF1F2[ok] <- mahalanobis(m, center = colMeans(m), cov = cov(m))
+  dat
+}
+
+vowel_context_df <- vowel_context_df %>%
+  group_by(participant, interval) %>%
+  do(vmahalanobis_safe(.)) %>%
+  ungroup() %>%
+  mutate(formant_outlier = if_else(!is.na(zF1F2) & zF1F2 > distance_cutoff, "outlier", NA_character_))
+
+## 6c. Delta-F normalisation (vectorised; identical to the rowwise mean() above)
+vowel_context_df <- vowel_context_df %>%
+  mutate(
+    DF = (sF1_mean / 0.5 + sF2_mean / 1.5 + sF3_mean / 2.5) / 3,
+    F1n_mean = sF1_mean / DF,
+    F2n_mean = sF2_mean / DF,
+    F3n_mean = sF3_mean / DF
+  )
+
+## 6d. Log transformation
+feats_vowel <- intersect(cols_to_log, names(vowel_context_df))
+
+vowel_context_df <- vowel_context_df %>%
+  mutate(
+    across(
+      all_of(feats_vowel),
+      ~ {
+        v <- suppressWarnings(as.numeric(.x))
+        ifelse(is.finite(v) & v > 0, log(v), NA_real_)
+      },
+      .names = "{.col}_log"
+    )
+  )
+
+## 6e. Z-scoring per participant (across that participant's vowel rows) and outlier flags
+vowel_context_df <- vowel_context_df %>%
+  group_by(participant) %>%
+  mutate(
+    across(all_of(cols_to_z), ~{
+      m <- mean(.x, na.rm = TRUE)
+      s <- sd(.x, na.rm = TRUE)
+      if (is.finite(s) && s > 0) (.x - m) / s else NA_real_
+    }, .names = "{.col}_z")
+  ) %>%
+  ungroup() %>%
+  mutate(
+    across(
+      ends_with("z"),
+      ~ if_else(is.finite(.x) & abs(.x) > thresh, "outlier", "OK"),
+      .names = "{.col}_outlier"
+    )
+  )
+
+## 6f. H1res: the same model as for the target segments, but FITTED ON THE VOWEL ROWS
+H1c_mod_dat_vowel <- vowel_context_df %>%
+  filter(
+    is.finite(H1c_mean),
+    is.finite(Energy_mean_log),
+    !is.na(strF0_mean_z_outlier),
+    formant_outlier != "outlier" | is.na(formant_outlier)
+  )
+
+mod_vowel <- lmer(H1c_mean ~ Energy_mean_log + strF0_mean +
+                    (Energy_mean_log | participant),
+                  data = H1c_mod_dat_vowel)
+
+H1res_estimate_vowel <- coef(summary(mod_vowel))["Energy_mean_log", "Estimate"]
+cat("\nVowel H1res regression coefficient (Energy_mean_log):", H1res_estimate_vowel, "\n")
+
+vowel_context_df <- vowel_context_df %>%
+  mutate(
+    H1res_mean = if_else(
+      is.finite(H1c_mean) & is.finite(Energy_mean_log),
+      H1c_mean - H1res_estimate_vowel * Energy_mean_log,
+      NA_real_
+    )
+  ) %>%
+  group_by(participant) %>%
+  mutate(
+    across(all_of(cols_to_z_h1res), ~{
+      m <- mean(.x, na.rm = TRUE)
+      s <- sd(.x, na.rm = TRUE)
+      if (is.finite(s) && s > 0) (.x - m) / s else NA_real_
+    }, .names = "{.col}_z")
+  ) %>%
+  ungroup() %>%
+  mutate(
+    across(
+      ends_with("z"),
+      ~ if_else(is.finite(.x) & abs(.x) > thresh, "outlier", "OK"),
+      .names = "{.col}_outlier"
+    )
+  )
+
+## 7. Summary and output ---------------------------------------------------------
+cat("\n--- Vowel context dataframe ---\n")
+cat("Rows (frames):", nrow(vowel_context_df), "\n")
+cat("Vowel intervals x target pairings (context_id):", n_distinct(vowel_context_df$context_id), "\n")
+cat("Rows by position:\n")
+print(table(vowel_context_df$vowel_position))
+# A vowel between two targets forms two pairings with identical rows. Its means are the same in both,
+# but it counts twice in the per-participant z-scores, the Mahalanobis fit and the H1res model.
+shared <- vowel_context_df %>% distinct(token_id, context_id) %>% count(token_id) %>% filter(n > 1)
+cat("Vowel tokens that appear in more than one pairing:", nrow(shared), "\n")
+cat("Vowel labels by position (first 20):\n")
+print(head(vowel_context_df %>%
+             distinct(context_id, vowel_position, interval) %>%
+             count(vowel_position, interval, sort = TRUE), 20))
+
+# Write results to CSV
+vowel_output_path <- file.path(base_path, 'alldata/dissertation/vs/output_preproc/pharylary_vowel_context_subset_mean.csv')
+write.csv(vowel_context_df, vowel_output_path, row.names = FALSE)
+cat("Vowel context output written to:", vowel_output_path, "\n")
+
+# ---------------------------------------------------------------------------
+# FRICATIVE DATA EXTRACTION
 # ---------------------------------------------------------------------------
 # Extract data for fricative analysis
 
@@ -570,7 +797,7 @@ subset_fric_data <- data %>%
            interval == 'sˤ' | interval == 'ð' | interval == 'ʁ' | interval == 'ðˤ')
 
 # ---------------------------------------------------------------------------
-# FRICTIVE FEATURE MEANS CALCULATION
+# FRICATIVE FEATURE MEANS CALCULATION
 # ---------------------------------------------------------------------------
 subset_mean_fric <- subset_fric_data %>%
   group_by(participant, phrase, interval) %>%
