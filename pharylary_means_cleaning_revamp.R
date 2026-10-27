@@ -563,8 +563,8 @@ for (t in targets_to_check) {
 # ---------------------------------------------------------------------------
 # VOWEL CONTEXT DATAFRAME: PRECEDING / FOLLOWING VOWELS OF THE TARGET SEGMENTS
 # ---------------------------------------------------------------------------
-# PASTE THIS SECTION after the "H1res" section and before "FRICTIVE DATA EXCACTION".
-#
+
+
 # Builds a dataframe like subset_mean (one row per frame, with the same means, DF-normalised
 # formants, logs, z-scores and outlier flags) but for the VOWELS next to each target token.
 # vowel_position says whether that vowel PRECEDES or FOLLOWS the target token in target_*.
@@ -573,7 +573,8 @@ for (t in targets_to_check) {
 # settings as the target segments. Nothing is taken from the consonant measurements (not even the
 # H1res coefficient, which is refit on the vowel rows).
 #
-# Needs from the sections above: data, subset_int, features, cols_to_log, cols_to_z,
+# Needs from the sections above: data, targets (the full target set from the vowel context extraction
+# section), subset_mean (only for the comparison in 7b), features, cols_to_log, cols_to_z,
 # cols_to_z_h1res, thresh, distance_cutoff, vowel_pattern, base_path
 # (plus the lme4 / lmerTest / tidyverse libraries loaded at the top). data must contain the IPA column.
 
@@ -586,6 +587,11 @@ require_adjacent <- TRUE
 # Length marks are removed from the vowel labels, so i and iː (or i:) end up in ONE bin, "i".
 length_marks <- "[ː:]"           # add ˑ (half-long) if you use it: "[ːˑ:]"
 collapse_length <- function(x) str_remove_all(x, length_marks)
+
+# Tie bars (a͡ʊ) are removed from the labels, so a diphthong is always written aʊ. The IPA lookup still
+# uses them to find the whole diphthong; they are dropped from the IPA label and from the final label.
+tie_bars <- "[\\u035C\\u0361]"       # both tie bars: below (͜) and above (͡)
+remove_tie_bar <- function(x) str_remove_all(x, tie_bars)
 
 # Swap key: relabel vowel tokens in particular phrases so they fall into the same bins.
 # One row per swap: in phrase `phrase`, every vowel labelled `from` is relabelled `to`.
@@ -604,8 +610,8 @@ if (!is.null(vowel_swap_key_path)) {
 }
 vowel_swap_key <- vowel_swap_key %>%
   transmute(phrase = as.integer(phrase),
-            from = collapse_length(stringi::stri_trans_nfc(str_trim(as.character(from)))),
-            to   = collapse_length(stringi::stri_trans_nfc(str_trim(as.character(to)))))
+            from = remove_tie_bar(collapse_length(stringi::stri_trans_nfc(str_trim(as.character(from))))),
+            to   = remove_tie_bar(collapse_length(stringi::stri_trans_nfc(str_trim(as.character(to))))))
 dup_keys <- vowel_swap_key %>% count(phrase, from) %>% filter(n > 1)
 if (nrow(dup_keys) > 0) {
   print(dup_keys)
@@ -620,12 +626,27 @@ if (nrow(dup_keys) > 0) {
 use_ipa_vowel_key <- TRUE
 ipa_vowel_chars <- "aeiouyæɑɔəɛɪʊʌɤɯɜɒ"     # vowel symbols searched for in IPA (keep in step with vowel_pattern)
 
-## 1. Target tokens: the same tokens that are in subset_int / subset_mean ------
+## 1. Target tokens: the full `targets` set -------------------------------------
+# `targets` is the vector defined in the vowel context extraction section above
+# (ħ ʕ h ʔ w j t d s tˤ dˤ sˤ). subset_int only holds ħ ʕ h ʔ w j, so the target subset is built again
+# from `data` with the SAME steps used for subset_int:
+#   interval in the target set -> phonetic tier -> interval == Segment -> drop "ignore" comments
+subset_vowel_targets <- data %>%
+  filter(interval %in% targets) %>%
+  filter(tier == "phonetic") %>%
+  filter(interval == Segment) %>%
+  filter(!grepl("ignore", comments, ignore.case = TRUE))
+
 # one row per token (an interval in one file), not per frame
 # (as_tibble: read.csv gives plain data.frames, and print(x, n = ...) only works on tibbles)
-target_tokens <- subset_int %>%
+target_tokens <- subset_vowel_targets %>%
   as_tibble() %>%
   distinct(participant, phrase, stem, token_id, interval, interval_idx)
+
+cat("\n--- Target tokens (full target set) ---\n")
+print(target_tokens %>% count(interval, sort = TRUE), n = Inf)
+cat("Tokens in subset_int that are missing from the full set (should be 0):",
+    length(setdiff(unique(subset_int$token_id), target_tokens$token_id)), "\n")
 
 ## 2. Order of the labelled intervals in each file's phonetic tier -------------
 # interval_idx is the interval's position in its tier, so a jump of more than 1 means an empty
@@ -657,6 +678,12 @@ ipa_cons_mods <- "[ːˑ:ˤʰʷʲˠ\\u0300-\\u0360\\u0362-\\u036F]*"
 
 ipa_neighbors <- function(ipa, seg) {
   loc <- str_locate_all(ipa, fixed(seg))[[1]]
+  # s, t, d are different symbols from sˤ, tˤ, dˤ: when the target does not itself end in ˤ, skip the
+  # places where it is followed by ˤ (otherwise the s in sˤ would be counted as an s)
+  if (!str_detect(seg, "ˤ$")) {
+    next_char <- str_sub(ipa, loc[, "end"] + 1, loc[, "end"] + 1)
+    loc <- loc[next_char != "ˤ", , drop = FALSE]
+  }
   if (nrow(loc) == 0) return(tibble(occurrence = integer(), preceding = character(), following = character()))
   tibble(
     occurrence = seq_len(nrow(loc)),
@@ -681,7 +708,7 @@ ipa_key_long <- ipa_table %>%
   mutate(nb = map2(IPA, Segment, ipa_neighbors)) %>%
   unnest(nb) %>%
   pivot_longer(c(preceding, following), names_to = "vowel_position", values_to = "ipa_label") %>%
-  mutate(ipa_label = collapse_length(ipa_label))
+  mutate(ipa_label = remove_tie_bar(collapse_length(ipa_label)))
 
 # per phrase x position: how many occurrences in IPA, and the vowel if ALL occurrences agree
 ipa_key_consensus <- ipa_key_long %>%
@@ -714,7 +741,7 @@ nb_long <- bind_rows(
     adjacent = !is.na(vowel_idx) & abs(vowel_idx - target_interval_idx) == 1
   ) %>%
   # standardise the label: 1) drop length marks (iː -> i), 2) manual swap key, 3) IPA-based label
-  mutate(vowel_label_collapsed = collapse_length(stringi::stri_trans_nfc(vowel_label_clean))) %>%
+  mutate(vowel_label_collapsed = remove_tie_bar(collapse_length(stringi::stri_trans_nfc(vowel_label_clean)))) %>%
   left_join(vowel_swap_key, by = c("phrase", "vowel_label_collapsed" = "from")) %>%
   rename(manual_to = to) %>%
   # expected vowel from IPA: the k-th occurrence of the target in IPA when the TextGrid and IPA have the
@@ -742,6 +769,7 @@ nb_long <- bind_rows(
       use_ipa_vowel_key & !is.na(ipa_label) ~ ipa_label,
       TRUE ~ vowel_label_collapsed)
   ) %>%
+  mutate(vowel_label_final = remove_tie_bar(vowel_label_final)) %>%     # no tie bars in the final label
   select(-manual_to, -ipa_label_k, -ipa_label_consensus, -n_ipa_occ)
 
 ## 4. Keep the vowels ----------------------------------------------------------
@@ -995,7 +1023,7 @@ count_groups <- function(d) {
       .groups = "drop")
 }
 vowel_groups <- count_groups(vowel_context_df)
-target_groups <- count_groups(subset_mean)
+target_groups <- count_groups(subset_mean)    # subset_mean = the consonant targets ħ ʕ h ʔ w j only
 
 cat("\n--- Mahalanobis groups (participant x label): vowels vs target segments ---\n")
 print(bind_rows(mutate(vowel_groups, set = "vowels"), mutate(target_groups, set = "targets")) %>%
