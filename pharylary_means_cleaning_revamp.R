@@ -31,6 +31,127 @@ base_path <- sync_paths[dir.exists(sync_paths)][1]
 data_path <- file.path(base_path, 'alldata/dissertation/vs/output_preproc/preproc_matchesformeans_v2.csv')
 data <- read.csv(data_path)
 
+# ---------------------------------------------------------------------------
+# CLEAN LABELS, SWAP LABELS, AND EXCLUDE TRIALS
+# ---------------------------------------------------------------------------
+# PASTE THIS right after `data <- read.csv(data_path)` and before anything else, so every later section
+# (subset_int, the vowel context, the fricatives) works from `data` as cleaned here.
+
+## 1. Stray whitespace in the label columns -------------------------------------------------------------
+ws_labels <- data %>%
+  filter(interval != str_trim(interval) | Segment != str_trim(Segment)) %>%
+  distinct(participant, phrase, interval, Segment) %>%
+  mutate(interval = paste0("[", interval, "]"), Segment = paste0("[", Segment, "]"))
+
+data <- data %>% mutate(across(c(interval, Segment), str_trim))
+
+cat("\n--- Labels cleaned ---\n")
+cat("Trials with leading/trailing whitespace in interval or Segment:", nrow(ws_labels), "\n")
+if (nrow(ws_labels) > 0) print(head(ws_labels, 30))
+
+## 2. Label swaps: fix weird characters and mismarked labels -------------------------------------------
+# One row per swap: every `interval` label equal to `from` becomes `to`, but only where the other columns
+# match. Leave participant, phrase or tier as NA to mean "any".
+#   participant : e.g. "SD0030"                 NA = every participant
+#   phrase      : e.g. 72                        NA = every phrase
+#   tier        : "phonetic", "word", ...        NA = every tier   (use "phonetic" for segment labels)
+# Rows are applied top to bottom, so a later row sees the result of the earlier ones.
+# Labels are compared after Unicode normalisation (NFC) and trimming, so a decomposed é matches é.
+# Fill the table below, or point label_swap_key_path at a CSV with the same columns (save it as UTF-8;
+# empty cells count as NA).
+label_swap_key_path <- NULL      # e.g. file.path(base_path, 'alldata/dissertation/vs/label_swap_key.csv')
+label_swap_key <- tribble(
+  ~participant, ~phrase, ~tier,      ~from, ~to,
+  # NA,           NA,      "phonetic", "ʔ̞",   "ʔ",     # a weird variant of a symbol, wherever it occurs
+  # "SD0035",     72,      "phonetic", " h",   "h",     # one participant's mismarked label in one phrase
+)
+
+if (!is.null(label_swap_key_path)) {
+  label_swap_key <- read.csv(label_swap_key_path, fileEncoding = "UTF-8", na.strings = c("", "NA"),
+                             stringsAsFactors = FALSE)
+}
+label_swap_key <- label_swap_key %>%
+  transmute(participant = as.character(participant),
+            phrase = as.integer(phrase),
+            tier = as.character(tier),
+            from = stringi::stri_trans_nfc(str_trim(as.character(from))),
+            to   = stringi::stri_trans_nfc(str_trim(as.character(to))))
+if (any(is.na(label_swap_key$from) | is.na(label_swap_key$to))) {
+  stop("every row of label_swap_key needs both a from and a to label")
+}
+
+interval_nfc <- stringi::stri_trans_nfc(data$interval)       # computed once, compared against `from`
+swap_log <- vector("list", nrow(label_swap_key))
+for (i in seq_len(nrow(label_swap_key))) {
+  k <- label_swap_key[i, ]
+  hit <- interval_nfc == k$from &
+    (is.na(k$participant) | data$participant == k$participant) &
+    (is.na(k$phrase)      | data$phrase == k$phrase) &
+    (is.na(k$tier)        | data$tier == k$tier)
+  hit[is.na(hit)] <- FALSE
+  data$interval[hit] <- k$to
+  interval_nfc[hit] <- k$to
+  swap_log[[i]] <- tibble(key_row = i, participant = k$participant, phrase = k$phrase, tier = k$tier,
+                          from = k$from, to = k$to,
+                          rows_changed = sum(hit), tokens_changed = n_distinct(data$token_id[hit]))
+}
+
+cat("\n--- Label swaps ---\n")
+if (length(swap_log) == 0) {
+  cat("No swaps listed.\n")
+} else {
+  swap_report <- bind_rows(swap_log)
+  print(swap_report, n = Inf)
+  if (any(swap_report$rows_changed == 0)) {
+    cat("Swap rows that matched NOTHING (check from / participant / phrase / tier):",
+        paste(swap_report$key_row[swap_report$rows_changed == 0], collapse = ", "), "\n")
+  }
+}
+
+## 3. Excluded trials: TextGrid labels need fixing -----------------------------------------------------
+# Each row removes ONE participant's trial of ONE phrase (all tiers, all frames, every repetition of it).
+# Add rows as you go through the report; `reason` is only a note for you.
+# (Source: phonetic_intervals_by_phrase_segment_participant from the Python script.)
+
+exclude_trials <- tribble(
+  ~participant, ~phrase, ~reason,
+  # "SD0030",     72,      "interval m, Segment ʔ",
+  # "Y0401",      122,     "interval b, Segment h",
+  # "SD0009",     65,      "interval m, Segment ʔ",
+  # "SD0030",     90,      "interval m, Segment ʔ",
+  # "SD0030",     91,      "interval m, Segment ʕ",
+  # "SD0030",     114,     "interval m, Segment h",
+  # "SD0030",     130,     "interval m, Segment t",
+  "SD0013",     130,     "interval ???, Segment t",
+  "SD0018",     74,      "weird doubled character aːʔ",
+  
+)
+
+# Broader exclusions, if you ever need them (leave empty otherwise):
+exclude_participants <- character(0)   # e.g. c("SD0009")  -> ALL trials of that participant
+exclude_phrases      <- numeric(0)     # e.g. c(130)       -> that phrase for EVERY participant
+
+## apply
+n_rows_before <- nrow(data)
+trials_present <- distinct(data, participant, phrase)
+
+# rows in exclude_trials that match nothing in the data (typo in the participant or phrase?)
+exclude_unmatched <- exclude_trials %>% anti_join(trials_present, by = c("participant", "phrase"))
+
+data <- data %>%
+  anti_join(exclude_trials, by = c("participant", "phrase")) %>%
+  filter(!participant %in% exclude_participants, !phrase %in% exclude_phrases)
+
+cat("\n--- Excluded trials ---\n")
+cat("Rows removed:", n_rows_before - nrow(data), "of", n_rows_before, "\n")
+cat("Trials listed:", nrow(exclude_trials), "| found in the data:", nrow(exclude_trials) - nrow(exclude_unmatched), "\n")
+if (nrow(exclude_unmatched) > 0) {
+  cat("Listed but NOT found in the data (check participant / phrase):\n")
+  print(exclude_unmatched)
+}
+
+
+## see who's here
 n_distinct(data$participant)
 table(data$participant)
 
