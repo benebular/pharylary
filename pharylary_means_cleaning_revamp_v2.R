@@ -756,6 +756,45 @@ nb_long <- bind_rows(
 vowel_links <- nb_long %>%
   filter(is_vowel, nchar(vowel_label_final) > 0, adjacent | !require_adjacent)
 
+## 4b. Extra vowels to drop ---------------------------------------------------------------------------
+# Vowels that are in the TextGrid but that the IPA does not account for, and that you want left out of the
+# vowel analysis. One row per drop: a vowel next to a target whose TextGrid label is `from` is removed.
+# Leave participant or phrase as NA for "any". Only vowels the IPA gives no label (vowel_label_source ==
+# "TextGrid label") are dropped: a vowel that the IPA or a swap row relabelled is kept.
+vowel_drop_key <- tribble(
+  ~participant, ~phrase, ~from,
+  "SD0036",           82,      "ə",       # extra vowels in the TextGrid, not in the IPA
+  "SD0015",           121,      "ə",
+  "SD0005",           122,      "ə",
+  "SD0005",           123,      "e",
+  "SD0038",           123,      "e",
+  "Y0395",            116,      "u",
+)
+
+vowel_drop_key <- vowel_drop_key %>%
+  mutate(participant = as.character(participant),
+         phrase = as.integer(phrase),
+         from = str_remove_all(stringi::stri_trans_nfc(str_trim(as.character(from))), vowel_strip))
+
+link_participant <- target_tokens$participant[match(vowel_links$target_token_id, target_tokens$token_id)]
+drop_link <- rep(FALSE, nrow(vowel_links))
+drop_hits <- integer(nrow(vowel_drop_key))
+for (i in seq_len(nrow(vowel_drop_key))) {
+  k <- vowel_drop_key[i, ]
+  hit <- vowel_links$vowel_label_source == "TextGrid label" &
+    vowel_links$vowel_label_collapsed == k$from &
+    (is.na(k$participant) | link_participant == k$participant) &
+    (is.na(k$phrase) | vowel_links$phrase == k$phrase)
+  drop_hits[i] <- sum(hit)
+  drop_link <- drop_link | hit
+}
+dropped_vowel_links <- vowel_links[drop_link, ]     # kept so you can look at what was removed
+vowel_links <- vowel_links[!drop_link, ]
+
+cat("\n--- Extra vowels dropped ---\n")
+cat("Vowel links dropped:", nrow(dropped_vowel_links), "| unique vowel tokens:", n_distinct(dropped_vowel_links$vowel_token_id), "\n")
+print(vowel_drop_key %>% mutate(links_dropped = drop_hits), n = Inf)     # 0 = that row matched nothing
+
 cat("\n--- Vowel context: neighbour check ---\n")
 cat("Target tokens:", nrow(target_tokens), "\n")
 cat("Neighbours that exist (label present):", sum(!is.na(nb_long$vowel_label_clean)), "\n")

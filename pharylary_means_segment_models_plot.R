@@ -35,8 +35,14 @@ library(gridExtra)
 library(scales)
 emm_options(pbkrtest.limit = 20000, lmerTest.limit = 20000)
 
+# Define data paths - check which volume is available
+sync_paths <- c('/Volumes/circe',
+                '/Volumes/cassandra')
+
+base_path <- sync_paths[dir.exists(sync_paths)][1]
+
 #paths
-orig_data_path <- sprintf('/Volumes/circe/alldata/dissertation/vs/output_preproc/pharylary_subset_mean_truncated.csv')
+orig_data_path <- file.path(base_path, 'alldata/dissertation/vs/output_preproc/pharylary_subset_mean_truncated.csv')
 # orig_data_path <- sprintf('/Volumes/cassandra/alldata/dissertation/vs/output_preproc/pharylary_subset_mean.csv')
 
 subset_mean = read.csv(orig_data_path)
@@ -53,8 +59,8 @@ unique_data <- subset_mean %>%
     H1H2c_mean_unique = first(H1H2c_mean),
     CPP_mean_log_unique   = first(CPP_mean_log),
     soe_mean_log_unique   = first(soe_mean_log),
-    F1n_mean_unique   = first(F1n_mean),
-    F2n_mean_unique   = first(F2n_mean),
+    sF1_mean_unique   = first(sF1_mean),
+    sF2_mean_unique   = first(sF2_mean),
     H1res_mean_unique = first(H1res_mean),
     
     # normalized values
