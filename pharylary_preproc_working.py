@@ -957,7 +957,7 @@ record_csv = '/Users/bcl/GitHub/pharylary/PharyLary Participant Record.csv'
 
 N_JOBS = 6                         # worker processes for cells 3 and 8; 1 = serial. If more workers
                                    # doesn't speed things up you're I/O-bound on the network volume
-OVERWRITE = False                  # True = redo every TextGrid even if its CSV already exists
+OVERWRITE = True                  # True = redo every TextGrid even if its CSV already exists
 tiers_to_process = ['phonetic', 'glottis', 'V-sequence', 'word']
 exclude_participants = []          # e.g. ['SD0009', 'SD0015', 'SD0024'] (replaces the commented-out lines)
 
@@ -1161,8 +1161,8 @@ for status, grp in log_df[~log_df['status'].isin(['ok', 'skipped_exists'])].grou
 
 
 # %% 3b. CHECK ONE FILE BY EYE
-check_stem = next((s for s, st, *_ in log if st == 'ok'), None)       # first file that was written
-assert check_stem is not None, 'no CSVs were written - see the log above'
+check_stem = next((s for s, st, *_ in log if st in ('ok', 'skipped_exists')), None)   # any stem that has a CSV
+assert check_stem is not None, 'no CSVs exist yet - see the log above'
 check = pd.read_csv(os.path.join(relevant_dir, f'{check_stem}_relevant.csv'))
 print(check[['stem', 'tier', 'interval', 'interval_idx', 'int_start_ms', 'int_end_ms', 't_ms']].head(10))
 print(check.groupby(['tier', 'interval_idx', 'interval']).agg(
@@ -1251,7 +1251,7 @@ print(all_relevant_data[['token_id', 'interval', 't_ms', 't_prop', 'energy_prop'
 print('Adding metadata...')
 
 stim_meta = pd.read_csv(stim_csv)
-stim_meta_df = stim_meta[['Phrasenum', 'IPA', 'Gloss', 'Gloss_2', 'Syllable', 'Segment', 'Type', 'Position',
+stim_meta_df = stim_meta[['Phrasenum', 'IPA', 'IPA_old', 'Gloss', 'Gloss_2', 'Syllable', 'Segment', 'Type', 'Position',
                           'Position_2', 'Contrast_(IPA)', 'Contrast', 'Experiment']]
 stim_meta_df = stim_meta_df.rename(columns={'Phrasenum': 'phrase'})
 # FIX: blank rows in the Google sheet would crash astype(int)
