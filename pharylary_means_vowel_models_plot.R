@@ -698,13 +698,13 @@ segment_colors <- c("s" = "#8dd3c7", "sˤ" = "#1b9e77",
                     "d" = "#bebada", "dˤ" = "#7570b3")
 
 # y-axis labels and titles, named by model_specs$name
-y_labels <- c(f0 = "F0 (Hz)", CPP = "CPP (log)", soe = "Strength of excitation (log)",
+y_labels <- c(f0 = "F0 (Hz)", CPP = "CPP (log)", soe = "SoE (log)",
               F1 = "Normalized F1", F2 = "Normalized F2", H1res = "Residual H1*")
-feature_titles <- c(f0 = "F0", CPP = "Cepstral peak prominence", soe = "Strength of excitation",
+feature_titles <- c(f0 = "f0", CPP = "Cepstral Peak Prominence", soe = "Strength of Excitation",
                     F1 = "F1", F2 = "F2", H1res = "Residual H1*")
-panel_titles <- sapply(ized_targets, paste, collapse = " vs ")     # column headings: "s vs sˤ", "t vs tˤ", "d vs dˤ"
+panel_titles <- sapply(ized_targets, function(x) paste(paste0("/", x, "/"), collapse = " vs. "))     # "/s/ vs. /sˤ/", "/t/ vs. /tˤ/", "/d/ vs. /dˤ/"
 position_levels <- unname(position_codes)                           # row order, top to bottom: preceding, following
-position_labels <- c(preceding = "Preceding vowels", following = "Following vowels")
+position_labels <- c(preceding = "Preceding Vowels", following = "Following Vowels")
 
 ized_plots <- list()                                                # every plot is kept, e.g. ized_plots$f0
 audit <- list()                                                     # the p-value and label drawn in every panel
@@ -751,6 +751,7 @@ for (feature in model_specs$name) {
     facet_grid(vowel_position ~ set, scales = "free_x",
                labeller = labeller(set = panel_titles, vowel_position = position_labels)) +
     scale_fill_manual(values = segment_colors, guide = "none") +
+    scale_x_discrete(labels = function(x) paste0("/", x, "/")) +
     scale_y_continuous(expand = expansion(mult = c(0.03, 0.12))) +
     labs(x = NULL, y = y_labels[[feature]], title = feature_titles[[feature]]) +
     theme_minimal(base_size = 18, base_family = plot_font) +
