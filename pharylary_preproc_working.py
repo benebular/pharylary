@@ -568,172 +568,172 @@
 #                                               #
 #################################################
 
-# ---- CONFIG ----
-csv_dir = os.path.join(output_dir, "fricatives")  # <- folder containing the per-TextGrid CSVs
-# If your CSVs are in output_dir directly, set: csv_dir = output_dir
+# # ---- CONFIG ----
+# csv_dir = os.path.join(output_dir, "fricatives")  # <- folder containing the per-TextGrid CSVs
+# # If your CSVs are in output_dir directly, set: csv_dir = output_dir
 
-# ---- Helper: robust parser for stim filenames ----
-def parse_stim(stim: str):
-    """
-    Expected format: SD0001_expt_1_100_1_ð.wav
-      - participant = first token before first '_':           'SD0001'
-      - phrase      = 4th token (index 3):                    '100'
-      - Segment     = last token before extension:            'ð'
-    Returns (participant, phrase, Segment) as strings, or (None, None, None) if malformed.
-    """
-    if not isinstance(stim, str):
-        return None, None, None
-    base = os.path.basename(stim)
-    if base.lower().endswith(".wav"):
-        base = base[:-4]  # drop .wav
-    parts = base.split("_")
-    if len(parts) < 5:
-        return None, None, None
-    participant = parts[0]
-    phrase = parts[3]                 # 0:part, 1:expt, 2:1, 3:phrase, 4:trial, -1:Segment
-    segment = parts[-1]
-    return str(participant), str(phrase), str(segment)
+# # ---- Helper: robust parser for stim filenames ----
+# def parse_stim(stim: str):
+#     """
+#     Expected format: SD0001_expt_1_100_1_ð.wav
+#       - participant = first token before first '_':           'SD0001'
+#       - phrase      = 4th token (index 3):                    '100'
+#       - Segment     = last token before extension:            'ð'
+#     Returns (participant, phrase, Segment) as strings, or (None, None, None) if malformed.
+#     """
+#     if not isinstance(stim, str):
+#         return None, None, None
+#     base = os.path.basename(stim)
+#     if base.lower().endswith(".wav"):
+#         base = base[:-4]  # drop .wav
+#     parts = base.split("_")
+#     if len(parts) < 5:
+#         return None, None, None
+#     participant = parts[0]
+#     phrase = parts[3]                 # 0:part, 1:expt, 2:1, 3:phrase, 4:trial, -1:Segment
+#     segment = parts[-1]
+#     return str(participant), str(phrase), str(segment)
 
-# ---- Build one metadata table from all CSVs ----
-meta_rows = []
-csv_files = glob.glob(os.path.join(csv_dir, "*.csv"))
-print(f"Found {len(csv_files)} CSV(s) in {csv_dir}")
+# # ---- Build one metadata table from all CSVs ----
+# meta_rows = []
+# csv_files = glob.glob(os.path.join(csv_dir, "*.csv"))
+# print(f"Found {len(csv_files)} CSV(s) in {csv_dir}")
 
-for fpath in csv_files:
-    try:
-        df = pd.read_csv(fpath)
-    except Exception as e:
-        print(f"Skipping {fpath}: {e}")
-        continue
+# for fpath in csv_files:
+#     try:
+#         df = pd.read_csv(fpath)
+#     except Exception as e:
+#         print(f"Skipping {fpath}: {e}")
+#         continue
 
-    if "stim" not in df.columns:
-        print(f"Skipping {fpath}: missing 'stim' column")
-        continue
+#     if "stim" not in df.columns:
+#         print(f"Skipping {fpath}: missing 'stim' column")
+#         continue
 
-    # Iterate rows in this CSV and extract keys + payload
-    for _, row in df.iterrows():
-        participant, phrase, segment = parse_stim(row["stim"])
-        if participant is None:
-            continue
+#     # Iterate rows in this CSV and extract keys + payload
+#     for _, row in df.iterrows():
+#         participant, phrase, segment = parse_stim(row["stim"])
+#         if participant is None:
+#             continue
 
-        # Carry all other columns from this row (except 'stim') into the payload
-        payload = row.drop(labels=["stim"]).to_dict()
+#         # Carry all other columns from this row (except 'stim') into the payload
+#         payload = row.drop(labels=["stim"]).to_dict()
 
-        meta_rows.append({
-            "participant": participant,
-            "phrase": phrase,
-            "interval": segment,
-            **payload
-        })
+#         meta_rows.append({
+#             "participant": participant,
+#             "phrase": phrase,
+#             "interval": segment,
+#             **payload
+#         })
 
-# Assemble metadata DataFrame; ensure one row per (participant, phrase, Segment)
-metadata = pd.DataFrame(meta_rows)
-if metadata.empty:
-    print("No metadata rows parsed; leaving all_data unchanged.")
-else:
-    # If any duplicates slipped in, keep last
-    metadata = metadata.drop_duplicates(subset=["participant", "phrase", "interval"], keep="last")
+# # Assemble metadata DataFrame; ensure one row per (participant, phrase, Segment)
+# metadata = pd.DataFrame(meta_rows)
+# if metadata.empty:
+#     print("No metadata rows parsed; leaving all_data unchanged.")
+# else:
+#     # If any duplicates slipped in, keep last
+#     metadata = metadata.drop_duplicates(subset=["participant", "phrase", "interval"], keep="last")
 
-    # ---- Align dtypes to match all_data for a clean merge ----
-    # Convert keys to string on both sides (adjust if you prefer ints for 'phrase')
-    for col in ["participant", "phrase", "interval"]:
-        if col in metadata:
-            metadata[col] = metadata[col].astype(str)
-        if col in all_data:
-            all_data[col] = all_data[col].astype(str)
+#     # ---- Align dtypes to match all_data for a clean merge ----
+#     # Convert keys to string on both sides (adjust if you prefer ints for 'phrase')
+#     for col in ["participant", "phrase", "interval"]:
+#         if col in metadata:
+#             metadata[col] = metadata[col].astype(str)
+#         if col in all_data:
+#             all_data[col] = all_data[col].astype(str)
 
-    # ---- Merge onto all_data ----
-    # Left-merge so every row in all_data is retained; metadata columns are appended
-    all_data = all_data.merge(metadata, on=["participant", "phrase", "interval"], how="left")
+#     # ---- Merge onto all_data ----
+#     # Left-merge so every row in all_data is retained; metadata columns are appended
+#     all_data = all_data.merge(metadata, on=["participant", "phrase", "interval"], how="left")
 
-    print(f"Merged metadata onto all_data. New shape: {all_data.shape}")
+#     print(f"Merged metadata onto all_data. New shape: {all_data.shape}")
 
-# Flag rows where "comments" contains "ignore" (case-insensitive)
-all_data['ignore_flag'] = (
-    all_data['comments']
-    .astype(str)                     # ensure it's string
-    .str.contains('ignore', case=False, na=False)
-    .astype(int)                     # convert True/False → 1/0
-)
+# # Flag rows where "comments" contains "ignore" (case-insensitive)
+# all_data['ignore_flag'] = (
+#     all_data['comments']
+#     .astype(str)                     # ensure it's string
+#     .str.contains('ignore', case=False, na=False)
+#     .astype(int)                     # convert True/False → 1/0
+# )
 
-print(f"Flagged {all_data['ignore_flag'].sum()} rows containing 'ignore'.")
-
-
-# Output the final DataFrame
-# print(all_data)
-# Optionally, save to a file
-print('Saving as .csv in %s.'%(output_dir))
-all_data.to_csv('preproc_output.csv', index=False)
+# print(f"Flagged {all_data['ignore_flag'].sum()} rows containing 'ignore'.")
 
 
-# Make sure phrase values are numeric
-all_data['phrase'] = pd.to_numeric(all_data['phrase'], errors='coerce')
+# # Output the final DataFrame
+# # print(all_data)
+# # Optionally, save to a file
+# print('Saving as .csv in %s.'%(output_dir))
+# all_data.to_csv('preproc_output.csv', index=False)
 
-# Build report of missing phrases per participant
-missing_report = []
 
-for participant, df_part in all_data.groupby('participant'):
-    phrases = sorted(df_part['phrase'].dropna().unique())
-    if len(phrases) == 0:
-        continue  # skip participants with no phrase data
+# # Make sure phrase values are numeric
+# all_data['phrase'] = pd.to_numeric(all_data['phrase'], errors='coerce')
+
+# # Build report of missing phrases per participant
+# missing_report = []
+
+# for participant, df_part in all_data.groupby('participant'):
+#     phrases = sorted(df_part['phrase'].dropna().unique())
+#     if len(phrases) == 0:
+#         continue  # skip participants with no phrase data
     
-    # Find the range of possible phrases for this participant
-    min_phrase = int(np.nanmin(phrases))
-    max_phrase = int(np.nanmax(phrases))
-    expected = set(range(min_phrase, max_phrase + 1))
-    actual = set(phrases)
+#     # Find the range of possible phrases for this participant
+#     min_phrase = int(np.nanmin(phrases))
+#     max_phrase = int(np.nanmax(phrases))
+#     expected = set(range(min_phrase, max_phrase + 1))
+#     actual = set(phrases)
     
-    missing = sorted(expected - actual)
+#     missing = sorted(expected - actual)
     
-    missing_report.append({
-        'participant': participant,
-        'min_phrase': min_phrase,
-        'max_phrase': max_phrase,
-        'total_expected': len(expected),
-        'total_present': len(actual),
-        'total_missing': len(missing),
-        'missing_phrases': missing
-    })
+#     missing_report.append({
+#         'participant': participant,
+#         'min_phrase': min_phrase,
+#         'max_phrase': max_phrase,
+#         'total_expected': len(expected),
+#         'total_present': len(actual),
+#         'total_missing': len(missing),
+#         'missing_phrases': missing
+#     })
 
-# Convert report to DataFrame
-missing_report_df = pd.DataFrame(missing_report)
+# # Convert report to DataFrame
+# missing_report_df = pd.DataFrame(missing_report)
 
-# Save the report to CSV
-output_csv = os.path.join(report_dir, 'missing_phrases_by_participant.csv')
-missing_report_df.to_csv(output_csv, index=False)
+# # Save the report to CSV
+# output_csv = os.path.join(report_dir, 'missing_phrases_by_participant.csv')
+# missing_report_df.to_csv(output_csv, index=False)
 
-print(f"Saved missing-phrase report to: {output_csv}")
+# print(f"Saved missing-phrase report to: {output_csv}")
 
-## requires having all_data loaded from preproc
+# ## requires having all_data loaded from preproc
 
-# Filter for phonetic-tier rows and keep only relevant columns
-phonetic_df = all_data.loc[
-    all_data['tier'] == 'phonetic',
-    ['participant', 'phrase', 'interval', 'Segment']
-].dropna()
+# # Filter for phonetic-tier rows and keep only relevant columns
+# phonetic_df = all_data.loc[
+#     all_data['tier'] == 'phonetic',
+#     ['participant', 'phrase', 'interval', 'Segment']
+# ].dropna()
 
-# Group by interval, phrase, and Segment, collecting unique participants
-interval_participants = (
-    phonetic_df
-    .groupby(['interval', 'phrase', 'Segment'])['participant']
-    .unique()
-    .reset_index()
-)
+# # Group by interval, phrase, and Segment, collecting unique participants
+# interval_participants = (
+#     phonetic_df
+#     .groupby(['interval', 'phrase', 'Segment'])['participant']
+#     .unique()
+#     .reset_index()
+# )
 
-# Sort for readability
-interval_participants = (
-    interval_participants
-    .sort_values(['interval', 'phrase', 'Segment'])
-    .reset_index(drop=True)
-)
+# # Sort for readability
+# interval_participants = (
+#     interval_participants
+#     .sort_values(['interval', 'phrase', 'Segment'])
+#     .reset_index(drop=True)
+# )
 
-# Define output path
-output_csv = os.path.join(report_dir, 'phonetic_intervals_by_phrase_segment_participant.csv')
+# # Define output path
+# output_csv = os.path.join(report_dir, 'phonetic_intervals_by_phrase_segment_participant.csv')
 
-# Save to CSV
-interval_participants.to_csv(output_csv, index=False)
+# # Save to CSV
+# interval_participants.to_csv(output_csv, index=False)
 
-print(f"Saved phonetic interval labels by phrase, segment, and participant to: {output_csv}")
+# print(f"Saved phonetic interval labels by phrase, segment, and participant to: {output_csv}")
 
 
 
@@ -803,34 +803,34 @@ print(f"Saved phonetic interval labels by phrase, segment, and participant to: {
 
 ### new method
 
-t0 = time.time()
+# t0 = time.time()
 
-# Ensure comparable dtypes (same as your snippet)
-all_data = all_data.copy()
-all_data['phrase'] = all_data['phrase'].astype(str)
-all_data['t_ms']   = pd.to_numeric(all_data['t_ms'], errors='coerce')
+# # Ensure comparable dtypes (same as your snippet)
+# all_data = all_data.copy()
+# all_data['phrase'] = all_data['phrase'].astype(str)
+# all_data['t_ms']   = pd.to_numeric(all_data['t_ms'], errors='coerce')
 
-# Build the set of (phrase, t_ms) pairs from V-sequence
-vseq_idx = pd.MultiIndex.from_frame(
-    all_data.loc[all_data['tier'].eq('V-sequence'), ['phrase', 't_ms']].drop_duplicates()
-)
+# # Build the set of (phrase, t_ms) pairs from V-sequence
+# vseq_idx = pd.MultiIndex.from_frame(
+#     all_data.loc[all_data['tier'].eq('V-sequence'), ['phrase', 't_ms']].drop_duplicates()
+# )
 
-# Identify phonetic rows and their (phrase, t_ms)
-mask_phonetic = all_data['tier'].eq('phonetic')
-phon_idx = pd.MultiIndex.from_frame(all_data.loc[mask_phonetic, ['phrase', 't_ms']])
+# # Identify phonetic rows and their (phrase, t_ms)
+# mask_phonetic = all_data['tier'].eq('phonetic')
+# phon_idx = pd.MultiIndex.from_frame(all_data.loc[mask_phonetic, ['phrase', 't_ms']])
 
-# Compute match mask for phonetic rows
-match_mask = phon_idx.isin(vseq_idx)
+# # Compute match mask for phonetic rows
+# match_mask = phon_idx.isin(vseq_idx)
 
-# Create/assign the dummy column (0/1) across the full DataFrame
-all_data['target_match'] = 0
-all_data.loc[mask_phonetic, 'target_match'] = match_mask.astype(int)
+# # Create/assign the dummy column (0/1) across the full DataFrame
+# all_data['target_match'] = 0
+# all_data.loc[mask_phonetic, 'target_match'] = match_mask.astype(int)
 
-print(f"Done in {(time.time()-t0):.2f}s — matches: {all_data['target_match'].sum():,}")
+# print(f"Done in {(time.time()-t0):.2f}s — matches: {all_data['target_match'].sum():,}")
 
-print('Saving matches for means as .csv in %s.'%(output_dir))
-# all_data.to_csv('/Volumes/circe/vs/output_preproc/preproc_matchesformeans.csv', index=False)
-all_data.to_csv(os.path.join(output_dir, "preproc_matchesformeans.csv"), index=False)
+# print('Saving matches for means as .csv in %s.'%(output_dir))
+# # all_data.to_csv('/Volumes/circe/vs/output_preproc/preproc_matchesformeans.csv', index=False)
+# all_data.to_csv(os.path.join(output_dir, "preproc_matchesformeans.csv"), index=False)
 # matching_data = pd.read_csv('/Volumes/circe/vs/output_preproc/preproc_matchesformeans.csv', encoding='utf8')
 
 ## slicing the data below takes about 5 minutes to run because iterrows() is slow ####
