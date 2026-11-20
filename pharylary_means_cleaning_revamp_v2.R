@@ -17,9 +17,7 @@
 # ---------------------------------------------------------------------------
 
 # Core libraries
-library(plyr)
-library(dplyr)
-library(magrittr)
+library(dplyr)          # (plyr is not loaded: it masks count(), mutate(), summarise() ... of dplyr and breaks this script)
 library(purrr)
 library(tidyr)
 library(lme4)
@@ -39,7 +37,8 @@ base_path <- sync_paths[dir.exists(sync_paths)][1]
 
 # Path to preprocessed data (matches from VS analysis)
 data_path <- file.path(base_path, 'alldata/dissertation/vs/output_preproc/preproc_matchesformeans_v2.csv')
-data <- as_tibble(read.csv(data_path))   # a tibble, so print(x, n = ...) works everywhere below
+data_orig <- as_tibble(read.csv(data_path))   # a tibble, so print(x, n = ...) works everywhere below
+data <- data_orig
 data$interval_raw <- data$interval       # the label exactly as it came in; kept for reference
 
 # ---------------------------------------------------------------------------
@@ -368,31 +367,118 @@ subset_mean =  subset_mean %>%                 #MG: this was cut from a dataset 
   mutate(formant_outlier = NA)
 
 # Visualize the formants with flagged values
-subset_mean %>%
+# subset_mean %>%
+#   filter(is.na(formant_outlier)) %>%
+#   ggplot(aes(x = sF2_mean, y = sF1_mean, color = zF1F2 > distance_cutoff)) +       #MG: sF2 and sF1 = Snack values from VS
+#   geom_point(size = 0.6) +
+#   facet_wrap(.~interval)+
+#   scale_y_reverse(limits = c(2000,0),position = "right") +
+#   scale_x_reverse(limits = c(3500,0),position = "top")+
+#   theme_bw()
+
+# ---- Shared settings (edit once, used by both plots) ----
+x_label       <- "F2 (Hz)"
+y_label       <- "F1 (Hz)"
+facet_size    <- 18          # facet title font size
+axis_title_sz <- 18
+axis_text_sz  <- 18
+legend_title_sz <- 18
+legend_text_sz  <- 18
+point_size    <- 1.2
+
+# ---- Plot 1: formants with flagged values ----
+formant_outliers <- subset_mean %>%
   filter(is.na(formant_outlier)) %>%
-  ggplot(aes(x = sF2_mean, y = sF1_mean, color = zF1F2 > distance_cutoff)) +       #MG: sF2 and sF1 = Snack values from VS
-  geom_point(size = 0.6) +
-  facet_wrap(.~interval)+
-  scale_y_reverse(limits = c(2000,0),position = "right") +
-  scale_x_reverse(limits = c(3500,0),position = "top")+
-  theme_bw()
+  ggplot(aes(x = sF2_mean, y = sF1_mean, color = zF1F2 > distance_cutoff, shape = zF1F2 > distance_cutoff)) +
+  geom_point(size = point_size) +
+  facet_wrap(. ~ interval) +
+  scale_y_reverse(limits = c(2000, 0), position = "right") +
+  scale_x_reverse(limits = c(3500, 0), position = "top") +
+  scale_color_manual(
+    name   = "Flag",                          # <<< CHANGE legend title
+    values = c("FALSE" = "#92c5de",                  # <<< CHANGE dot colors
+               "TRUE"  = "#ca0020"),
+    labels = c("FALSE" = "Retained",            # <<< CHANGE variable names
+               "TRUE"  = "Outlier")
+  ) +
+  scale_shape_manual(
+    name     = "Flag",                                    # same title and labels as the colour scale, so they share one legend
+    values   = c("FALSE" = 16, "TRUE" = 4),               # <<< CHANGE shapes: 16 = filled circle, 4 = X
+    labels   = c("FALSE" = "Retained", "TRUE" = "Outlier"),
+    na.value = 16                                         # points with no distance stay circles
+  ) +
+  labs(x = x_label, y = y_label) +
+  guides(color = guide_legend(override.aes = list(size = 3))) +  # bigger dots in legend
+  theme_bw() +
+  theme(
+    strip.text      = element_text(size = facet_size, face = "bold"),  # facet titles
+    axis.title      = element_text(size = axis_title_sz),
+    axis.text       = element_text(size = axis_text_sz),
+    legend.title    = element_text(size = legend_title_sz),
+    legend.text     = element_text(size = legend_text_sz)
+  )
+
+ggsave(filename = file.path(base_path, 'alldata/dissertation/1A/figs/', paste0('formant_outliers', ".pdf")), plot = formant_outliers, width = 16, height = 11,
+       device = cairo_pdf)
 
 # Tag flagged values
 subset_mean <- subset_mean %>%
   mutate(formant_outlier = if_else(!is.na(zF1F2) & zF1F2 > distance_cutoff, "outlier", NA_character_))
 
+# how many tokens the Mahalanobis step removed: per facet (interval) and overall
+by_interval <- subset_mean %>%
+  group_by(participant, phrase, interval = as.character(interval)) %>%
+  summarise(evaluated = any(!is.na(zF1F2)), removed = any(formant_outlier %in% "outlier"), .groups = "drop") %>%
+  group_by(interval) %>%
+  summarise(tokens = n(), evaluated = sum(evaluated), removed = sum(removed), .groups = "drop")
+outlier_summary <- bind_rows(by_interval, summarise(by_interval, interval = "ALL", across(c(tokens, evaluated, removed), sum))) %>%
+  mutate(not_evaluated = tokens - evaluated,
+         pct_removed = round(100 * removed / tokens, 1),
+         pct_of_evaluated = round(100 * removed / evaluated, 1)) %>%
+  select(interval, tokens, evaluated, not_evaluated, removed, pct_removed, pct_of_evaluated)
+print(outlier_summary, n = Inf)
+
 # Visualize the vowel formant after exclusion
-subset_mean %>%
+# subset_mean %>%
+#   filter(is.na(formant_outlier)) %>%
+#   ggplot(aes(x = sF2_mean, y = sF1_mean)) +
+#   geom_point(size = 0.6) +
+#   #geom_text()+
+#   facet_wrap(.~interval)+
+#   #geom_density_2d() +
+#   #  scale_color_manual(values=c('#a6611a','#dfc27d','#018571'))+
+#   scale_y_reverse(limits = c(2000,0),position = "right") +
+#   scale_x_reverse(limits = c(3500,0),position = "top")+
+#   theme_bw()
+
+# ---- Plot 2: vowel formants after exclusion ----
+formant_outliers_removed <- subset_mean %>%
   filter(is.na(formant_outlier)) %>%
-  ggplot(aes(x = sF2_mean, y = sF1_mean)) +
-  geom_point(size = 0.6) +
-  #geom_text()+
-  facet_wrap(.~interval)+
-  #geom_density_2d() +
-  #  scale_color_manual(values=c('#a6611a','#dfc27d','#018571'))+
-  scale_y_reverse(limits = c(2000,0),position = "right") +
-  scale_x_reverse(limits = c(3500,0),position = "top")+
-  theme_bw()
+  ggplot(aes(x = sF2_mean, y = sF1_mean, color = interval)) +   # <<< color by a variable (see note below)
+  geom_point(size = point_size, color='#92c5de') +
+  facet_wrap(. ~ interval) +
+  scale_y_reverse(limits = c(2000, 0), position = "right") +
+  scale_x_reverse(limits = c(3500, 0), position = "top") +
+  # scale_color_manual(
+  #   name   = "Interval",                             # <<< CHANGE legend title
+  #   values = c('#4dac26')      # <<< CHANGE dot colors (one per level)
+  #   # labels = c("old_name1" = "New name 1",         # <<< optional: rename levels
+  #   #            "old_name2" = "New name 2")
+  # ) +
+  labs(x = x_label, y = y_label) +
+  guides(color = guide_legend(override.aes = list(size = 3))) +
+  theme_bw() +
+  theme(
+    strip.text      = element_text(size = facet_size, face = "bold"),
+    axis.title      = element_text(size = axis_title_sz),
+    axis.text       = element_text(size = axis_text_sz),
+    legend.title    = element_text(size = legend_title_sz),
+    legend.text     = element_text(size = legend_text_sz)
+  )
+
+ggsave(filename = file.path(base_path, 'alldata/dissertation/1A/figs/', paste0('formant_outliers_removed', ".pdf")), plot = formant_outliers_removed, width = 16, height = 11,
+       device = cairo_pdf)
+
 
 # ---------------------------------------------------------------------------
 # FORMANT NORMALIZATION (Delta-F Method)
@@ -611,8 +697,10 @@ vowel_strip <- "[ːˑ:\\u035C\\u0361]"                             # removed fro
 vowel_swap_key_path <- NULL      # e.g. file.path(base_path, 'alldata/dissertation/vs/vowel_swap_key.csv')
 vowel_swap_key <- tribble(
   ~phrase, ~from, ~to,
-  # 35,      "ɜ",   "a",
-  # 112,     "ɛ",   "e",
+  82,      "ə",   "a",
+  121,    "e",   "a",
+  122,     "e",   "a",
+  123,     "e",   "a",
 )
 
 if (!is.null(vowel_swap_key_path)) {
@@ -756,44 +844,46 @@ nb_long <- bind_rows(
 vowel_links <- nb_long %>%
   filter(is_vowel, nchar(vowel_label_final) > 0, adjacent | !require_adjacent)
 
-## 4b. Extra vowels to drop ---------------------------------------------------------------------------
-# Vowels that are in the TextGrid but that the IPA does not account for, and that you want left out of the
-# vowel analysis. One row per drop: a vowel next to a target whose TextGrid label is `from` is removed.
-# Leave participant or phrase as NA for "any". Only vowels the IPA gives no label (vowel_label_source ==
-# "TextGrid label") are dropped: a vowel that the IPA or a swap row relabelled is kept.
-vowel_drop_key <- tribble(
-  ~participant, ~phrase, ~from,
-  "SD0036",           82,      "ə",       # extra vowels in the TextGrid, not in the IPA
-  "SD0015",           121,      "ə",
-  "SD0005",           122,      "ə",
-  "SD0005",           123,      "e",
-  "SD0038",           123,      "e",
-  "Y0395",            116,      "u",
-)
+## 4b. Extra vowels to drop (NOT RUN: kept so you can go back to it) ----------------------------------
+# The vowels in this block are currently RELABELLED instead, by vowel_swap_key (section 6, "0. Settings"; phrases 82, 121, 122, 123).
+# To drop them instead: comment out those swap rows, then remove the leading "# " from every line of this block.
+# # Vowels that are in the TextGrid but that the IPA does not account for, and that you want left out of the
+# # vowel analysis. One row per drop: a vowel next to a target whose TextGrid label is `from` is removed.
+# # Leave participant or phrase as NA for "any". Only vowels the IPA gives no label (vowel_label_source ==
+# # "TextGrid label") are dropped: a vowel that the IPA or a swap row relabelled is kept.
+# vowel_drop_key <- tribble(
+#   ~participant, ~phrase, ~from,
+#   "SD0036",           82,      "ə",       # extra vowels in the TextGrid, not in the IPA
+#   "SD0015",           121,      "ə",
+#   "SD0005",           122,      "ə",
+#   "SD0005",           123,      "e",
+#   "SD0038",           123,      "e",
+#   "Y0395",            116,      "u",
+# )
 
-vowel_drop_key <- vowel_drop_key %>%
-  mutate(participant = as.character(participant),
-         phrase = as.integer(phrase),
-         from = str_remove_all(stringi::stri_trans_nfc(str_trim(as.character(from))), vowel_strip))
+# vowel_drop_key <- vowel_drop_key %>%
+#   mutate(participant = as.character(participant),
+#          phrase = as.integer(phrase),
+#          from = str_remove_all(stringi::stri_trans_nfc(str_trim(as.character(from))), vowel_strip))
 
-link_participant <- target_tokens$participant[match(vowel_links$target_token_id, target_tokens$token_id)]
-drop_link <- rep(FALSE, nrow(vowel_links))
-drop_hits <- integer(nrow(vowel_drop_key))
-for (i in seq_len(nrow(vowel_drop_key))) {
-  k <- vowel_drop_key[i, ]
-  hit <- vowel_links$vowel_label_source == "TextGrid label" &
-    vowel_links$vowel_label_collapsed == k$from &
-    (is.na(k$participant) | link_participant == k$participant) &
-    (is.na(k$phrase) | vowel_links$phrase == k$phrase)
-  drop_hits[i] <- sum(hit)
-  drop_link <- drop_link | hit
-}
-dropped_vowel_links <- vowel_links[drop_link, ]     # kept so you can look at what was removed
-vowel_links <- vowel_links[!drop_link, ]
+# link_participant <- target_tokens$participant[match(vowel_links$target_token_id, target_tokens$token_id)]
+# drop_link <- rep(FALSE, nrow(vowel_links))
+# drop_hits <- integer(nrow(vowel_drop_key))
+# for (i in seq_len(nrow(vowel_drop_key))) {
+#   k <- vowel_drop_key[i, ]
+#   hit <- vowel_links$vowel_label_source == "TextGrid label" &
+#     vowel_links$vowel_label_collapsed == k$from &
+#     (is.na(k$participant) | link_participant == k$participant) &
+#     (is.na(k$phrase) | vowel_links$phrase == k$phrase)
+#   drop_hits[i] <- sum(hit)
+#   drop_link <- drop_link | hit
+# }
+# dropped_vowel_links <- vowel_links[drop_link, ]     # kept so you can look at what was removed
+# vowel_links <- vowel_links[!drop_link, ]
 
-cat("\n--- Extra vowels dropped ---\n")
-cat("Vowel links dropped:", nrow(dropped_vowel_links), "| unique vowel tokens:", n_distinct(dropped_vowel_links$vowel_token_id), "\n")
-print(vowel_drop_key %>% mutate(links_dropped = drop_hits), n = Inf)     # 0 = that row matched nothing
+# cat("\n--- Extra vowels dropped ---\n")
+# cat("Vowel links dropped:", nrow(dropped_vowel_links), "| unique vowel tokens:", n_distinct(dropped_vowel_links$vowel_token_id), "\n")
+# print(vowel_drop_key %>% mutate(links_dropped = drop_hits), n = Inf)     # 0 = that row matched nothing
 
 cat("\n--- Vowel context: neighbour check ---\n")
 cat("Target tokens:", nrow(target_tokens), "\n")
@@ -1076,3 +1166,211 @@ write.csv(subset_mean, output_path, row.names = FALSE)
 
 cat("\n--- Pipeline Complete ---\n")
 cat("Output written to:", output_path, "\n")
+
+# ---------------------------------------------------------------------------
+# 9. V-SEQUENCE TIER (for the time-series GAMM)
+# ---------------------------------------------------------------------------
+# PASTE AT THE VERY END of the preprocessing script (after section 8).
+# Uses the same cleaned `data` as everything else, so whitespace trimming, label swaps, excluded trials and
+# "ignore" comments are already applied. `data` is not modified after section 3, so nothing above changes.
+# Writes its own CSV; subset_mean and the main output are untouched.
+# Relies on objects defined earlier in the script: features, cols_to_z, thresh, distance_cutoff, vmahalanobis.
+#
+# Two kinds of derived columns end up in the file:
+#   *_mean, DF, F1n_mean ... : interval-level, one value per event repeated on every frame (same names as subset_mean)
+#   no _mean suffix (strF0_z, CPP_log, F1n, H1res ...) : the frame's own value. Use THESE in the time-series GAMM.
+
+vseq_labels <- c("ħ-V", "h-V", "ʔ-V", "ʕ-V", "son-V",           # CV
+                 "V-ħ-V", "V-h-V", "V-ʔ-V", "V-ʕ-V", "V-son-V",  # VCV
+                 "V-ħ", "V-h", "V-ʔ", "V-ʕ", "V-son")            # VC
+
+# a "son" label is only valid when the stimulus Segment is one of these
+son_segments <- c("j", "w")
+
+## 9a. Select, label-check, de-duplicate -------------------------------------------------------------------
+cat("\n--- Tiers in the cleaned data (rows) ---\n")
+print(table(data$tier, useNA = "ifany"))
+
+if (!any(data$tier == "V-sequence", na.rm = TRUE)) {
+  stop("No V-sequence rows in `data`. They were dropped before this script: ",
+       "preproc_matchesformeans_v2.csv only holds phonetic-tier rows. ",
+       "Regenerate that file (Python step) keeping the V-sequence rows, or point data_path at a file that has them.")
+}
+
+vseq_all <- data %>% filter(tier == "V-sequence")
+
+cat("\n--- V-sequence labels (tokens per label; kept = in the GAMM label set) ---\n")
+print(vseq_all %>%
+        distinct(token_id, interval) %>%
+        count(interval, sort = TRUE) %>%
+        mutate(kept = interval %in% vseq_labels),
+      n = Inf)
+
+vseq_data <- vseq_all %>%
+  filter(interval %in% vseq_labels) %>%
+  mutate(
+    # strip the V- and -V flanks; what is left is the consonant (h, ʔ, ħ, ʕ or son)
+    vseq_consonant = str_remove_all(interval, "^V-|-V$"),
+    position_from_label = case_when(
+      str_detect(interval, "^V-.+-V$") ~ "VCV",
+      str_detect(interval, "^V-")      ~ "VC",
+      str_detect(interval, "-V$")      ~ "CV"),
+    # keep the specific sonorant (j / w) for later; equals vseq_consonant for everything else
+    cons_detail = if_else(vseq_consonant == "son", Segment, vseq_consonant)
+  )
+
+## Position_2 (VC / CV / VCV) should agree with the label. (`Position` is word position: Initial / Medial / Final.)
+if ("Position_2" %in% names(vseq_data)) {
+  pos_mismatch <- vseq_data %>% filter(Position_2 != position_from_label) %>%
+    distinct(participant, phrase, interval, Position_2)
+  cat("\nTokens where Position_2 disagrees with the label:", nrow(pos_mismatch), "\n")
+  if (nrow(pos_mismatch) > 0) print(head(pos_mismatch, 30))
+}
+
+## Same mismatch rule as section 4: the label's consonant must equal the stimulus Segment.
+## For "son" labels, Segment must be j or w instead.
+vseq_data <- vseq_data %>%
+  mutate(seg_match = if_else(vseq_consonant == "son",
+                             Segment %in% son_segments,
+                             vseq_consonant == Segment))
+
+vseq_mismatch <- vseq_data %>%
+  filter(!seg_match) %>%
+  distinct(participant, phrase, interval, Segment) %>%
+  arrange(participant, phrase)
+
+cat("\n--- V-sequence mismatches (label consonant != Segment) ---\n")
+if (nrow(vseq_mismatch) > 0) {
+  print(vseq_mismatch, n = Inf)
+} else {
+  cat("No mismatches found.\n")
+}
+
+vseq_data <- vseq_data %>%
+  filter(seg_match, is.finite(t_prop)) %>%
+  mutate(event = token_id)                     # one event = one V-sequence interval in one file (use for AR.start)
+
+## Boundary frames: a frame that falls exactly on the edge between two sub-segments (vs_label) is present once
+## per sub-segment, with identical acoustics (only vs_label / seg_Start / seg_End differ). The first frame can
+## even be claimed by the segment just BEFORE the interval. Keep one row per (event, t_ms): the sub-segment whose
+## edges contain the frame time (distance 0), the later sub-segment on ties.
+n_before_dedup <- nrow(vseq_data)
+vseq_data <- vseq_data %>%
+  mutate(seg_dist = pmax(seg_Start - t_ms, t_ms - seg_End, 0, na.rm = TRUE)) %>%
+  arrange(event, t_ms, seg_dist, desc(seg_Start)) %>%
+  distinct(event, t_ms, .keep_all = TRUE) %>%
+  select(-seg_dist) %>%
+  arrange(participant, phrase, event, t_ms)
+
+cat("\n--- Boundary frames de-duplicated ---\n")
+cat("Rows before:", n_before_dedup, "| after:", nrow(vseq_data), "| removed:", n_before_dedup - nrow(vseq_data), "\n")
+
+## Checks that matter for AR1: frames per event, and no duplicated frames
+frames_per_event <- vseq_data %>% count(event, name = "n_frames")
+cat("\n--- V-sequence events kept ---\n")
+cat("Events:", nrow(frames_per_event), "| participants:", n_distinct(vseq_data$participant),
+    "| rows:", nrow(vseq_data), "\n")
+cat("Frames per event (min / median / max):",
+    min(frames_per_event$n_frames), "/", median(frames_per_event$n_frames), "/", max(frames_per_event$n_frames), "\n")
+cat("Events with fewer than 5 frames:", sum(frames_per_event$n_frames < 5), "\n")
+dup_frames <- vseq_data %>% count(event, t_ms) %>% filter(n > 1)
+cat("Duplicated (event, t_ms) frames:", nrow(dup_frames), "(should be 0)\n")
+if (nrow(dup_frames) > 0) warning("duplicated (event, t_ms) frames remain in vseq_data")
+cat("Events per label x position:\n")
+print(vseq_data %>% distinct(event, interval, position_from_label) %>% count(position_from_label, interval), n = Inf)
+
+## 9b. Same processing as the consonant targets (mirrors section 5) ---------------------------------------------
+# Runs AFTER the de-duplication so boundary frames are not counted twice in means, z-scores or the H1res model.
+log_pos <- function(x) {                       # log only positive, finite values
+  v <- suppressWarnings(as.numeric(x))
+  ifelse(is.finite(v) & v > 0, log(v), NA_real_)
+}
+z_score <- function(x) {                       # z-score with a guard for sd = 0 or NA
+  m <- mean(x, na.rm = TRUE); s <- sd(x, na.rm = TRUE)
+  if (is.finite(s) && s > 0) (x - m) / s else rep(NA_real_, length(x))
+}
+flag_z <- function(x) if_else(is.finite(x) & abs(x) > thresh, "outlier", "OK")
+
+## 9b-1. Feature means across the frames of each event
+vseq_data <- vseq_data %>%
+  group_by(event) %>%
+  mutate(across(all_of(features), ~ mean(.x, na.rm = TRUE), .names = "{.col}_mean")) %>%
+  ungroup()
+
+## 9b-2. Formant outliers (Mahalanobis, same function and cutoff), grouped by participant and label.
+# This is an EVENT-level flag (computed from the interval means), so a flagged event is flagged on all its frames.
+vseq_data <- vseq_data %>%
+  group_by(participant, interval) %>%
+  do(vmahalanobis(.)) %>%
+  ungroup() %>%
+  mutate(formant_outlier = if_else(!is.na(zF1F2) & zF1F2 > distance_cutoff, "outlier", NA_character_))
+
+## 9b-3. Delta-F: interval-level (from the means) and per frame (from the frame's own formants)
+vseq_data <- vseq_data %>%
+  mutate(
+    DF = (sF1_mean/0.5 + sF2_mean/1.5 + sF3_mean/2.5) / 3,
+    F1n_mean = sF1_mean/DF, F2n_mean = sF2_mean/DF, F3n_mean = sF3_mean/DF,
+    DF_frame = (sF1/0.5 + sF2/1.5 + sF3/2.5) / 3,
+    F1n = sF1/DF_frame, F2n = sF2/DF_frame, F3n = sF3/DF_frame
+  )
+
+## 9b-4. Log transformation: soe_mean_log / Energy_mean_log / CPP_mean_log, and per frame soe_log / Energy_log / CPP_log
+vseq_data <- vseq_data %>%
+  mutate(
+    across(all_of(c("soe_mean", "Energy_mean", "CPP_mean")), log_pos, .names = "{.col}_log"),
+    across(all_of(c("soe", "Energy", "CPP")),                log_pos, .names = "{.col}_log")
+  )
+
+## 9b-5. Z-scoring per participant (across that participant's V-sequence rows) and outlier flags
+vseq_z_interval <- cols_to_z                                          # strF0_mean, H1H2c_mean, CPP_mean_log, ...
+vseq_z_frame    <- c("strF0", "H1H2c", "CPP_log", "Energy_log", "soe_log")
+
+vseq_data <- vseq_data %>%
+  group_by(participant) %>%
+  mutate(
+    across(all_of(vseq_z_interval), z_score, .names = "{.col}_z"),
+    across(all_of(vseq_z_frame),    z_score, .names = "{.col}_z")
+  ) %>%
+  ungroup() %>%
+  mutate(across(all_of(paste0(c(vseq_z_interval, vseq_z_frame), "_z")), flag_z, .names = "{.col}_outlier"))
+
+## 9b-6. H1res, fitted on the V-sequence rows themselves (not the consonant coefficient), as for the vowels.
+# Interval-level version: same model as the consonants.
+H1c_mod_dat_vseq <- vseq_data %>%
+  filter(is.finite(H1c_mean), is.finite(Energy_mean_log), !is.na(strF0_mean_z_outlier),
+         formant_outlier != "outlier" | is.na(formant_outlier))
+mod_vseq <- lmer(H1c_mean ~ Energy_mean_log + strF0_mean + (Energy_mean_log | participant),
+                 data = H1c_mod_dat_vseq)
+H1res_estimate_vseq <- coef(summary(mod_vseq))["Energy_mean_log", "Estimate"]
+cat("\nV-sequence H1res coefficient, interval level (Energy_mean_log):", H1res_estimate_vseq, "\n")
+
+# Per-frame version: same model on the frames' own H1c, Energy_log and strF0.
+H1c_mod_dat_vseq_frame <- vseq_data %>%
+  filter(is.finite(H1c), is.finite(Energy_log), is.finite(strF0),
+         formant_outlier != "outlier" | is.na(formant_outlier))
+mod_vseq_frame <- lmer(H1c ~ Energy_log + strF0 + (Energy_log | participant),
+                       data = H1c_mod_dat_vseq_frame)
+H1res_estimate_vseq_frame <- coef(summary(mod_vseq_frame))["Energy_log", "Estimate"]
+cat("V-sequence H1res coefficient, per frame (Energy_log):", H1res_estimate_vseq_frame, "\n")
+
+vseq_data <- vseq_data %>%
+  mutate(
+    H1res_mean = if_else(is.finite(H1c_mean) & is.finite(Energy_mean_log),
+                         H1c_mean - H1res_estimate_vseq * Energy_mean_log, NA_real_),
+    H1res      = if_else(is.finite(H1c) & is.finite(Energy_log),
+                         H1c - H1res_estimate_vseq_frame * Energy_log, NA_real_)
+  ) %>%
+  group_by(participant) %>%
+  mutate(across(all_of(c("H1res_mean", "H1res")), z_score, .names = "{.col}_z")) %>%
+  ungroup() %>%
+  mutate(across(all_of(c("H1res_mean_z", "H1res_z")), flag_z, .names = "{.col}_outlier"))
+
+cat("Non-finite H1res_mean:", sum(!is.finite(vseq_data$H1res_mean)),
+    "| non-finite per-frame H1res:", sum(!is.finite(vseq_data$H1res)), "\n")
+cat("Events flagged as formant outliers:",
+    n_distinct(vseq_data$event[vseq_data$formant_outlier %in% "outlier"]), "of", n_distinct(vseq_data$event), "\n")
+
+## 9c. Write --------------------------------------------------------------------------------------------------
+vseq_output_path <- file.path(base_path, 'alldata/dissertation/vs/output_preproc/pharylary_vsequence_for_gamm.csv')
+write.csv(vseq_data, vseq_output_path, row.names = FALSE)
+cat("V-sequence output written to:", vseq_output_path, "\n")
